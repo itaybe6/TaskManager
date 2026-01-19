@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "TaskManager",
+    "slug": "taskmanager",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"]
+  }
+}
