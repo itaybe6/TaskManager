@@ -10,8 +10,16 @@ export function RootNavigator() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="HomeTabs" component={TabsNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} options={{ title: 'פרטים' }} />
-      <Stack.Screen name="TaskUpsert" component={TaskUpsertScreen} options={{ title: 'עריכה' }} />
+      <Stack.Screen
+        name="TaskDetails"
+        component={TaskDetailsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TaskUpsert"
+        component={TaskUpsertScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
