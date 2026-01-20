@@ -12,6 +12,7 @@ export class InMemoryTaskRepository implements TaskRepository {
       description: 'רשימה + יצירה + פרטים',
       status: 'in_progress',
       priority: 'high',
+      projectId: 'p1111111-1111-1111-1111-111111111111',
       createdAt: nowIso(),
       updatedAt: nowIso(),
       tags: ['mvp'],
@@ -21,6 +22,7 @@ export class InMemoryTaskRepository implements TaskRepository {
       title: 'לשוחח עם לקוח',
       status: 'todo',
       priority: 'medium',
+      projectId: 'p2222222-2222-2222-2222-222222222222',
       createdAt: nowIso(),
       updatedAt: nowIso(),
     },
@@ -29,6 +31,7 @@ export class InMemoryTaskRepository implements TaskRepository {
   async list(query?: TaskQuery): Promise<Task[]> {
     let out = [...this.tasks];
 
+    if (query?.projectId) out = out.filter(t => t.projectId === query.projectId);
     if (query?.status) out = out.filter(t => t.status === query.status);
     if (query?.searchText?.trim()) {
       const s = query.searchText.trim().toLowerCase();

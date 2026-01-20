@@ -9,6 +9,7 @@ export type Task = {
   priority: TaskPriority;
 
   assignee?: string;
+  projectId?: string;
   dueAt?: string; // ISO
   tags?: string[];
 

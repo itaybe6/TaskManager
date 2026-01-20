@@ -15,7 +15,11 @@ import { useTasksStore } from '../store/tasksStore';
 import { TaskPriority, TaskStatus } from '../model/taskTypes';
 
 export function TaskUpsertScreen({ route, navigation }: any) {
-  const { mode, id } = route.params as { mode: 'create' | 'edit'; id?: string };
+  const { mode, id, projectId } = route.params as {
+    mode: 'create' | 'edit';
+    id?: string;
+    projectId?: string;
+  };
   const { repo, createTask, updateTask } = useTasksStore();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -277,6 +281,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     description,
                     status,
                     priority,
+                    projectId,
                     dueAt,
                     tags: tags.length ? tags : undefined,
                   });
@@ -286,6 +291,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     description,
                     status,
                     priority,
+                    projectId,
                     dueAt,
                     tags: tags.length ? tags : undefined,
                   });

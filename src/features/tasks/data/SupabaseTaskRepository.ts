@@ -11,6 +11,7 @@ type DbTaskRow = {
   assignee_id: string | null;
   due_at: string | null;
   tags: string[] | null;
+  project_id: string | null;
   created_at: string;
   updated_at: string;
   // Embedded relation (if selected)
@@ -25,6 +26,7 @@ function mapRowToTask(r: DbTaskRow): Task {
     status: r.status,
     priority: r.priority,
     assignee: r.assignee?.display_name ?? undefined,
+    projectId: r.project_id ?? undefined,
     dueAt: r.due_at ?? undefined,
     tags: r.tags ?? undefined,
     createdAt: r.created_at,
@@ -40,7 +42,7 @@ function mapTaskToInsert(input: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) {
     priority: input.priority,
     due_at: input.dueAt ?? null,
     tags: input.tags ?? null,
-    // assignee_id/project_id not modeled in current UI yet
+    project_id: input.projectId ?? null,
   };
 }
 
@@ -52,6 +54,7 @@ function mapTaskToPatch(patch: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedA
     ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
     ...(patch.dueAt !== undefined ? { due_at: patch.dueAt ?? null } : {}),
     ...(patch.tags !== undefined ? { tags: patch.tags ?? null } : {}),
+    ...(patch.projectId !== undefined ? { project_id: patch.projectId ?? null } : {}),
   };
 }
 
@@ -64,8 +67,9 @@ export class SupabaseTaskRepository implements TaskRepository {
       path: '/rest/v1/tasks',
       query: {
         select:
-          'id,title,description,status,priority,assignee_id,due_at,tags,created_at,updated_at,assignee:users(display_name)',
+          'id,title,description,status,priority,assignee_id,due_at,tags,project_id,created_at,updated_at,assignee:users(display_name)',
         ...(query?.status ? { status: `eq.${query.status}` } : {}),
+        ...(query?.projectId ? { project_id: `eq.${query.projectId}` } : {}),
         ...(q
           ? {
               or: `(title.ilike.*${escapeIlike(q)}*,description.ilike.*${escapeIlike(q)}*)`,
@@ -84,7 +88,7 @@ export class SupabaseTaskRepository implements TaskRepository {
       path: '/rest/v1/tasks',
       query: {
         select:
-          'id,title,description,status,priority,assignee_id,due_at,tags,created_at,updated_at,assignee:users(display_name)',
+          'id,title,description,status,priority,assignee_id,due_at,tags,project_id,created_at,updated_at,assignee:users(display_name)',
         id: `eq.${id}`,
         limit: '1',
       },

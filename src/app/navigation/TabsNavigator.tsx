@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet, useColorScheme } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { TasksListScreen } from '../../features/tasks/ui/TasksListScreen';
-import { CalendarScreen } from '../../screens/CalendarScreen';
+import { ProjectsListScreen } from '../../features/projects/ui/ProjectsListScreen';
 import { SettingsScreen } from '../../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -42,13 +42,13 @@ export function TabsNavigator() {
         }}
       />
       <Tab.Screen
-        name="Calendar"
-        component={CalendarScreen}
+        name="Projects"
+        component={ProjectsListScreen}
         options={{
-          title: 'יומן',
+          title: 'פרויקטים',
           tabBarIcon: ({ color, focused, size }) => (
             <TabIcon focused={focused}>
-              <MaterialIcons name="calendar-month" size={size ?? 24} color={color} />
+              <MaterialIcons name="work" size={size ?? 24} color={color} />
             </TabIcon>
           ),
         }}

@@ -3,6 +3,7 @@ import { Task } from '../model/taskTypes';
 export type TaskQuery = {
   status?: Task['status'];
   searchText?: string;
+  projectId?: string;
 };
 
 export interface TaskRepository {
