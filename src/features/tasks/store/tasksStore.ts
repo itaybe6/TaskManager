@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { Task } from '../model/taskTypes';
 import { TaskRepository, TaskQuery } from '../data/TaskRepository';
 import { InMemoryTaskRepository } from '../data/InMemoryTaskRepository';
+import { SupabaseTaskRepository } from '../data/SupabaseTaskRepository';
+import { getSupabaseConfig } from '../../../app/supabase/rest';
 
 type TasksState = {
   repo: TaskRepository;
@@ -24,7 +26,7 @@ type TasksState = {
 };
 
 export const useTasksStore = create<TasksState>((set, get) => ({
-  repo: new InMemoryTaskRepository(),
+  repo: makeTasksRepo(),
   items: [],
   isLoading: false,
   query: {},
@@ -64,3 +66,9 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     await get().load();
   },
 }));
+
+function makeTasksRepo(): TaskRepository {
+  // If Supabase env exists -> use Supabase.
+  // Otherwise fallback to in-memory so dev never breaks.
+  return getSupabaseConfig() ? new SupabaseTaskRepository() : new InMemoryTaskRepository();
+}
