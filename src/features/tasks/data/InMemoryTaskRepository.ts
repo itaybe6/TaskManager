@@ -13,6 +13,8 @@ export class InMemoryTaskRepository implements TaskRepository {
       status: 'in_progress',
       priority: 'high',
       projectId: 'p1111111-1111-1111-1111-111111111111',
+      categoryId: 'cat_projects',
+      categoryName: 'פרויקטים',
       createdAt: nowIso(),
       updatedAt: nowIso(),
       tags: ['mvp'],
@@ -23,6 +25,8 @@ export class InMemoryTaskRepository implements TaskRepository {
       status: 'todo',
       priority: 'medium',
       projectId: 'p2222222-2222-2222-2222-222222222222',
+      categoryId: 'cat_marketing',
+      categoryName: 'פרסום',
       createdAt: nowIso(),
       updatedAt: nowIso(),
     },
@@ -32,6 +36,7 @@ export class InMemoryTaskRepository implements TaskRepository {
     let out = [...this.tasks];
 
     if (query?.projectId) out = out.filter(t => t.projectId === query.projectId);
+    if (query?.categoryId) out = out.filter(t => t.categoryId === query.categoryId);
     if (query?.status) out = out.filter(t => t.status === query.status);
     if (query?.searchText?.trim()) {
       const s = query.searchText.trim().toLowerCase();

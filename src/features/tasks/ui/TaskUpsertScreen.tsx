@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
 import { TaskPriority, TaskStatus } from '../model/taskTypes';
+import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
 
 export function TaskUpsertScreen({ route, navigation }: any) {
   const { mode, id, projectId } = route.params as {
@@ -21,6 +22,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     projectId?: string;
   };
   const { repo, createTask, updateTask } = useTasksStore();
+  const cats = useTaskCategoriesStore();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
 
@@ -28,10 +30,17 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [dueAt, setDueAt] = useState<string | undefined>(undefined);
   const [tags, setTags] = useState<string[]>([]);
   const [tagsModalOpen, setTagsModalOpen] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  useEffect(() => {
+    cats.load();
+  }, []);
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -42,6 +51,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       setDescription(t.description ?? '');
       setStatus(t.status);
       setPriority(t.priority);
+      setCategoryId(t.categoryId);
       setDueAt(t.dueAt);
       setTags(t.tags ?? []);
     })();
@@ -198,6 +208,53 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
             <View style={{ gap: 12 }}>
               <Pressable
+                onPress={() => setCatModalOpen(true)}
+                style={({ pressed }) => [
+                  styles.pickerBtn,
+                  {
+                    backgroundColor: isDark ? '#262626' : '#ffffff',
+                    borderColor: isDark ? 'rgba(75, 85, 99, 0.40)' : '#f1f5f9',
+                    opacity: pressed ? 0.92 : 1,
+                    transform: [{ scale: pressed ? 0.99 : 1 }],
+                  },
+                ]}
+              >
+                <View style={styles.pickerMain}>
+                  <View
+                    style={[
+                      styles.pickerIconCircle,
+                      { backgroundColor: isDark ? 'rgba(77, 127, 255, 0.20)' : '#eff6ff' },
+                    ]}
+                  >
+                    <MaterialIcons name="category" size={20} color="#4d7fff" />
+                  </View>
+                  <View style={{ gap: 2, flexShrink: 1 }}>
+                    <Text
+                      style={{
+                        color: isDark ? '#9ca3af' : '#6b7280',
+                        fontSize: 13,
+                        fontWeight: '600',
+                        textAlign: 'right',
+                      }}
+                    >
+                      קטגוריה
+                    </Text>
+                    <Text
+                      style={{
+                        color: isDark ? '#fff' : '#111827',
+                        fontSize: 15,
+                        fontWeight: '900',
+                        textAlign: 'right',
+                      }}
+                    >
+                      {categoryId ? cats.items.find((c) => c.id === categoryId)?.name ?? 'נבחרה' : 'ללא קטגוריה'}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
+              </Pressable>
+
+              <Pressable
                 onPress={() => setDueAt(toggleDueAt(dueAt))}
                 style={({ pressed }) => [
                   styles.pickerBtn,
@@ -282,6 +339,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     status,
                     priority,
                     projectId,
+                    categoryId,
                     dueAt,
                     tags: tags.length ? tags : undefined,
                   });
@@ -292,6 +350,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     status,
                     priority,
                     projectId,
+                    categoryId,
                     dueAt,
                     tags: tags.length ? tags : undefined,
                   });
@@ -392,6 +451,146 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     ]}
                   >
                     <Text style={{ color: isDark ? '#d1d5db' : '#374151', fontWeight: '900' }}>נקה</Text>
+                  </Pressable>
+                </View>
+              </Pressable>
+            </Pressable>
+          </Modal>
+
+          <Modal
+            visible={catModalOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setCatModalOpen(false)}
+          >
+            <Pressable style={styles.modalOverlay} onPress={() => setCatModalOpen(false)}>
+              <Pressable
+                style={[styles.modalCard, { backgroundColor: isDark ? '#262626' : '#ffffff' }]}
+                onPress={() => {}}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '900',
+                    color: isDark ? '#fff' : '#111827',
+                    textAlign: 'right',
+                  }}
+                >
+                  קטגוריות משימות
+                </Text>
+
+                <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <Pressable
+                    onPress={() => {
+                      setCategoryId(undefined);
+                      setCatModalOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        borderRadius: 12,
+                        backgroundColor: !categoryId ? '#4d7fff' : isDark ? '#1f2937' : '#f1f5f9',
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: !categoryId ? '#fff' : isDark ? '#d1d5db' : '#475569',
+                        fontWeight: '900',
+                        fontSize: 12,
+                      }}
+                    >
+                      ללא
+                    </Text>
+                  </Pressable>
+
+                  {cats.items.map((c) => {
+                    const active = categoryId === c.id;
+                    return (
+                      <Pressable
+                        key={c.id}
+                        onPress={() => {
+                          setCategoryId(c.id);
+                          setCatModalOpen(false);
+                        }}
+                        style={({ pressed }) => [
+                          {
+                            paddingHorizontal: 10,
+                            paddingVertical: 8,
+                            borderRadius: 12,
+                            backgroundColor: active ? '#4d7fff' : isDark ? '#1f2937' : '#f1f5f9',
+                            opacity: pressed ? 0.9 : 1,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: active ? '#fff' : isDark ? '#d1d5db' : '#475569',
+                            fontWeight: '900',
+                            fontSize: 12,
+                          }}
+                        >
+                          {c.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <View style={{ marginTop: 14 }}>
+                  <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>
+                    הוסף קטגוריה
+                  </Text>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10 }}>
+                    <TextInput
+                      value={newCategoryName}
+                      onChangeText={setNewCategoryName}
+                      placeholder="לדוגמה: פיננסים"
+                      placeholderTextColor={isDark ? '#525252' : '#9ca3af'}
+                      style={[
+                        styles.tagInput,
+                        {
+                          backgroundColor: isDark ? '#1f2937' : '#f8f9fc',
+                          color: isDark ? '#fff' : '#111827',
+                        },
+                      ]}
+                      returnKeyType="done"
+                    />
+                    <Pressable
+                      onPress={async () => {
+                        const name = newCategoryName.trim();
+                        if (!name) return;
+                        const slug = slugify(name);
+                        const created = await cats.createCategory({
+                          name,
+                          slug,
+                          color: '#4d7fff',
+                        });
+                        setCategoryId(created.id);
+                        setNewCategoryName('');
+                        setCatModalOpen(false);
+                      }}
+                      style={({ pressed }) => [
+                        styles.addTagBtn,
+                        { opacity: pressed ? 0.9 : 1 },
+                      ]}
+                    >
+                      <MaterialIcons name="add" size={18} color="#fff" />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={{ marginTop: 16, flexDirection: 'row-reverse', gap: 10 }}>
+                  <Pressable
+                    onPress={() => setCatModalOpen(false)}
+                    style={({ pressed }) => [
+                      styles.modalDone,
+                      { opacity: pressed ? 0.9 : 1 },
+                    ]}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '900' }}>סגור</Text>
                   </Pressable>
                 </View>
               </Pressable>
@@ -685,4 +884,14 @@ function formatDueForPicker(iso: string) {
 function normalizeTag(raw: string) {
   const t = raw.trim().replace(/^#\s*/, '').replace(/\s+/g, ' ');
   return t.length ? t : '';
+}
+
+function slugify(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[\u0590-\u05FF]+/g, '') // remove hebrew chars from slug
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || `cat-${Date.now()}`;
 }

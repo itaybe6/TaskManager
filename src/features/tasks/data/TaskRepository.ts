@@ -4,6 +4,7 @@ export type TaskQuery = {
   status?: Task['status'];
   searchText?: string;
   projectId?: string;
+  categoryId?: string;
 };
 
 export interface TaskRepository {

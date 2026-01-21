@@ -12,10 +12,12 @@ type DbTaskRow = {
   due_at: string | null;
   tags: string[] | null;
   project_id: string | null;
+  category_id: string | null;
   created_at: string;
   updated_at: string;
   // Embedded relation (if selected)
   assignee?: { display_name?: string | null } | null;
+  category?: { name?: string | null; color?: string | null } | null;
 };
 
 function mapRowToTask(r: DbTaskRow): Task {
@@ -27,6 +29,8 @@ function mapRowToTask(r: DbTaskRow): Task {
     priority: r.priority,
     assignee: r.assignee?.display_name ?? undefined,
     projectId: r.project_id ?? undefined,
+    categoryId: r.category_id ?? undefined,
+    categoryName: r.category?.name ?? undefined,
     dueAt: r.due_at ?? undefined,
     tags: r.tags ?? undefined,
     createdAt: r.created_at,
@@ -43,6 +47,7 @@ function mapTaskToInsert(input: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) {
     due_at: input.dueAt ?? null,
     tags: input.tags ?? null,
     project_id: input.projectId ?? null,
+    category_id: input.categoryId ?? null,
   };
 }
 
@@ -55,6 +60,7 @@ function mapTaskToPatch(patch: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedA
     ...(patch.dueAt !== undefined ? { due_at: patch.dueAt ?? null } : {}),
     ...(patch.tags !== undefined ? { tags: patch.tags ?? null } : {}),
     ...(patch.projectId !== undefined ? { project_id: patch.projectId ?? null } : {}),
+    ...(patch.categoryId !== undefined ? { category_id: patch.categoryId ?? null } : {}),
   };
 }
 
@@ -67,9 +73,10 @@ export class SupabaseTaskRepository implements TaskRepository {
       path: '/rest/v1/tasks',
       query: {
         select:
-          'id,title,description,status,priority,assignee_id,due_at,tags,project_id,created_at,updated_at,assignee:users(display_name)',
+          'id,title,description,status,priority,assignee_id,due_at,tags,project_id,category_id,created_at,updated_at,assignee:users(display_name),category:task_categories(name,color)',
         ...(query?.status ? { status: `eq.${query.status}` } : {}),
         ...(query?.projectId ? { project_id: `eq.${query.projectId}` } : {}),
+        ...(query?.categoryId ? { category_id: `eq.${query.categoryId}` } : {}),
         ...(q
           ? {
               or: `(title.ilike.*${escapeIlike(q)}*,description.ilike.*${escapeIlike(q)}*)`,
@@ -88,7 +95,7 @@ export class SupabaseTaskRepository implements TaskRepository {
       path: '/rest/v1/tasks',
       query: {
         select:
-          'id,title,description,status,priority,assignee_id,due_at,tags,project_id,created_at,updated_at,assignee:users(display_name)',
+          'id,title,description,status,priority,assignee_id,due_at,tags,project_id,category_id,created_at,updated_at,assignee:users(display_name),category:task_categories(name,color)',
         id: `eq.${id}`,
         limit: '1',
       },

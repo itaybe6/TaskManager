@@ -11,15 +11,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
+import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
 
 export function TasksListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery } = useTasksStore();
+  const cats = useTaskCategoriesStore();
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
 
   useEffect(() => {
     load();
   }, [query.status, query.searchText]);
+
+  useEffect(() => {
+    cats.load();
+  }, []);
 
   const header = useMemo(() => {
     const status = (query.status ?? 'all') as 'all' | 'todo' | 'in_progress' | 'done';
@@ -92,6 +98,30 @@ export function TasksListScreen({ navigation }: any) {
           />
         </View>
 
+        <View style={styles.pillsScroller}>
+          <FlatList
+            horizontal
+            data={['all', ...cats.items.map((c) => c.id)]}
+            keyExtractor={(k) => k}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsRow}
+            renderItem={({ item: key }) => {
+              const isAll = key === 'all';
+              const c = isAll ? undefined : cats.items.find((x) => x.id === key);
+              const active = isAll ? !query.categoryId : query.categoryId === key;
+              const label = isAll ? 'הכל' : c?.name ?? 'קטגוריה';
+              return (
+                <FilterPill
+                  label={label}
+                  active={active}
+                  isDark={isDark}
+                  onPress={() => setQuery({ categoryId: isAll ? undefined : key })}
+                />
+              );
+            }}
+          />
+        </View>
+
         <View style={styles.sectionRow}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#e5e7eb' : '#1f2937' }]}>
             היום
@@ -140,6 +170,9 @@ export function TasksListScreen({ navigation }: any) {
           >
             <View style={styles.cardTopRow}>
               <View style={styles.tagsRow}>
+                {item.categoryName ? (
+                  <Tag label={item.categoryName} tone="category" isDark={isDark} />
+                ) : null}
                 {item.priority ? (
                   <Tag
                     label={priorityLabel(item.priority)}
@@ -406,7 +439,7 @@ function Tag({
   isDark,
 }: {
   label: string;
-  tone: 'low' | 'medium' | 'high' | 'todo' | 'in_progress' | 'done';
+  tone: 'low' | 'medium' | 'high' | 'todo' | 'in_progress' | 'done' | 'category';
   isDark: boolean;
 }) {
   const { bg, fg } = tagColors(tone, isDark);
@@ -418,10 +451,12 @@ function Tag({
 }
 
 function tagColors(
-  tone: 'low' | 'medium' | 'high' | 'todo' | 'in_progress' | 'done',
+  tone: 'low' | 'medium' | 'high' | 'todo' | 'in_progress' | 'done' | 'category',
   isDark: boolean
 ) {
   switch (tone) {
+    case 'category':
+      return { bg: isDark ? 'rgba(77, 127, 255, 0.18)' : '#eff6ff', fg: isDark ? '#bfdbfe' : '#2563eb' };
     case 'high':
       return { bg: isDark ? 'rgba(239, 68, 68, 0.25)' : '#fef2f2', fg: isDark ? '#fecaca' : '#dc2626' };
     case 'medium':

@@ -4,8 +4,10 @@
 
 - **שלב 1 (סכמה)**: הרץ את הקובץ `supabase/schema.sql`
 - **שלב 2 (סכמה עסקית)**: הרץ את הקובץ `supabase/schema.business.sql`
-- **שלב 3 (נתונים)**: הרץ את הקובץ `supabase/seed.sql`
-- **שלב 4 (נתונים עסקיים)**: הרץ את הקובץ `supabase/seed.business.sql`
+- **שלב 3 (קטגוריות משימות)**: הרץ את הקובץ `supabase/schema.tasks.categories.sql`
+- **שלב 4 (נתונים)**: הרץ את הקובץ `supabase/seed.sql`
+- **שלב 5 (נתונים עסקיים)**: הרץ את הקובץ `supabase/seed.business.sql`
+- **שלב 6 (seed קטגוריות משימות)**: הרץ את הקובץ `supabase/seed.tasks.categories.sql`
 
 ### פרומפט קצר להדבקה לצ׳אט / AI Assistant של Supabase
 

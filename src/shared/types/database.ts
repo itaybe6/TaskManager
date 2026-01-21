@@ -14,6 +14,15 @@ export type DocKind = 'general' | 'receipt' | 'invoice' | 'quote' | 'contract' |
 export type TransactionType = 'income' | 'expense';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void';
 
+export interface DbTaskCategory {
+  id: string;
+  name: string;
+  slug: string;
+  color?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DbUser {
   id: string;
   display_name: string;
@@ -33,6 +42,7 @@ export interface DbTask {
   due_at?: string | null;
   tags?: string[] | null;
   project_id?: string | null;
+  category_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -146,9 +156,17 @@ export type DbTaskInsert = {
   due_at?: string | null;
   tags?: string[] | null;
   project_id?: string | null;
+  category_id?: string | null;
 };
 
 export type DbTaskUpdate = Partial<DbTaskInsert>;
+
+export type DbTaskCategoryInsert = {
+  name: string;
+  slug: string;
+  color?: string | null;
+};
+export type DbTaskCategoryUpdate = Partial<DbTaskCategoryInsert>;
 
 export type DbClientInsert = {
   name: string;
@@ -240,6 +258,11 @@ export type Database = {
         Row: DbUser;
         Insert: DbUserInsert;
         Update: DbUserUpdate;
+      };
+      task_categories: {
+        Row: DbTaskCategory;
+        Insert: DbTaskCategoryInsert;
+        Update: DbTaskCategoryUpdate;
       };
       tasks: {
         Row: DbTask;

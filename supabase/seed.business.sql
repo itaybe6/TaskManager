@@ -36,12 +36,12 @@ values
 -- Projects
 insert into public.projects (id, client_id, name, description, status, start_date, end_date, budget, currency)
 values
-  ('p1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'מיתוג ומצגות Q4', 'סט מצגות והכנות לישיבת הנהלה', 'active', current_date - 7, null, 25000, 'ILS'),
-  ('p2222222-2222-2222-2222-222222222222', 'c2222222-2222-2222-2222-222222222222', 'שדרוג תהליך שירות', 'טיוב תהליכים והטמעת כלים', 'planned', current_date, null, 18000, 'ILS');
+  ('a1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'מיתוג ומצגות Q4', 'סט מצגות והכנות לישיבת הנהלה', 'active', current_date - 7, null, 25000, 'ILS'),
+  ('a2222222-2222-2222-2222-222222222222', 'c2222222-2222-2222-2222-222222222222', 'שדרוג תהליך שירות', 'טיוב תהליכים והטמעת כלים', 'planned', current_date, null, 18000, 'ILS');
 
 -- Link existing seeded tasks to a project (if they exist)
 update public.tasks
-set project_id = 'p1111111-1111-1111-1111-111111111111'
+set project_id = 'a1111111-1111-1111-1111-111111111111'
 where id in (
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
@@ -60,7 +60,7 @@ values
     '11111111-1111-1111-1111-111111111111',
     now() + interval '1 day',
     array['כספים','נתונים'],
-    'p1111111-1111-1111-1111-111111111111'
+    'a1111111-1111-1111-1111-111111111111'
   ),
   (
     'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
@@ -71,7 +71,7 @@ values
     '22222222-2222-2222-2222-222222222222',
     now() + interval '5 days',
     array['תהליך','שירות'],
-    'p2222222-2222-2222-2222-222222222222'
+    'a2222222-2222-2222-2222-222222222222'
   )
 on conflict (id) do nothing;
 
@@ -80,10 +80,10 @@ insert into public.documents (id, project_id, kind, title, storage_path, file_na
 values
   (
     'd0c00000-0000-0000-0000-000000000001',
-    'p1111111-1111-1111-1111-111111111111',
+    'a1111111-1111-1111-1111-111111111111',
     'general',
     'בריף מצגת Q4',
-    'projects/p1111111/brief-q4.pdf',
+    'projects/a1111111/brief-q4.pdf',
     'brief-q4.pdf',
     'application/pdf',
     245812,
@@ -91,10 +91,10 @@ values
   ),
   (
     'd0c00000-0000-0000-0000-000000000002',
-    'p1111111-1111-1111-1111-111111111111',
+    'a1111111-1111-1111-1111-111111111111',
     'receipt',
     'קבלה – רכישת אייקונים',
-    'projects/p1111111/receipts/icons.png',
+    'projects/a1111111/receipts/icons.png',
     'icons.png',
     'image/png',
     58231,
@@ -104,16 +104,16 @@ values
 -- Price list
 insert into public.price_list_items (id, title, unit, unit_price, currency, is_active)
 values
-  ('pr111111-1111-1111-1111-111111111111', 'שעת ייעוץ', 'hour', 450, 'ILS', true),
-  ('pr222222-2222-2222-2222-222222222222', 'מצגת מעוצבת', 'unit', 3500, 'ILS', true),
-  ('pr333333-3333-3333-3333-333333333333', 'תחזוקה חודשית', 'month', 1200, 'ILS', true);
+  ('b1111111-1111-1111-1111-111111111111', 'שעת ייעוץ', 'hour', 450, 'ILS', true),
+  ('b2222222-2222-2222-2222-222222222222', 'מצגת מעוצבת', 'unit', 3500, 'ILS', true),
+  ('b3333333-3333-3333-3333-333333333333', 'תחזוקה חודשית', 'month', 1200, 'ILS', true);
 
 -- Invoice + items
 insert into public.invoices (id, project_id, invoice_no, status, issued_at, due_at, currency, subtotal, tax, total, notes)
 values
   (
-    'inv11111-1111-1111-1111-111111111111',
-    'p1111111-1111-1111-1111-111111111111',
+    'c1111111-aaaa-bbbb-cccc-111111111111',
+    'a1111111-1111-1111-1111-111111111111',
     '2026-0001',
     'sent',
     current_date,
@@ -127,15 +127,15 @@ values
 
 insert into public.invoice_items (id, invoice_id, title, qty, unit_price, line_total)
 values
-  ('it111111-1111-1111-1111-111111111111', 'inv11111-1111-1111-1111-111111111111', 'שעת ייעוץ', 1, 450, 450),
-  ('it222222-2222-2222-2222-222222222222', 'inv11111-1111-1111-1111-111111111111', 'מצגת מעוצבת', 1, 3500, 3500);
+  ('d1111111-1111-1111-1111-111111111111', 'c1111111-aaaa-bbbb-cccc-111111111111', 'שעת ייעוץ', 1, 450, 450),
+  ('d2222222-2222-2222-2222-222222222222', 'c1111111-aaaa-bbbb-cccc-111111111111', 'מצגת מעוצבת', 1, 3500, 3500);
 
 -- Transactions (income/expense)
 insert into public.transactions (id, project_id, type, category, description, amount, currency, occurred_at, receipt_document_id)
 values
   (
-    'tx111111-1111-1111-1111-111111111111',
-    'p1111111-1111-1111-1111-111111111111',
+    'e1111111-1111-1111-1111-111111111111',
+    'a1111111-1111-1111-1111-111111111111',
     'income',
     'חשבונית',
     'חשבונית 2026-0001 (נשלחה)',
@@ -145,8 +145,8 @@ values
     null
   ),
   (
-    'tx222222-2222-2222-2222-222222222222',
-    'p1111111-1111-1111-1111-111111111111',
+    'e2222222-2222-2222-2222-222222222222',
+    'a1111111-1111-1111-1111-111111111111',
     'expense',
     'עיצוב',
     'רכישת אייקונים',
