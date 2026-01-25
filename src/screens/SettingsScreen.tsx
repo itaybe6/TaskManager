@@ -5,26 +5,31 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { BrandLogo } from '../shared/ui/BrandLogo';
+import { theme } from '../shared/ui/theme';
+import { useAppColorScheme } from '../shared/ui/useAppColorScheme';
+import { AppButton } from '../shared/ui/AppButton';
+import { useAuthStore } from '../features/auth/store/authStore';
 
-export function SettingsScreen() {
-  const scheme = useColorScheme();
+export function SettingsScreen({ navigation }: any) {
+  const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+  const signOut = useAuthStore((s) => s.signOut);
 
   const colors = {
-    primary: '#4d7fff',
-    surfaceLight: '#f8f9fc',
+    primary: theme.colors.primary,
+    surfaceLight: theme.colors.background,
     surfaceDark: '#121212',
-    backgroundLight: '#ffffff',
+    backgroundLight: theme.colors.background,
     backgroundDark: '#1a1a1a',
-    textLight: '#0f172a',
+    textLight: theme.colors.text,
     textDark: '#ffffff',
     subLight: '#64748b',
     subDark: '#94a3b8',
-    borderLight: '#f1f5f9',
+    borderLight: theme.colors.border,
     borderDark: '#262626',
   } as const;
 
@@ -47,14 +52,17 @@ export function SettingsScreen() {
 
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text
-                style={[
-                  styles.headerTitle,
-                  { color: isDark ? colors.textDark : colors.textLight },
-                ]}
-              >
-                הגדרות
-              </Text>
+              <View style={styles.headerTitleRow}>
+                <BrandLogo width={86} height={28} style={{ marginTop: 2 }} />
+                <Text
+                  style={[
+                    styles.headerTitle,
+                    { color: isDark ? colors.textDark : colors.textLight },
+                  ]}
+                >
+                  הגדרות
+                </Text>
+              </View>
               <Text
                 style={[
                   styles.headerSubtitle,
@@ -101,6 +109,7 @@ export function SettingsScreen() {
                 iconBg={isDark ? 'rgba(124, 58, 237, 0.20)' : '#f3e8ff'}
                 isDark={isDark}
                 showDivider
+                onPress={() => navigation.navigate('Notifications')}
               />
               <SettingsRow
                 title="סנכרון"
@@ -121,6 +130,12 @@ export function SettingsScreen() {
                 showDivider={false}
               />
             </View>
+
+            <AppButton
+              title="התנתקות"
+              onPress={() => signOut()}
+              style={{ marginTop: 16, backgroundColor: theme.colors.danger }}
+            />
 
             <View style={styles.footer}>
               <Text
@@ -155,6 +170,7 @@ function SettingsRow({
   iconBg,
   isDark,
   showDivider,
+  onPress,
 }: {
   title: string;
   subtitle: string;
@@ -163,10 +179,11 @@ function SettingsRow({
   iconBg: string;
   isDark: boolean;
   showDivider: boolean;
+  onPress?: () => void;
 }) {
   return (
     <Pressable
-      onPress={() => {}}
+      onPress={onPress}
       style={({ pressed }) => [
         styles.row,
         pressed && { opacity: 0.92 },
@@ -240,6 +257,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerText: { flexShrink: 1 },
+  headerTitleRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   headerTitle: {
     fontSize: 32,
     fontWeight: '800',
@@ -259,7 +277,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },

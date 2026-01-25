@@ -4,6 +4,7 @@ import { TaskRepository, TaskQuery } from '../data/TaskRepository';
 import { InMemoryTaskRepository } from '../data/InMemoryTaskRepository';
 import { SupabaseTaskRepository } from '../data/SupabaseTaskRepository';
 import { getSupabaseConfig } from '../../../app/supabase/rest';
+import { useAuthStore } from '../../auth/store/authStore';
 
 type TasksState = {
   repo: TaskRepository;
@@ -35,7 +36,8 @@ export const useTasksStore = create<TasksState>((set, get) => ({
     set({ isLoading: true, error: undefined });
     try {
       const { repo, query } = get();
-      const items = await repo.list(query);
+      const viewerUserId = useAuthStore.getState().session?.user?.id;
+      const items = await repo.list({ ...query, viewerUserId });
       set({ items, isLoading: false });
     } catch (e: any) {
       set({ error: e?.message ?? 'Unknown error', isLoading: false });

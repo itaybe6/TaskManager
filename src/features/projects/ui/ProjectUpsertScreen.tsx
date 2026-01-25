@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, useColorScheme, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useProjectsStore } from '../store/projectsStore';
 import { useClientsStore } from '../../clients/store/clientsStore';
 import { ProjectStatus } from '../model/projectTypes';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 
 export function ProjectUpsertScreen({ route, navigation }: any) {
   const { mode, id } = route.params as { mode: 'create' | 'edit'; id?: string };
   const { repo, createProject, updateProject } = useProjectsStore();
   const clients = useClientsStore();
-  const isDark = useColorScheme() === 'dark';
+  const isDark = useAppColorScheme() === 'dark';
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -70,7 +72,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
           multiline
           style={[
             styles.textArea,
-            { backgroundColor: isDark ? '#262626' : '#f8f9fc', color: isDark ? '#fff' : '#111827' },
+            { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted, color: isDark ? '#fff' : '#111827' },
           ]}
         />
 
@@ -91,7 +93,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
                   paddingHorizontal: 12,
                   paddingVertical: 10,
                   borderRadius: 14,
-                  backgroundColor: status === k ? '#4d7fff' : isDark ? '#262626' : '#f1f5f9',
+                  backgroundColor: status === k ? theme.colors.primary : isDark ? '#262626' : '#f1f5f9',
                   opacity: pressed ? 0.92 : 1,
                 },
               ]}
@@ -118,13 +120,13 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
           style={({ pressed }) => [
             styles.picker,
             {
-              backgroundColor: isDark ? '#262626' : '#f8f9fc',
+              backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted,
               opacity: pressed ? 0.92 : 1,
             },
           ]}
         >
           <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10 }}>
-            <MaterialIcons name="business" size={20} color="#4d7fff" />
+            <MaterialIcons name="business" size={20} color={theme.colors.primary} />
             <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900' }}>
               {clientName ?? 'בחר לקוח'}
             </Text>
@@ -179,7 +181,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
                       paddingVertical: 12,
                       paddingHorizontal: 12,
                       borderRadius: 14,
-                      backgroundColor: c.id === clientId ? '#4d7fff' : isDark ? '#1f2937' : '#f1f5f9',
+                      backgroundColor: c.id === clientId ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
                       opacity: pressed ? 0.92 : 1,
                     },
                   ]}
@@ -194,7 +196,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
               <Pressable
                 onPress={() => setClientPickerOpen(false)}
                 style={({ pressed }) => [
-                  { flex: 1, height: 44, borderRadius: 14, backgroundColor: '#4d7fff', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.92 : 1 },
+                  { flex: 1, height: 44, borderRadius: 14, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.92 : 1 },
                 ]}
               >
                 <Text style={{ color: '#fff', fontWeight: '900' }}>סגור</Text>
@@ -236,11 +238,11 @@ function Field(props: {
           keyboardType={props.keyboardType}
           style={[
             styles.input,
-            { backgroundColor: props.isDark ? '#262626' : '#f8f9fc', color: props.isDark ? '#fff' : '#111827' },
+            { backgroundColor: props.isDark ? '#262626' : theme.colors.surfaceMuted, color: props.isDark ? '#fff' : '#111827' },
           ]}
         />
         <View pointerEvents="none" style={{ position: 'absolute', right: 14, top: 14, opacity: 0.9 }}>
-          <MaterialIcons name={props.icon} size={20} color="#4d7fff" />
+          <MaterialIcons name={props.icon} size={20} color={theme.colors.primary} />
         </View>
       </View>
     </View>
@@ -292,12 +294,12 @@ const styles = StyleSheet.create({
     bottom: 24,
     height: 54,
     borderRadius: 16,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.25,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },

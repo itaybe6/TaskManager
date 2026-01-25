@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,45 +6,80 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
 import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
+import { supabaseRest } from '../../../app/supabase/rest';
+import { BrandLogo } from '../../../shared/ui/BrandLogo';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+
+type UserLite = { id: string; displayName: string };
 
 export function TasksListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery } = useTasksStore();
   const cats = useTaskCategoriesStore();
-  const scheme = useColorScheme();
+  const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+
+  const [users, setUsers] = useState<UserLite[]>([
+    { id: 'u_iti', displayName: 'איתי' },
+    { id: 'u_adir', displayName: 'אדיר' },
+  ]);
 
   useEffect(() => {
     load();
-  }, [query.status, query.searchText]);
+  }, [query.status, query.searchText, query.categoryId, query.assigneeId]);
 
   useEffect(() => {
     cats.load();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await supabaseRest<Array<{ id: string; display_name: string }>>({
+          method: 'GET',
+          path: '/rest/v1/users',
+          query: { select: 'id,display_name', order: 'display_name.asc' },
+        });
+        const mapped = res
+          .map((u) => ({ id: u.id, displayName: u.display_name }))
+          .filter((u) => u.displayName);
+        const iti = mapped.find((u) => u.displayName === 'איתי');
+        const adir = mapped.find((u) => u.displayName === 'אדיר');
+        if (iti && adir) setUsers([iti, adir]);
+        else if (mapped.length) setUsers(mapped.slice(0, 2));
+      } catch {
+        // keep fallback
+      }
+    })();
+  }, []);
+
   const header = useMemo(() => {
     const status = (query.status ?? 'all') as 'all' | 'todo' | 'in_progress' | 'done';
     const countLabel = `${items.length} משימות`;
+    const assigneeKey = (query.assigneeId ?? 'all') as string;
 
     return (
       <View style={styles.headerWrap}>
         <View style={styles.topHeader}>
-          <Text style={[styles.title, { color: isDark ? '#fff' : '#0c111d' }]}>משימות</Text>
+          <View style={styles.brandRow}>
+            <BrandLogo width={86} height={30} />
+            <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>משימות</Text>
+          </View>
 
           <Pressable
             style={({ pressed }) => [
               styles.bellBtn,
               {
-                backgroundColor: isDark ? '#242424' : '#ffffff',
+                backgroundColor: isDark ? '#242424' : theme.colors.surface,
                 opacity: pressed ? 0.85 : 1,
               },
             ]}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Notifications')}
           >
             <MaterialIcons name="notifications" size={22} color={isDark ? '#a3a3a3' : '#6b7280'} />
           </Pressable>
@@ -55,7 +90,7 @@ export function TasksListScreen({ navigation }: any) {
             pointerEvents="none"
             style={[styles.searchIcon, { opacity: isDark ? 0.9 : 0.7 }]}
           >
-            <MaterialIcons name="search" size={22} color="#4d7fff" />
+            <MaterialIcons name="search" size={22} color={theme.colors.primary} />
           </View>
           <TextInput
             value={query.searchText ?? ''}
@@ -65,8 +100,8 @@ export function TasksListScreen({ navigation }: any) {
             style={[
               styles.searchInput,
               {
-                backgroundColor: isDark ? '#242424' : '#ffffff',
-                color: isDark ? '#ffffff' : '#0c111d',
+                backgroundColor: isDark ? '#242424' : theme.colors.surface,
+                color: isDark ? '#ffffff' : theme.colors.text,
               },
             ]}
           />
@@ -95,6 +130,30 @@ export function TasksListScreen({ navigation }: any) {
                 onPress={() => setQuery({ status: s === 'all' ? undefined : (s as any) })}
               />
             )}
+          />
+        </View>
+
+        <View style={styles.pillsScroller}>
+          <FlatList
+            horizontal
+            data={['all', ...users.map((u) => u.id)]}
+            keyExtractor={(k) => k}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsRow}
+            renderItem={({ item: key }) => {
+              const isAll = key === 'all';
+              const u = isAll ? undefined : users.find((x) => x.id === key);
+              const active = isAll ? !query.assigneeId : assigneeKey === key;
+              const label = isAll ? 'הכל' : u?.displayName ?? 'אחראי';
+              return (
+                <FilterPill
+                  label={label}
+                  active={active}
+                  isDark={isDark}
+                  onPress={() => setQuery({ assigneeId: isAll ? undefined : key })}
+                />
+              );
+            }}
           />
         </View>
 
@@ -131,7 +190,7 @@ export function TasksListScreen({ navigation }: any) {
               styles.sectionCount,
               {
                 color: isDark ? '#a3a3a3' : '#9ca3af',
-                backgroundColor: isDark ? '#1f2937' : '#f3f4f6',
+                backgroundColor: isDark ? '#1f2937' : theme.colors.surfaceMuted,
               },
             ]}
           >
@@ -140,14 +199,14 @@ export function TasksListScreen({ navigation }: any) {
         </View>
       </View>
     );
-  }, [query.status, query.searchText, items.length, isDark]);
+  }, [query.status, query.searchText, items.length, isDark, navigation]);
 
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
       style={[
         styles.container,
-        { backgroundColor: isDark ? '#1a1a1a' : '#f2f3f7' },
+        { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background },
       ]}
     >
       <FlatList
@@ -161,7 +220,7 @@ export function TasksListScreen({ navigation }: any) {
             style={({ pressed }) => [
               styles.taskCard,
               {
-                backgroundColor: isDark ? '#242424' : '#ffffff',
+                backgroundColor: isDark ? '#242424' : theme.colors.surface,
                 borderColor: pressed ? 'rgba(77, 127, 255, 0.18)' : 'transparent',
                 opacity: pressed ? 0.92 : item.status === 'done' ? 0.82 : 1,
               },
@@ -231,7 +290,7 @@ export function TasksListScreen({ navigation }: any) {
             </View>
 
             {item.status === 'in_progress' ? (
-              <View style={[styles.progressTrack, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}>
+              <View style={[styles.progressTrack, { backgroundColor: isDark ? '#374151' : theme.colors.surfaceMuted }]}>
                 <View style={styles.progressFill} />
               </View>
             ) : null}
@@ -265,6 +324,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
+  brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   title: {
     fontSize: 32,
     fontWeight: '800',
@@ -364,21 +424,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: 'hidden',
   },
-  progressFill: { width: '65%', height: '100%', backgroundColor: '#4d7fff' },
+  progressFill: { width: '65%', height: '100%', backgroundColor: theme.colors.primary },
 
   fab: {
     position: 'absolute',
-    left: 24,
+    right: 24,
     bottom: 98,
     height: 56,
     borderRadius: 22,
-    backgroundColor: '#4d7fff',
-    paddingLeft: 16,
-    paddingRight: 18,
-    flexDirection: 'row',
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 18,
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 10,
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
@@ -408,7 +467,7 @@ function FilterPill({
           borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: active ? '#4d7fff' : isDark ? '#242424' : '#ffffff',
+          backgroundColor: active ? theme.colors.primary : isDark ? '#242424' : theme.colors.surface,
           borderWidth: 1,
           borderColor: active ? 'transparent' : 'transparent',
           shadowColor: '#000',
@@ -466,7 +525,7 @@ function tagColors(
     case 'todo':
       return { bg: isDark ? 'rgba(249, 115, 22, 0.25)' : '#fff7ed', fg: isDark ? '#fed7aa' : '#ea580c' };
     case 'in_progress':
-      return { bg: isDark ? 'rgba(59, 130, 246, 0.22)' : '#eff6ff', fg: isDark ? '#bfdbfe' : '#4d7fff' };
+      return { bg: isDark ? 'rgba(59, 130, 246, 0.22)' : theme.colors.primarySoft, fg: isDark ? '#bfdbfe' : theme.colors.primary };
     case 'done':
       return { bg: isDark ? 'rgba(16, 185, 129, 0.22)' : '#ecfdf5', fg: isDark ? '#a7f3d0' : '#059669' };
   }

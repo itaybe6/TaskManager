@@ -3,8 +3,11 @@ import { Task } from '../model/taskTypes';
 export type TaskQuery = {
   status?: Task['status'];
   searchText?: string;
+  clientId?: string;
   projectId?: string;
   categoryId?: string;
+  assigneeId?: string;
+  viewerUserId?: string;
 };
 
 export interface TaskRepository {

@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useProjectsStore } from '../store/projectsStore';
 import { useTasksStore } from '../../tasks/store/tasksStore';
 import { Task } from '../../tasks/model/taskTypes';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 
 export function ProjectDetailsScreen({ route, navigation }: any) {
   const { id } = route.params as { id: string };
-  const isDark = useColorScheme() === 'dark';
+  const isDark = useAppColorScheme() === 'dark';
   const { repo: projectsRepo } = useProjectsStore();
   const { repo: tasksRepo } = useTasksStore();
 
@@ -43,10 +45,14 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
             onPress={() => navigation.goBack()}
             style={({ pressed }) => [
               styles.backBtn,
-              { backgroundColor: isDark ? '#242424' : '#ffffff', opacity: pressed ? 0.88 : 1 },
+              { backgroundColor: isDark ? '#242424' : theme.colors.surface, opacity: pressed ? 0.88 : 1 },
             ]}
           >
-            <MaterialIcons name="arrow-back" size={20} color={isDark ? '#d4d4d4' : '#64748b'} />
+            <MaterialIcons
+              name={I18nManager.isRTL ? 'arrow-forward' : 'arrow-back'}
+              size={20}
+              color={isDark ? '#d4d4d4' : '#64748b'}
+            />
           </Pressable>
         </View>
         {!!subtitle ? (
@@ -60,7 +66,7 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
             onPress={() => navigation.navigate('ProjectUpsert', { mode: 'edit', id })}
             style={({ pressed }) => [
               styles.secondaryBtn,
-              { backgroundColor: isDark ? '#262626' : '#ffffff', opacity: pressed ? 0.92 : 1 },
+              { backgroundColor: isDark ? '#262626' : theme.colors.surface, opacity: pressed ? 0.92 : 1 },
             ]}
           >
             <MaterialIcons name="edit" size={18} color={isDark ? '#d1d5db' : '#4b5563'} />
@@ -86,7 +92,7 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
   }, [title, subtitle, tasks.length, isDark]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : '#f8f9fc' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : theme.colors.background }}>
       <FlatList
         data={tasks}
         keyExtractor={(t) => t.id}
@@ -106,7 +112,7 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
             onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
             style={({ pressed }) => [
               styles.taskCard,
-              { backgroundColor: isDark ? '#242424' : '#ffffff', opacity: pressed ? 0.92 : 1 },
+              { backgroundColor: isDark ? '#242424' : theme.colors.surface, opacity: pressed ? 0.92 : 1 },
             ]}
           >
             <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900', textAlign: 'right' }} numberOfLines={1}>
@@ -143,7 +149,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',

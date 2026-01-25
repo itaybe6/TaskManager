@@ -5,6 +5,7 @@
 - **שלב 1 (סכמה)**: הרץ את הקובץ `supabase/schema.sql`
 - **שלב 2 (סכמה עסקית)**: הרץ את הקובץ `supabase/schema.business.sql`
 - **שלב 3 (קטגוריות משימות)**: הרץ את הקובץ `supabase/schema.tasks.categories.sql`
+- **שלב 3.1 (התראות + פוש)**: הרץ את הקובץ `supabase/schema.notifications.sql`
 - **שלב 4 (נתונים)**: הרץ את הקובץ `supabase/seed.sql`
 - **שלב 5 (נתונים עסקיים)**: הרץ את הקובץ `supabase/seed.business.sql`
 - **שלב 6 (seed קטגוריות משימות)**: הרץ את הקובץ `supabase/seed.tasks.categories.sql`
@@ -16,7 +17,6 @@
 - טבלת `public.users`:
   - `id uuid primary key default gen_random_uuid()`
   - `display_name text not null`
-  - `role_title text`
   - `avatar_url text`
   - `created_at timestamptz default now()`
   - `updated_at timestamptz default now()`

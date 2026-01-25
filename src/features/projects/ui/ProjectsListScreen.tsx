@@ -6,16 +6,18 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useProjectsStore } from '../store/projectsStore';
 import { ProjectStatus } from '../model/projectTypes';
+import { BrandLogo } from '../../../shared/ui/BrandLogo';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 
 export function ProjectsListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery, error } = useProjectsStore();
-  const isDark = useColorScheme() === 'dark';
+  const isDark = useAppColorScheme() === 'dark';
 
   useEffect(() => {
     load();
@@ -26,18 +28,21 @@ export function ProjectsListScreen({ navigation }: any) {
     return (
       <View style={styles.headerWrap}>
         <View style={styles.topRow}>
-          <Text style={[styles.title, { color: isDark ? '#fff' : '#0c111d' }]}>פרויקטים</Text>
+          <View style={styles.brandRow}>
+            <BrandLogo width={86} height={30} />
+            <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>פרויקטים</Text>
+          </View>
           <Pressable
             onPress={() => navigation.navigate('ClientsList')}
             style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
           >
-            <Text style={{ color: '#4d7fff', fontWeight: '900' }}>לקוחות</Text>
+            <Text style={{ color: theme.colors.primary, fontWeight: '900' }}>לקוחות</Text>
           </Pressable>
         </View>
 
         <View style={styles.searchWrap}>
           <View pointerEvents="none" style={styles.searchIcon}>
-            <MaterialIcons name="search" size={22} color="#4d7fff" />
+            <MaterialIcons name="search" size={22} color={theme.colors.primary} />
           </View>
           <TextInput
             value={query.searchText ?? ''}
@@ -47,8 +52,8 @@ export function ProjectsListScreen({ navigation }: any) {
             style={[
               styles.searchInput,
               {
-                backgroundColor: isDark ? '#262626' : '#ffffff',
-                color: isDark ? '#fff' : '#0c111d',
+                backgroundColor: isDark ? '#262626' : theme.colors.surface,
+                color: isDark ? '#fff' : theme.colors.text,
               },
             ]}
           />
@@ -89,7 +94,7 @@ export function ProjectsListScreen({ navigation }: any) {
   }, [query.searchText, query.status, isDark, error]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : '#f2f3f7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : theme.colors.background }}>
       <FlatList
         data={items}
         keyExtractor={(p) => p.id}
@@ -102,7 +107,7 @@ export function ProjectsListScreen({ navigation }: any) {
             style={({ pressed }) => [
               styles.card,
               {
-                backgroundColor: isDark ? '#242424' : '#ffffff',
+                backgroundColor: isDark ? '#242424' : theme.colors.surface,
                 opacity: pressed ? 0.92 : 1,
               },
             ]}
@@ -162,7 +167,7 @@ function FilterChip({
           height: 36,
           paddingHorizontal: 14,
           borderRadius: 14,
-          backgroundColor: active ? '#4d7fff' : isDark ? '#262626' : '#ffffff',
+          backgroundColor: active ? theme.colors.primary : isDark ? '#262626' : theme.colors.surface,
           alignItems: 'center',
           justifyContent: 'center',
           opacity: pressed ? 0.92 : 1,
@@ -206,6 +211,7 @@ function formatMoney(amount: number, currency: string) {
 const styles = StyleSheet.create({
   headerWrap: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10, gap: 12 },
   topRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
+  brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '900', textAlign: 'right' },
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', right: 14, top: 14, opacity: 0.8 },
@@ -232,16 +238,16 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right' },
   fab: {
     position: 'absolute',
-    left: 20,
+    right: 20,
     bottom: 92,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 14,
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 8,
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.28,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },

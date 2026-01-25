@@ -6,15 +6,18 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useClientsStore } from '../store/clientsStore';
+import { BrandLogo } from '../../../shared/ui/BrandLogo';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 
-export function ClientsListScreen({ navigation }: any) {
+export function ClientsListScreen({ navigation, route }: any) {
   const { items, load, isLoading, query, setQuery, error } = useClientsStore();
-  const isDark = useColorScheme() === 'dark';
+  const isDark = useAppColorScheme() === 'dark';
+  const isTabRoot = route?.name === 'Clients';
 
   useEffect(() => {
     load();
@@ -24,18 +27,25 @@ export function ClientsListScreen({ navigation }: any) {
     return (
       <View style={styles.headerWrap}>
         <View style={styles.topRow}>
-          <Text style={[styles.title, { color: isDark ? '#fff' : '#0c111d' }]}>לקוחות</Text>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
-          >
-            <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontWeight: '800' }}>סגור</Text>
-          </Pressable>
+          <View style={styles.brandRow}>
+            <BrandLogo width={86} height={30} />
+            <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>לקוחות</Text>
+          </View>
+          {!isTabRoot && typeof navigation?.canGoBack === 'function' && navigation.canGoBack() ? (
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontWeight: '800' }}>סגור</Text>
+            </Pressable>
+          ) : (
+            <View style={{ width: 44 }} />
+          )}
         </View>
 
         <View style={styles.searchWrap}>
           <View pointerEvents="none" style={styles.searchIcon}>
-            <MaterialIcons name="search" size={22} color="#4d7fff" />
+            <MaterialIcons name="search" size={22} color={theme.colors.primary} />
           </View>
           <TextInput
             value={query.searchText ?? ''}
@@ -45,7 +55,7 @@ export function ClientsListScreen({ navigation }: any) {
             style={[
               styles.searchInput,
               {
-                backgroundColor: isDark ? '#262626' : '#f8f9fc',
+                backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted,
                 color: isDark ? '#fff' : '#111827',
               },
             ]}
@@ -60,7 +70,7 @@ export function ClientsListScreen({ navigation }: any) {
   }, [query.searchText, isDark, error]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : '#f2f3f7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : theme.colors.background }}>
       <FlatList
         data={items}
         keyExtractor={(c) => c.id}
@@ -73,7 +83,7 @@ export function ClientsListScreen({ navigation }: any) {
             style={({ pressed }) => [
               styles.card,
               {
-                backgroundColor: isDark ? '#242424' : '#ffffff',
+                backgroundColor: isDark ? '#242424' : theme.colors.surface,
                 opacity: pressed ? 0.92 : 1,
               },
             ]}
@@ -82,7 +92,12 @@ export function ClientsListScreen({ navigation }: any) {
               {item.name}
             </Text>
             <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', marginTop: 6 }} numberOfLines={1}>
-              {(item.contactName ? `${item.contactName} • ` : '') + (item.phone ?? item.email ?? '')}
+              {(() => {
+                const c = item.contacts?.[0];
+                if (!c) return 'אין אנשי קשר';
+                const info = c.phone ?? c.email ?? '';
+                return `${c.name}${info ? ` • ${info}` : ''}`;
+              })()}
             </Text>
           </Pressable>
         )}
@@ -106,6 +121,7 @@ export function ClientsListScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   headerWrap: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10, gap: 12 },
   topRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
+  brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '900', textAlign: 'right' },
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', right: 14, top: 14, opacity: 0.8 },
@@ -131,16 +147,16 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right' },
   fab: {
     position: 'absolute',
-    left: 20,
+    right: 20,
     bottom: 92,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 14,
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 8,
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.28,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },

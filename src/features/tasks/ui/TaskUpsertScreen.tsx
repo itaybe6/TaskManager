@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   TextInput,
-  useColorScheme,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +13,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
 import { TaskPriority, TaskStatus } from '../model/taskTypes';
 import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
+import { useClientsStore } from '../../clients/store/clientsStore';
+import { supabaseRest } from '../../../app/supabase/rest';
+import { useAuthStore } from '../../auth/store/authStore';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+
+type UserLite = { id: string; displayName: string };
 
 export function TaskUpsertScreen({ route, navigation }: any) {
   const { mode, id, projectId } = route.params as {
@@ -23,24 +29,61 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   };
   const { repo, createTask, updateTask } = useTasksStore();
   const cats = useTaskCategoriesStore();
-  const scheme = useColorScheme();
+  const clients = useClientsStore();
+  const session = useAuthStore((s) => s.session);
+  const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+
+  const [existingProjectId, setExistingProjectId] = useState<string | undefined>(projectId);
+  const isProjectTask = Boolean(projectId ?? existingProjectId);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined);
+  const [assigneeChoice, setAssigneeChoice] = useState<'iti' | 'adir' | 'both'>('iti');
+  const [users, setUsers] = useState<UserLite[]>([
+    { id: 'u_iti', displayName: 'איתי' },
+    { id: 'u_adir', displayName: 'אדיר' },
+  ]);
+  const [visibility, setVisibility] = useState<'shared' | 'personal'>('shared');
+  const [clientId, setClientId] = useState<string | undefined>(undefined);
+  const [taskScope, setTaskScope] = useState<'general' | 'client'>('general');
+  const [clientModalOpen, setClientModalOpen] = useState(false);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [dueAt, setDueAt] = useState<string | undefined>(undefined);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagsModalOpen, setTagsModalOpen] = useState(false);
-  const [newTag, setNewTag] = useState('');
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
     cats.load();
+    clients.load();
+    (async () => {
+      try {
+        const res = await supabaseRest<Array<{ id: string; display_name: string }>>({
+          method: 'GET',
+          path: '/rest/v1/users',
+          query: { select: 'id,display_name', order: 'display_name.asc' },
+        });
+        const mapped = res
+          .map((u) => ({ id: u.id, displayName: u.display_name }))
+          .filter((u) => u.displayName);
+        if (mapped.length) {
+          setUsers(mapped);
+          const iti = mapped.find((u) => u.displayName === 'איתי');
+          const adir = mapped.find((u) => u.displayName === 'אדיר');
+          setAssigneeId((prev) => prev ?? iti?.id ?? adir?.id ?? mapped[0]?.id);
+        }
+      } catch {
+        // No Supabase env / request failed: keep fallback static users.
+        setAssigneeId((prev) => prev ?? 'u_iti');
+      }
+    })();
   }, []);
+
+  const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
+  const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר') ?? users[1], [users]);
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -51,11 +94,27 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       setDescription(t.description ?? '');
       setStatus(t.status);
       setPriority(t.priority);
+      setAssigneeId(t.assigneeId);
+      // Edit mode: keep it single (no "both" edit semantics)
+      if (t.assigneeId && itiUser?.id && t.assigneeId === itiUser.id) setAssigneeChoice('iti');
+      else if (t.assigneeId && adirUser?.id && t.assigneeId === adirUser.id) setAssigneeChoice('adir');
+      else setAssigneeChoice('iti');
+      setVisibility(t.isPersonal ? 'personal' : 'shared');
+      setClientId(t.clientId);
+      setTaskScope(t.clientId ? 'client' : 'general');
+      setExistingProjectId(t.projectId);
       setCategoryId(t.categoryId);
       setDueAt(t.dueAt);
-      setTags(t.tags ?? []);
     })();
-  }, [mode, id]);
+  }, [mode, id, itiUser?.id, adirUser?.id]);
+
+  useEffect(() => {
+    // "Both" only makes sense for a general, non-project task
+    if (assigneeChoice === 'both' && (isProjectTask || taskScope !== 'general')) {
+      setAssigneeChoice('iti');
+      setAssigneeId(itiUser?.id);
+    }
+  }, [assigneeChoice, isProjectTask, taskScope, itiUser?.id]);
 
   const canSave = title.trim().length >= 2;
   const screenTitle = mode === 'create' ? 'משימה חדשה' : 'עריכת משימה';
@@ -63,17 +122,6 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const dateLabel = useMemo(() => {
     return dueAt ? formatDueForPicker(dueAt) : 'בחר תאריך';
   }, [dueAt]);
-
-  const toggleSuggestedTag = (t: string) => {
-    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-  };
-
-  const addTagFromInput = () => {
-    const t = normalizeTag(newTag);
-    if (!t) return;
-    setTags((prev) => (prev.includes(t) ? prev : [...prev, t]));
-    setNewTag('');
-  };
 
   return (
     <SafeAreaView
@@ -115,6 +163,148 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
           >
+            {!isProjectTask && (
+              <View style={{ marginBottom: 18 }}>
+                <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>שייכות</Text>
+
+                <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
+                  <SegmentOption
+                    label="כללית"
+                    active={taskScope === 'general'}
+                    isDark={isDark}
+                    onPress={() => {
+                      setTaskScope('general');
+                      setClientId(undefined);
+                    }}
+                  />
+                  <SegmentOption
+                    label="לקוח"
+                    active={taskScope === 'client'}
+                    isDark={isDark}
+                    onPress={() => {
+                      setTaskScope('client');
+                      if (!clientId) setClientModalOpen(true);
+                    }}
+                  />
+                </View>
+
+                {taskScope === 'client' && (
+                  <Pressable
+                    onPress={() => setClientModalOpen(true)}
+                    style={({ pressed }) => [
+                      styles.pickerBtn,
+                      {
+                        marginTop: 12,
+                        backgroundColor: isDark ? '#262626' : '#ffffff',
+                        borderColor: isDark ? 'rgba(75, 85, 99, 0.40)' : '#f1f5f9',
+                        opacity: pressed ? 0.92 : 1,
+                        transform: [{ scale: pressed ? 0.99 : 1 }],
+                      },
+                    ]}
+                  >
+                    <View style={styles.pickerMain}>
+                      <View
+                        style={[
+                          styles.pickerIconCircle,
+                          { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5' },
+                        ]}
+                      >
+                        <MaterialIcons name="person" size={20} color={isDark ? '#34d399' : '#059669'} />
+                      </View>
+                      <View style={{ gap: 2, flexShrink: 1 }}>
+                        <Text
+                          style={{
+                            color: isDark ? '#9ca3af' : '#6b7280',
+                            fontSize: 13,
+                            fontWeight: '600',
+                            textAlign: 'right',
+                          }}
+                        >
+                          לקוח
+                        </Text>
+                        <Text
+                          style={{
+                            color: isDark ? '#fff' : '#111827',
+                            fontSize: 15,
+                            fontWeight: '900',
+                            textAlign: 'right',
+                          }}
+                        >
+                          {clientId ? clients.items.find((c) => c.id === clientId)?.name ?? 'נבחר' : 'בחר לקוח'}
+                        </Text>
+                      </View>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
+                  </Pressable>
+                )}
+              </View>
+            )}
+
+            <View style={{ marginBottom: 22 }}>
+              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>סוג</Text>
+              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
+                <SegmentOption
+                  label="משותפת"
+                  active={visibility === 'shared'}
+                  isDark={isDark}
+                  onPress={() => setVisibility('shared')}
+                />
+                <SegmentOption
+                  label="אישית"
+                  active={visibility === 'personal'}
+                  isDark={isDark}
+                  onPress={() => {
+                    setVisibility('personal');
+                    // personal task belongs to the logged-in user only
+                    const me = session?.user?.id;
+                    if (me) {
+                      setAssigneeId(me);
+                      setAssigneeChoice('iti'); // UI value not relevant in personal mode
+                      setTaskScope('general');
+                      setClientId(undefined);
+                    }
+                  }}
+                />
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 22 }}>
+              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>אחראי</Text>
+              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
+                <SegmentOption
+                  label="איתי"
+                  active={visibility === 'personal' ? itiUser?.id === session?.user?.id : assigneeChoice === 'iti'}
+                  isDark={isDark}
+                  onPress={() => {
+                    if (visibility === 'personal') return;
+                    setAssigneeChoice('iti');
+                    setAssigneeId(itiUser?.id);
+                  }}
+                />
+                <SegmentOption
+                  label="אדיר"
+                  active={visibility === 'personal' ? adirUser?.id === session?.user?.id : assigneeChoice === 'adir'}
+                  isDark={isDark}
+                  onPress={() => {
+                    if (visibility === 'personal') return;
+                    setAssigneeChoice('adir');
+                    setAssigneeId(adirUser?.id);
+                  }}
+                />
+                {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
+                  <SegmentOption
+                    label="שניהם"
+                    active={assigneeChoice === 'both'}
+                    isDark={isDark}
+                    onPress={() => {
+                      setAssigneeChoice('both');
+                      // assigneeId stays as-is; create path will fan-out
+                    }}
+                  />
+                ) : null}
+              </View>
+            </View>
+
             <View style={{ marginBottom: 18 }}>
               <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>כותרת</Text>
               <View style={styles.inputWrap}>
@@ -126,13 +316,13 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   style={[
                     styles.titleInput,
                     {
-                      backgroundColor: isDark ? '#262626' : '#f8f9fc',
+                      backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted,
                       color: isDark ? '#fff' : '#111827',
                     },
                   ]}
                 />
                 <View pointerEvents="none" style={styles.inputIcon}>
-                  <MaterialIcons name="edit-note" size={22} color="#4d7fff" />
+                  <MaterialIcons name="edit-note" size={22} color={theme.colors.primary} />
                 </View>
               </View>
             </View>
@@ -148,7 +338,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 style={[
                   styles.descInput,
                   {
-                    backgroundColor: isDark ? '#262626' : '#f8f9fc',
+                    backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted,
                     color: isDark ? '#fff' : '#111827',
                   },
                 ]}
@@ -157,7 +347,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
             <View style={{ marginBottom: 22 }}>
               <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>סטטוס</Text>
-              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : '#f8f9fc' }]}>
+              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
                 <SegmentOption
                   label="לביצוע"
                   active={status === 'todo'}
@@ -226,7 +416,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       { backgroundColor: isDark ? 'rgba(77, 127, 255, 0.20)' : '#eff6ff' },
                     ]}
                   >
-                    <MaterialIcons name="category" size={20} color="#4d7fff" />
+                    <MaterialIcons name="category" size={20} color={theme.colors.primary} />
                   </View>
                   <View style={{ gap: 2, flexShrink: 1 }}>
                     <Text
@@ -268,7 +458,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               >
                 <View style={styles.pickerMain}>
                   <View style={[styles.pickerIconCircle, { backgroundColor: isDark ? 'rgba(59,130,246,0.20)' : '#eff6ff' }]}>
-                    <MaterialIcons name="calendar-today" size={20} color="#4d7fff" />
+                    <MaterialIcons name="calendar-today" size={20} color={theme.colors.primary} />
                   </View>
                   <View style={{ gap: 2, flexShrink: 1 }}>
                     <Text style={{ color: isDark ? '#9ca3af' : '#6b7280', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
@@ -333,26 +523,42 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 if (!canSave) return;
 
                 if (mode === 'create') {
-                  await createTask({
+                  const base = {
                     title: title.trim(),
                     description,
                     status,
                     priority,
+                    clientId: !isProjectTask && taskScope === 'client' ? clientId : undefined,
                     projectId,
                     categoryId,
                     dueAt,
-                    tags: tags.length ? tags : undefined,
-                  });
+                    isPersonal: visibility === 'personal',
+                    ownerUserId: visibility === 'personal' ? session?.user?.id : undefined,
+                  };
+
+                  if (visibility === 'personal') {
+                    const me = session?.user?.id;
+                    await createTask({ ...base, assigneeId: me });
+                  } else if (!isProjectTask && taskScope === 'general' && assigneeChoice === 'both' && itiUser?.id && adirUser?.id) {
+                    await createTask({ ...base, assigneeId: itiUser.id });
+                    await createTask({ ...base, assigneeId: adirUser.id });
+                  } else {
+                    await createTask({ ...base, assigneeId });
+                  }
                 } else if (id) {
                   await updateTask(id, {
                     title: title.trim(),
                     description,
                     status,
                     priority,
+                    assigneeId,
+                    ...(!isProjectTask ? { clientId: taskScope === 'client' ? clientId : undefined } : {}),
                     projectId,
                     categoryId,
                     dueAt,
-                    tags: tags.length ? tags : undefined,
+                    ...(visibility === 'personal'
+                      ? { isPersonal: true, ownerUserId: session?.user?.id, assigneeId: session?.user?.id }
+                      : { isPersonal: false, ownerUserId: undefined }),
                   });
                 }
 
@@ -371,86 +577,72 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             </Pressable>
           </View>
 
-          <Modal visible={tagsModalOpen} transparent animationType="fade" onRequestClose={() => setTagsModalOpen(false)}>
-            <Pressable style={styles.modalOverlay} onPress={() => setTagsModalOpen(false)}>
+          <Modal
+            visible={clientModalOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setClientModalOpen(false)}
+          >
+            <Pressable style={styles.modalOverlay} onPress={() => setClientModalOpen(false)}>
               <Pressable style={[styles.modalCard, { backgroundColor: isDark ? '#262626' : '#ffffff' }]} onPress={() => {}}>
                 <Text style={{ fontSize: 16, fontWeight: '900', color: isDark ? '#fff' : '#111827', textAlign: 'right' }}>
-                  תגיות
+                  בחירת לקוח
                 </Text>
 
                 <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  {['עיצוב', 'דחוף', 'פיתוח', 'פיננסים', 'ניהול'].map((t) => {
-                    const active = tags.includes(t);
+                  <Pressable
+                    onPress={() => {
+                      setClientId(undefined);
+                      setTaskScope('general');
+                      setClientModalOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      {
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        borderRadius: 12,
+                        backgroundColor: theme.colors.primary,
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>משימה כללית</Text>
+                  </Pressable>
+
+                  {clients.items.map((c) => {
+                    const active = clientId === c.id;
                     return (
                       <Pressable
-                        key={t}
-                        onPress={() => toggleSuggestedTag(t)}
+                        key={c.id}
+                        onPress={() => {
+                          setTaskScope('client');
+                          setClientId(c.id);
+                          setClientModalOpen(false);
+                        }}
                         style={({ pressed }) => [
                           {
                             paddingHorizontal: 10,
                             paddingVertical: 8,
                             borderRadius: 12,
-                            backgroundColor: active ? '#4d7fff' : isDark ? '#1f2937' : '#f1f5f9',
+                            backgroundColor: active ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
                             opacity: pressed ? 0.9 : 1,
                           },
                         ]}
                       >
                         <Text style={{ color: active ? '#fff' : isDark ? '#d1d5db' : '#475569', fontWeight: '900', fontSize: 12 }}>
-                          #{t}
+                          {c.name}
                         </Text>
                       </Pressable>
                     );
                   })}
                 </View>
 
-                <View style={{ marginTop: 14 }}>
-                  <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>הוסף תגית</Text>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10 }}>
-                    <TextInput
-                      value={newTag}
-                      onChangeText={setNewTag}
-                      placeholder="לדוגמה: עיצוב"
-                      placeholderTextColor={isDark ? '#525252' : '#9ca3af'}
-                      style={[
-                        styles.tagInput,
-                        { backgroundColor: isDark ? '#1f2937' : '#f8f9fc', color: isDark ? '#fff' : '#111827' },
-                      ]}
-                      onSubmitEditing={addTagFromInput}
-                      returnKeyType="done"
-                    />
-                    <Pressable
-                      onPress={addTagFromInput}
-                      style={({ pressed }) => [
-                        styles.addTagBtn,
-                        { opacity: pressed ? 0.9 : 1 },
-                      ]}
-                    >
-                      <MaterialIcons name="add" size={18} color="#fff" />
-                    </Pressable>
-                  </View>
-                </View>
-
                 <View style={{ marginTop: 16, flexDirection: 'row-reverse', gap: 10 }}>
                   <Pressable
-                    onPress={() => setTagsModalOpen(false)}
-                    style={({ pressed }) => [
-                      styles.modalDone,
-                      { opacity: pressed ? 0.9 : 1 },
-                    ]}
+                    onPress={() => setClientModalOpen(false)}
+                    style={({ pressed }) => [styles.modalDone, { opacity: pressed ? 0.9 : 1 }]}
                   >
                     <Text style={{ color: '#fff', fontWeight: '900' }}>סגור</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setTags([]);
-                      setNewTag('');
-                    }}
-                    style={({ pressed }) => [
-                      styles.modalClear,
-                      { opacity: pressed ? 0.9 : 1 },
-                    ]}
-                  >
-                    <Text style={{ color: isDark ? '#d1d5db' : '#374151', fontWeight: '900' }}>נקה</Text>
                   </Pressable>
                 </View>
               </Pressable>
@@ -490,7 +682,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                         paddingHorizontal: 10,
                         paddingVertical: 8,
                         borderRadius: 12,
-                        backgroundColor: !categoryId ? '#4d7fff' : isDark ? '#1f2937' : '#f1f5f9',
+                        backgroundColor: !categoryId ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
                         opacity: pressed ? 0.9 : 1,
                       },
                     ]}
@@ -520,7 +712,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                             paddingHorizontal: 10,
                             paddingVertical: 8,
                             borderRadius: 12,
-                            backgroundColor: active ? '#4d7fff' : isDark ? '#1f2937' : '#f1f5f9',
+                            backgroundColor: active ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
                             opacity: pressed ? 0.9 : 1,
                           },
                         ]}
@@ -552,7 +744,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       style={[
                         styles.tagInput,
                         {
-                          backgroundColor: isDark ? '#1f2937' : '#f8f9fc',
+                          backgroundColor: isDark ? '#1f2937' : theme.colors.surfaceMuted,
                           color: isDark ? '#fff' : '#111827',
                         },
                       ]}
@@ -566,7 +758,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                         const created = await cats.createCategory({
                           name,
                           slug,
-                          color: '#4d7fff',
+                          color: theme.colors.primary,
                         });
                         setCategoryId(created.id);
                         setNewCategoryName('');
@@ -693,13 +885,13 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     height: 56,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     borderRadius: 14,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.25,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
@@ -731,7 +923,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -739,7 +931,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -784,7 +976,7 @@ function SegmentOption({
         },
       ]}
     >
-      <Text style={{ color: active ? (isDark ? '#fff' : '#4d7fff') : isDark ? '#a3a3a3' : '#6b7280', fontWeight: '700', fontSize: 13 }}>
+      <Text style={{ color: active ? (isDark ? '#fff' : theme.colors.primary) : isDark ? '#a3a3a3' : '#6b7280', fontWeight: '700', fontSize: 13 }}>
         {label}
       </Text>
     </Pressable>
@@ -879,11 +1071,6 @@ function formatDueForPicker(iso: string) {
 
   const months = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצ'];
   return `${d.getDate()} ${months[d.getMonth()]}, ${time}`;
-}
-
-function normalizeTag(raw: string) {
-  const t = raw.trim().replace(/^#\s*/, '').replace(/\s+/g, ' ');
-  return t.length ? t : '';
 }
 
 function slugify(name: string) {

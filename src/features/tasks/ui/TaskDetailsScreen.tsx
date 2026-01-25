@@ -6,17 +6,19 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  useColorScheme,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
 import { Task } from '../model/taskTypes';
+import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 
 export function TaskDetailsScreen({ route, navigation }: any) {
   const { id } = route.params;
   const { repo, deleteTask } = useTasksStore();
-  const scheme = useColorScheme();
+  const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
 
   const [task, setTask] = useState<Task | null>(null);
@@ -41,11 +43,11 @@ export function TaskDetailsScreen({ route, navigation }: any) {
       edges={['top', 'left', 'right']}
       style={[
         styles.screen,
-        { backgroundColor: isDark ? '#1a1a1a' : '#f8f9fc' },
+        { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background },
       ]}
     >
       <View style={styles.frame}>
-        <View style={[styles.frameInner, { backgroundColor: isDark ? '#1a1a1a' : '#f8f9fc' }]}>
+        <View style={[styles.frameInner, { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background }]}>
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
@@ -69,7 +71,11 @@ export function TaskDetailsScreen({ route, navigation }: any) {
                   },
                 ]}
               >
-                <MaterialIcons name="arrow-back" size={20} color={isDark ? '#d4d4d4' : '#64748b'} />
+                <MaterialIcons
+                  name={I18nManager.isRTL ? 'arrow-forward' : 'arrow-back'}
+                  size={20}
+                  color={isDark ? '#d4d4d4' : '#64748b'}
+                />
               </Pressable>
             </View>
 
@@ -360,12 +366,12 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row-reverse',
     gap: 8,
-    shadowColor: '#4d7fff',
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.22,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },

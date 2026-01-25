@@ -26,7 +26,6 @@ export interface DbTaskCategory {
 export interface DbUser {
   id: string;
   display_name: string;
-  role_title?: string | null;
   avatar_url?: string | null;
   created_at: string;
   updated_at: string;
@@ -41,8 +40,11 @@ export interface DbTask {
   assignee_id?: string | null;
   due_at?: string | null;
   tags?: string[] | null;
+  client_id?: string | null;
   project_id?: string | null;
   category_id?: string | null;
+  is_personal?: boolean;
+  owner_user_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,11 +52,17 @@ export interface DbTask {
 export interface DbClient {
   id: string;
   name: string;
-  contact_name?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbClientContact {
+  id: string;
+  client_id: string;
+  name: string;
   email?: string | null;
   phone?: string | null;
-  address?: string | null;
-  notes?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -138,10 +146,32 @@ export interface DbPriceListItem {
   updated_at: string;
 }
 
+export interface DbUserPushToken {
+  id: string;
+  user_id: string;
+  expo_push_token: string;
+  device_platform?: string | null;
+  device_name?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbNotification {
+  id: string;
+  recipient_user_id: string;
+  sender_user_id?: string | null;
+  title: string;
+  body?: string | null;
+  data?: any | null;
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Insert / Update helper types (client-side)
 export type DbUserInsert = {
   display_name: string;
-  role_title?: string | null;
   avatar_url?: string | null;
 };
 
@@ -155,8 +185,11 @@ export type DbTaskInsert = {
   assignee_id?: string | null;
   due_at?: string | null;
   tags?: string[] | null;
+  client_id?: string | null;
   project_id?: string | null;
   category_id?: string | null;
+  is_personal?: boolean;
+  owner_user_id?: string | null;
 };
 
 export type DbTaskUpdate = Partial<DbTaskInsert>;
@@ -170,13 +203,17 @@ export type DbTaskCategoryUpdate = Partial<DbTaskCategoryInsert>;
 
 export type DbClientInsert = {
   name: string;
-  contact_name?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
   notes?: string | null;
 };
 export type DbClientUpdate = Partial<DbClientInsert>;
+
+export type DbClientContactInsert = {
+  client_id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+};
+export type DbClientContactUpdate = Partial<DbClientContactInsert>;
 
 export type DbProjectInsert = {
   client_id: string;
@@ -246,6 +283,25 @@ export type DbPriceListItemInsert = {
 };
 export type DbPriceListItemUpdate = Partial<DbPriceListItemInsert>;
 
+export type DbUserPushTokenInsert = {
+  user_id: string;
+  expo_push_token: string;
+  device_platform?: string | null;
+  device_name?: string | null;
+};
+export type DbUserPushTokenUpdate = Partial<DbUserPushTokenInsert>;
+
+export type DbNotificationInsert = {
+  recipient_user_id: string;
+  sender_user_id?: string | null;
+  title: string;
+  body?: string | null;
+  data?: any | null;
+  is_read?: boolean; // default false
+  read_at?: string | null;
+};
+export type DbNotificationUpdate = Partial<DbNotificationInsert>;
+
 /**
  * Supabase-style `Database` type (useful for typed client).
  * Example:
@@ -273,6 +329,11 @@ export type Database = {
         Row: DbClient;
         Insert: DbClientInsert;
         Update: DbClientUpdate;
+      };
+      client_contacts: {
+        Row: DbClientContact;
+        Insert: DbClientContactInsert;
+        Update: DbClientContactUpdate;
       };
       projects: {
         Row: DbProject;
@@ -303,6 +364,16 @@ export type Database = {
         Row: DbPriceListItem;
         Insert: DbPriceListItemInsert;
         Update: DbPriceListItemUpdate;
+      };
+      user_push_tokens: {
+        Row: DbUserPushToken;
+        Insert: DbUserPushTokenInsert;
+        Update: DbUserPushTokenUpdate;
+      };
+      notifications: {
+        Row: DbNotification;
+        Insert: DbNotificationInsert;
+        Update: DbNotificationUpdate;
       };
     };
   };

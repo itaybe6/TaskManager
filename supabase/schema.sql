@@ -30,7 +30,6 @@ end $$;
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
   display_name text not null,
-  role_title text null,
   avatar_url text null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

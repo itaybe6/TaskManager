@@ -17,12 +17,16 @@ export type Task = {
   status: TaskStatus;
   priority: TaskPriority;
 
+  assigneeId?: string;
   assignee?: string;
+  clientId?: string;
   projectId?: string;
   categoryId?: string;
   categoryName?: string;
   dueAt?: string; // ISO
   tags?: string[];
+  isPersonal?: boolean;
+  ownerUserId?: string;
 
   createdAt: string;
   updatedAt: string;

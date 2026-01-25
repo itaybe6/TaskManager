@@ -5,11 +5,18 @@ import { Client } from '../model/clientTypes';
 type DbClientRow = {
   id: string;
   name: string;
-  contact_name: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  client_contacts?: DbClientContactRow[] | null;
+};
+
+type DbClientContactRow = {
+  id: string;
+  client_id: string;
+  name: string;
   email: string | null;
   phone: string | null;
-  address: string | null;
-  notes: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -18,11 +25,18 @@ function mapRowToClient(r: DbClientRow): Client {
   return {
     id: r.id,
     name: r.name,
-    contactName: r.contact_name ?? undefined,
-    email: r.email ?? undefined,
-    phone: r.phone ?? undefined,
-    address: r.address ?? undefined,
     notes: r.notes ?? undefined,
+    contacts:
+      (r.client_contacts ?? [])
+        ?.filter(Boolean)
+        .map((cc) => ({
+          id: cc.id,
+          name: cc.name,
+          email: cc.email ?? undefined,
+          phone: cc.phone ?? undefined,
+          createdAt: cc.created_at,
+          updatedAt: cc.updated_at,
+        })) ?? [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -31,10 +45,6 @@ function mapRowToClient(r: DbClientRow): Client {
 function mapClientToInsert(input: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) {
   return {
     name: input.name,
-    contact_name: input.contactName ?? null,
-    email: input.email ?? null,
-    phone: input.phone ?? null,
-    address: input.address ?? null,
     notes: input.notes ?? null,
   };
 }
@@ -42,10 +52,6 @@ function mapClientToInsert(input: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
 function mapClientToPatch(patch: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt'>>) {
   return {
     ...(patch.name !== undefined ? { name: patch.name } : {}),
-    ...(patch.contactName !== undefined ? { contact_name: patch.contactName ?? null } : {}),
-    ...(patch.email !== undefined ? { email: patch.email ?? null } : {}),
-    ...(patch.phone !== undefined ? { phone: patch.phone ?? null } : {}),
-    ...(patch.address !== undefined ? { address: patch.address ?? null } : {}),
     ...(patch.notes !== undefined ? { notes: patch.notes ?? null } : {}),
   };
 }
@@ -57,10 +63,11 @@ export class SupabaseClientsRepository implements ClientsRepository {
       method: 'GET',
       path: '/rest/v1/clients',
       query: {
-        select: 'id,name,contact_name,email,phone,address,notes,created_at,updated_at',
+        select:
+          'id,name,notes,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
         ...(q
           ? {
-              or: `(name.ilike.*${escapeIlike(q)}*,contact_name.ilike.*${escapeIlike(q)}*,email.ilike.*${escapeIlike(q)}*)`,
+              or: `(name.ilike.*${escapeIlike(q)}*)`,
             }
           : {}),
         order: 'updated_at.desc',
@@ -73,7 +80,12 @@ export class SupabaseClientsRepository implements ClientsRepository {
     const res = await supabaseRest<DbClientRow[]>({
       method: 'GET',
       path: '/rest/v1/clients',
-      query: { select: 'id,name,contact_name,email,phone,address,notes,created_at,updated_at', id: `eq.${id}`, limit: '1' },
+      query: {
+        select:
+          'id,name,notes,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
+        id: `eq.${id}`,
+        limit: '1',
+      },
     });
     return res[0] ? mapRowToClient(res[0]) : null;
   }
@@ -86,7 +98,12 @@ export class SupabaseClientsRepository implements ClientsRepository {
       body: mapClientToInsert(input),
     });
     if (!res[0]) throw new Error('Supabase create returned empty result');
-    return mapRowToClient(res[0]);
+
+    const createdClientId = res[0].id;
+    await this.replaceContacts(createdClientId, input.contacts ?? []);
+    const full = await this.getById(createdClientId);
+    if (!full) throw new Error('Failed to refetch created client');
+    return full;
   }
 
   async update(
@@ -101,11 +118,47 @@ export class SupabaseClientsRepository implements ClientsRepository {
       body: mapClientToPatch(patch),
     });
     if (!res[0]) throw new Error('Supabase update returned empty result');
-    return mapRowToClient(res[0]);
+
+    if (patch.contacts !== undefined) {
+      await this.replaceContacts(id, patch.contacts);
+    }
+
+    const full = await this.getById(id);
+    if (!full) throw new Error('Failed to refetch updated client');
+    return full;
   }
 
   async remove(id: string): Promise<void> {
     await supabaseRest<void>({ method: 'DELETE', path: '/rest/v1/clients', query: { id: `eq.${id}` } });
+  }
+
+  private async replaceContacts(
+    clientId: string,
+    contacts: { name: string; email?: string; phone?: string }[]
+  ): Promise<void> {
+    // Remove existing
+    await supabaseRest<void>({
+      method: 'DELETE',
+      path: '/rest/v1/client_contacts',
+      query: { client_id: `eq.${clientId}` },
+    });
+
+    const normalized = contacts
+      .map((c) => ({
+        client_id: clientId,
+        name: c.name.trim(),
+        email: c.email?.trim() ? c.email.trim() : null,
+        phone: c.phone?.trim() ? c.phone.trim() : null,
+      }))
+      .filter((c) => c.name.length > 0);
+
+    if (normalized.length === 0) return;
+
+    await supabaseRest<void>({
+      method: 'POST',
+      path: '/rest/v1/client_contacts',
+      body: normalized,
+    });
   }
 }
 

@@ -31,19 +31,66 @@ end $$;
 create table if not exists public.clients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  contact_name text null,
-  email text null,
-  phone text null,
-  address text null,
   notes text null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+-- Backward-compatible cleanup (if columns exist from older schema)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='contact_name'
+  ) then
+    alter table public.clients drop column contact_name;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='email'
+  ) then
+    alter table public.clients drop column email;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='phone'
+  ) then
+    alter table public.clients drop column phone;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='address'
+  ) then
+    alter table public.clients drop column address;
+  end if;
+end $$;
+
 drop trigger if exists clients_set_updated_at on public.clients;
 create trigger clients_set_updated_at
 before update on public.clients
 for each row execute function public.set_updated_at();
+
+-- Client contacts (multiple contacts per client)
+create table if not exists public.client_contacts (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null references public.clients(id) on delete cascade,
+  name text not null,
+  email text null,
+  phone text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists client_contacts_set_updated_at on public.client_contacts;
+create trigger client_contacts_set_updated_at
+before update on public.client_contacts
+for each row execute function public.set_updated_at();
+
+create index if not exists client_contacts_client_idx
+on public.client_contacts(client_id, updated_at desc);
 
 -- Projects
 create table if not exists public.projects (
@@ -82,6 +129,26 @@ begin
     alter table public.tasks
       add constraint tasks_project_id_fkey
       foreign key (project_id) references public.projects(id) on delete set null;
+  end if;
+end $$;
+
+-- Extend tasks with client_id (nullable) so tasks can be general or client-related
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='tasks' and column_name='client_id'
+  ) then
+    alter table public.tasks add column client_id uuid null;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname='tasks_client_id_fkey'
+  ) then
+    alter table public.tasks
+      add constraint tasks_client_id_fkey
+      foreign key (client_id) references public.clients(id) on delete set null;
   end if;
 end $$;
 
@@ -194,9 +261,11 @@ on public.price_list_items(is_active);
 -- Helpful composite indexes
 create index if not exists projects_client_status_idx on public.projects(client_id, status);
 create index if not exists tasks_project_status_updated_idx on public.tasks(project_id, status, updated_at desc);
+create index if not exists tasks_client_status_updated_idx on public.tasks(client_id, status, updated_at desc);
 
 -- RLS (dev-friendly)
 alter table public.clients enable row level security;
+alter table public.client_contacts enable row level security;
 alter table public.projects enable row level security;
 alter table public.documents enable row level security;
 alter table public.invoices enable row level security;
@@ -212,6 +281,14 @@ begin
   end if;
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='clients' and policyname='clients_write_all') then
     create policy clients_write_all on public.clients for all using (true) with check (true);
+  end if;
+
+  -- CLIENT CONTACTS
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='client_contacts' and policyname='client_contacts_select_all') then
+    create policy client_contacts_select_all on public.client_contacts for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='client_contacts' and policyname='client_contacts_write_all') then
+    create policy client_contacts_write_all on public.client_contacts for all using (true) with check (true);
   end if;
 
   -- PROJECTS

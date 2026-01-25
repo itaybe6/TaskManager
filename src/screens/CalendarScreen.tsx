@@ -1,21 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { theme } from '../shared/ui/theme';
+import { useAppColorScheme } from '../shared/ui/useAppColorScheme';
 
 export function CalendarScreen() {
-  const scheme = useColorScheme();
+  const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
 
   return (
     <View
       style={[
         styles.container,
-        { backgroundColor: isDark ? '#121212' : '#f8f9fc' },
+        { backgroundColor: isDark ? '#121212' : theme.colors.background },
       ]}
     >
       <Text
         style={[
           styles.title,
-          { color: isDark ? '#ffffff' : '#0f172a' },
+          { color: isDark ? '#ffffff' : theme.colors.text },
         ]}
       >
         יומן

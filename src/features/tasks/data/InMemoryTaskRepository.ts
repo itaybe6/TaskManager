@@ -12,6 +12,8 @@ export class InMemoryTaskRepository implements TaskRepository {
       description: 'רשימה + יצירה + פרטים',
       status: 'in_progress',
       priority: 'high',
+      assigneeId: 'u_iti',
+      assignee: 'איתי',
       projectId: 'p1111111-1111-1111-1111-111111111111',
       categoryId: 'cat_projects',
       categoryName: 'פרויקטים',
@@ -24,9 +26,14 @@ export class InMemoryTaskRepository implements TaskRepository {
       title: 'לשוחח עם לקוח',
       status: 'todo',
       priority: 'medium',
+      assigneeId: 'u_adir',
+      assignee: 'אדיר',
+      clientId: 'c1111111-1111-1111-1111-111111111111',
       projectId: 'p2222222-2222-2222-2222-222222222222',
       categoryId: 'cat_marketing',
       categoryName: 'פרסום',
+      isPersonal: true,
+      ownerUserId: 'u_adir',
       createdAt: nowIso(),
       updatedAt: nowIso(),
     },
@@ -35,6 +42,11 @@ export class InMemoryTaskRepository implements TaskRepository {
   async list(query?: TaskQuery): Promise<Task[]> {
     let out = [...this.tasks];
 
+    if (query?.viewerUserId) {
+      out = out.filter((t) => !t.isPersonal || t.ownerUserId === query.viewerUserId);
+    }
+    if (query?.assigneeId) out = out.filter(t => t.assigneeId === query.assigneeId);
+    if (query?.clientId) out = out.filter(t => t.clientId === query.clientId);
     if (query?.projectId) out = out.filter(t => t.projectId === query.projectId);
     if (query?.categoryId) out = out.filter(t => t.categoryId === query.categoryId);
     if (query?.status) out = out.filter(t => t.status === query.status);

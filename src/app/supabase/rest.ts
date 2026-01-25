@@ -1,3 +1,5 @@
+import { getSupabaseAccessToken } from './session';
+
 type SupabaseConfig = {
   url: string;
   anonKey: string;
@@ -51,11 +53,12 @@ export async function supabaseRest<T>(args: {
   }
 
   const url = buildUrl(cfg.url, args.path, args.query);
+  const token = getSupabaseAccessToken();
   const res = await fetch(url, {
     method: args.method,
     headers: {
       apikey: cfg.anonKey,
-      Authorization: `Bearer ${cfg.anonKey}`,
+      Authorization: `Bearer ${token ?? cfg.anonKey}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
       ...(args.preferReturnRepresentation ? { Prefer: 'return=representation' } : {}),

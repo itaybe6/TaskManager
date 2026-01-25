@@ -6,10 +6,10 @@ delete from public.tasks;
 delete from public.users;
 
 -- Users
-insert into public.users (id, display_name, role_title, avatar_url) values
-  ('11111111-1111-1111-1111-111111111111', 'דניאל כהן', 'מנהל מוצר', null),
-  ('22222222-2222-2222-2222-222222222222', 'נועה לוי', 'מעצבת מוצר', null),
-  ('33333333-3333-3333-3333-333333333333', 'איתי', 'מנהל מערכת', null);
+insert into public.users (id, display_name, avatar_url) values
+  ('11111111-1111-1111-1111-111111111111', 'דניאל כהן', null),
+  ('22222222-2222-2222-2222-222222222222', 'נועה לוי', null),
+  ('33333333-3333-3333-3333-333333333333', 'איתי', null);
 
 -- Tasks (examples similar to the UI mockups)
 insert into public.tasks (

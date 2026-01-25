@@ -1,29 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, StyleSheet, useColorScheme } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { TasksListScreen } from '../../features/tasks/ui/TasksListScreen';
-import { ProjectsListScreen } from '../../features/projects/ui/ProjectsListScreen';
+import { ClientsListScreen } from '../../features/clients/ui/ClientsListScreen';
+import { NotificationsScreen } from '../../features/notifications/ui/NotificationsScreen';
 import { SettingsScreen } from '../../screens/SettingsScreen';
+import { theme } from '../../shared/ui/theme';
+import { useAppColorScheme } from '../../shared/ui/useAppColorScheme';
+import { useNotificationsStore } from '../../features/notifications/store/notificationsStore';
+import { useAuthStore } from '../../features/auth/store/authStore';
 
 const Tab = createBottomTabNavigator();
 
 export function TabsNavigator() {
-  const scheme = useColorScheme();
+  const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+  const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const loadNotifications = useNotificationsStore((s) => s.load);
+  const userId = useAuthStore((s) => s.session?.user?.id);
+
+  useEffect(() => {
+    // Load notifications so the tab badge stays up-to-date.
+    if (userId) loadNotifications();
+  }, [userId]);
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: '#4d7fff',
-        tabBarInactiveTintColor: isDark ? '#737373' : '#94a3b8',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: isDark ? '#737373' : theme.colors.textMuted,
         tabBarStyle: [
           styles.tabBar,
           {
-            backgroundColor: isDark ? '#151515' : '#ffffff',
-            borderTopColor: isDark ? '#262626' : '#f1f5f9',
+            backgroundColor: theme.colors.background,
+            borderTopColor: theme.colors.border,
           },
         ],
         tabBarLabelStyle: styles.tabBarLabel,
@@ -42,13 +55,32 @@ export function TabsNavigator() {
         }}
       />
       <Tab.Screen
-        name="Projects"
-        component={ProjectsListScreen}
+        name="Clients"
+        component={ClientsListScreen}
         options={{
-          title: 'פרויקטים',
+          title: 'לקוחות',
           tabBarIcon: ({ color, focused, size }) => (
             <TabIcon focused={focused}>
-              <MaterialIcons name="work" size={size ?? 24} color={color} />
+              <MaterialIcons name="people" size={size ?? 24} color={color} />
+            </TabIcon>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          title: 'התראות',
+          tabBarBadge:
+            unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: theme.colors.primary,
+            color: '#fff',
+            fontWeight: '900',
+          },
+          tabBarIcon: ({ color, focused, size }) => (
+            <TabIcon focused={focused}>
+              <MaterialIcons name="notifications" size={size ?? 24} color={color} />
             </TabIcon>
           ),
         }}
@@ -111,6 +143,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#4d7fff',
+    backgroundColor: theme.colors.primary,
   },
 });

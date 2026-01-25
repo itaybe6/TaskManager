@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
+import { theme } from './theme';
 
 export function AppButton(props: {
   title: string;
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
   },
   txt: { color: '#fff', fontWeight: '700' },
