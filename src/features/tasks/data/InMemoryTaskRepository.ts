@@ -1,5 +1,5 @@
 import { TaskRepository, TaskQuery } from './TaskRepository';
-import { Task } from '../model/taskTypes';
+import type { Task } from '../model/taskTypes';
 import { makeId } from '../../../shared/utils/id';
 
 const nowIso = () => new Date().toISOString();

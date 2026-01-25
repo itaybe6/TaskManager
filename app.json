@@ -5,6 +5,14 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": ["**/*"]
+    "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "אפשר ל-$(PRODUCT_NAME) גישה לאנשי הקשר כדי לבחור מספר טלפון."
+        }
+      ]
+    ]
   }
 }

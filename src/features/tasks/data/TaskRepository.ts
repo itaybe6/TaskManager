@@ -1,4 +1,4 @@
-import { Task } from '../model/taskTypes';
+import type { Task } from '../model/taskTypes';
 
 export type TaskQuery = {
   status?: Task['status'];

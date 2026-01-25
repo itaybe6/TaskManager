@@ -7,11 +7,12 @@ import {
   ScrollView,
   TextInput,
   Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
-import { TaskPriority, TaskStatus } from '../model/taskTypes';
+import type { TaskPriority, TaskStatus } from '../model/taskTypes';
 import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
 import { useClientsStore } from '../../clients/store/clientsStore';
 import { supabaseRest } from '../../../app/supabase/rest';
@@ -22,17 +23,18 @@ import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 type UserLite = { id: string; displayName: string };
 
 export function TaskUpsertScreen({ route, navigation }: any) {
-  const { mode, id, projectId } = route.params as {
+  const { mode, id, projectId, defaultVisibility } = route.params as {
     mode: 'create' | 'edit';
     id?: string;
     projectId?: string;
+    defaultVisibility?: 'shared' | 'personal';
   };
   const { repo, createTask, updateTask } = useTasksStore();
   const cats = useTaskCategoriesStore();
   const clients = useClientsStore();
   const session = useAuthStore((s) => s.session);
-  const scheme = useAppColorScheme();
-  const isDark = scheme === 'dark';
+  // עיצוב לפי הדוגמה (רקע לבן בלבד)
+  const isDark = false;
 
   const [existingProjectId, setExistingProjectId] = useState<string | undefined>(projectId);
   const isProjectTask = Boolean(projectId ?? existingProjectId);
@@ -51,6 +53,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const [clientId, setClientId] = useState<string | undefined>(undefined);
   const [taskScope, setTaskScope] = useState<'general' | 'client'>('general');
   const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [assigneeModalOpen, setAssigneeModalOpen] = useState(false);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [dueAt, setDueAt] = useState<string | undefined>(undefined);
   const [catModalOpen, setCatModalOpen] = useState(false);
@@ -81,6 +84,18 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (mode !== 'create') return;
+    if (defaultVisibility !== 'personal') return;
+    setVisibility('personal');
+    const me = session?.user?.id;
+    if (me) {
+      setAssigneeId(me);
+      setTaskScope('general');
+      setClientId(undefined);
+    }
+  }, [mode, defaultVisibility, session?.user?.id]);
 
   const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
   const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר') ?? users[1], [users]);
@@ -124,50 +139,30 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   }, [dueAt]);
 
   return (
-    <SafeAreaView
-      edges={['top', 'left', 'right']}
-      style={[styles.screen, { backgroundColor: isDark ? '#1a1a1a' : '#ffffff' }]}
-    >
-      <View style={styles.frame}>
-        <View style={[styles.frameInner, { backgroundColor: isDark ? '#1a1a1a' : '#ffffff' }]}>
-          <View
-            style={[
-              styles.header,
-              {
-                backgroundColor: isDark ? 'rgba(26,26,26,0.80)' : 'rgba(255,255,255,0.80)',
-                borderBottomColor: isDark ? '#262626' : '#f1f5f9',
-              },
-            ]}
-          >
-            <Pressable
-              onPress={() => navigation.goBack()}
-              style={({ pressed }) => [
-                styles.cancelBtn,
-                { opacity: pressed ? 0.75 : 1 },
-              ]}
-            >
-              <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontSize: 16, fontWeight: '600' }}>
-                ביטול
-              </Text>
-            </Pressable>
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: '#ffffff' }]}>
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [styles.cancelBtn, { opacity: pressed ? 0.75 : 1 }]}
+        >
+          <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '700' }}>ביטול</Text>
+        </Pressable>
 
-            <Text style={{ color: isDark ? '#fff' : '#111827', fontSize: 16, fontWeight: '900' }}>
-              {screenTitle}
-            </Text>
+        <Text style={{ color: '#0f172a', fontSize: 22, fontWeight: '900' }}>{screenTitle}</Text>
 
-            <View style={{ width: 45 }} />
-          </View>
+        <View style={{ width: 60 }} />
+      </View>
 
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
             {!isProjectTask && (
               <View style={{ marginBottom: 18 }}>
-                <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>שייכות</Text>
+                <Text style={[styles.label, { color: '#64748b' }]}>שייכות</Text>
 
-                <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
+                <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                   <SegmentOption
                     label="כללית"
                     active={taskScope === 'general'}
@@ -195,8 +190,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       styles.pickerBtn,
                       {
                         marginTop: 12,
-                        backgroundColor: isDark ? '#262626' : '#ffffff',
-                        borderColor: isDark ? 'rgba(75, 85, 99, 0.40)' : '#f1f5f9',
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e2e8f0',
                         opacity: pressed ? 0.92 : 1,
                         transform: [{ scale: pressed ? 0.99 : 1 }],
                       },
@@ -206,15 +201,15 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       <View
                         style={[
                           styles.pickerIconCircle,
-                          { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5' },
+                          { backgroundColor: '#ecfdf5' },
                         ]}
                       >
-                        <MaterialIcons name="person" size={20} color={isDark ? '#34d399' : '#059669'} />
+                        <MaterialIcons name="person" size={20} color="#059669" />
                       </View>
                       <View style={{ gap: 2, flexShrink: 1 }}>
                         <Text
                           style={{
-                            color: isDark ? '#9ca3af' : '#6b7280',
+                            color: '#64748b',
                             fontSize: 13,
                             fontWeight: '600',
                             textAlign: 'right',
@@ -224,7 +219,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                         </Text>
                         <Text
                           style={{
-                            color: isDark ? '#fff' : '#111827',
+                            color: '#0f172a',
                             fontSize: 15,
                             fontWeight: '900',
                             textAlign: 'right',
@@ -234,15 +229,15 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                         </Text>
                       </View>
                     </View>
-                    <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
+                    <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
                   </Pressable>
                 )}
               </View>
             )}
 
             <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>סוג</Text>
-              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
+              <Text style={[styles.label, { color: '#64748b' }]}>סוג</Text>
+              <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                 <SegmentOption
                   label="משותפת"
                   active={visibility === 'shared'}
@@ -269,55 +264,86 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             </View>
 
             <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>אחראי</Text>
-              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
-                <SegmentOption
-                  label="איתי"
-                  active={visibility === 'personal' ? itiUser?.id === session?.user?.id : assigneeChoice === 'iti'}
-                  isDark={isDark}
-                  onPress={() => {
-                    if (visibility === 'personal') return;
-                    setAssigneeChoice('iti');
-                    setAssigneeId(itiUser?.id);
-                  }}
-                />
-                <SegmentOption
-                  label="אדיר"
-                  active={visibility === 'personal' ? adirUser?.id === session?.user?.id : assigneeChoice === 'adir'}
-                  isDark={isDark}
-                  onPress={() => {
-                    if (visibility === 'personal') return;
-                    setAssigneeChoice('adir');
-                    setAssigneeId(adirUser?.id);
-                  }}
-                />
-                {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
+              <Text style={[styles.label, { color: '#64748b' }]}>אחראי</Text>
+              {users.length <= 2 && visibility === 'shared' ? (
+                <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                   <SegmentOption
-                    label="שניהם"
-                    active={assigneeChoice === 'both'}
+                    label="איתי"
+                    active={assigneeChoice === 'iti'}
                     isDark={isDark}
                     onPress={() => {
-                      setAssigneeChoice('both');
-                      // assigneeId stays as-is; create path will fan-out
+                      setAssigneeChoice('iti');
+                      setAssigneeId(itiUser?.id);
                     }}
                   />
-                ) : null}
-              </View>
+                  <SegmentOption
+                    label="אדיר"
+                    active={assigneeChoice === 'adir'}
+                    isDark={isDark}
+                    onPress={() => {
+                      setAssigneeChoice('adir');
+                      setAssigneeId(adirUser?.id);
+                    }}
+                  />
+                  {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
+                    <SegmentOption
+                      label="שניהם"
+                      active={assigneeChoice === 'both'}
+                      isDark={isDark}
+                      onPress={() => {
+                        setAssigneeChoice('both');
+                        // assigneeId stays as-is; create path will fan-out
+                      }}
+                    />
+                  ) : null}
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => {
+                    setAssigneeModalOpen(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.pickerBtn,
+                    {
+                      backgroundColor: '#ffffff',
+                      borderColor: '#e2e8f0',
+                      opacity: pressed ? 0.92 : 1,
+                      transform: [{ scale: pressed ? 0.99 : 1 }],
+                    },
+                  ]}
+                >
+                  <View style={styles.pickerMain}>
+                    <View style={[styles.pickerIconCircle, { backgroundColor: '#eef2ff' }]}>
+                      <MaterialIcons name="person-outline" size={20} color={theme.colors.primary} />
+                    </View>
+                    <View style={{ gap: 2, flexShrink: 1 }}>
+                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
+                        אחראי
+                      </Text>
+                      <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '900', textAlign: 'right' }}>
+                        {users.find((u) => u.id === assigneeId)?.displayName ?? 'בחר אחראי'}
+                      </Text>
+                    </View>
+                  </View>
+                  <MaterialIcons name="expand-more" size={22} color="#94a3b8" />
+                </Pressable>
+              )}
             </View>
 
             <View style={{ marginBottom: 18 }}>
-              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>כותרת</Text>
+              <Text style={[styles.label, { color: '#64748b' }]}>כותרת</Text>
               <View style={styles.inputWrap}>
                 <TextInput
                   value={title}
                   onChangeText={setTitle}
                   placeholder="מה צריך לעשות?"
-                  placeholderTextColor={isDark ? '#525252' : '#9ca3af'}
+                  placeholderTextColor="#94a3b8"
                   style={[
                     styles.titleInput,
                     {
-                      backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted,
-                      color: isDark ? '#fff' : '#111827',
+                      backgroundColor: '#ffffff',
+                      color: '#0f172a',
+                      borderColor: '#e2e8f0',
                     },
                   ]}
                 />
@@ -328,26 +354,27 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             </View>
 
             <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>תיאור</Text>
+              <Text style={[styles.label, { color: '#64748b' }]}>תיאור</Text>
               <TextInput
                 value={description}
                 onChangeText={setDescription}
                 placeholder="הוסף פרטים נוספים, הערות או קישורים..."
-                placeholderTextColor={isDark ? '#525252' : '#9ca3af'}
+                placeholderTextColor="#94a3b8"
                 multiline
                 style={[
                   styles.descInput,
                   {
-                    backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted,
-                    color: isDark ? '#fff' : '#111827',
+                    backgroundColor: '#f8fafc',
+                    color: '#0f172a',
+                    borderColor: '#e2e8f0',
                   },
                 ]}
               />
             </View>
 
             <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>סטטוס</Text>
-              <View style={[styles.segment, { backgroundColor: isDark ? '#262626' : theme.colors.surfaceMuted }]}>
+              <Text style={[styles.label, { color: '#64748b' }]}>סטטוס</Text>
+              <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                 <SegmentOption
                   label="לביצוע"
                   active={status === 'todo'}
@@ -370,28 +397,25 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             </View>
 
             <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>עדיפות</Text>
+              <Text style={[styles.label, { color: '#64748b' }]}>עדיפות</Text>
               <View style={styles.priorityGrid}>
-                <PriorityCard
-                  label="גבוהה"
-                  tone="red"
-                  active={priority === 'high'}
-                  isDark={isDark}
-                  onPress={() => setPriority('high')}
+                <PriorityPill
+                  label="נמוכה"
+                  dotColor="#34d399"
+                  active={priority === 'low'}
+                  onPress={() => setPriority('low')}
                 />
-                <PriorityCard
+                <PriorityPill
                   label="בינונית"
-                  tone="amber"
+                  dotColor="#facc15"
                   active={priority === 'medium'}
-                  isDark={isDark}
                   onPress={() => setPriority('medium')}
                 />
-                <PriorityCard
-                  label="נמוכה"
-                  tone="emerald"
-                  active={priority === 'low'}
-                  isDark={isDark}
-                  onPress={() => setPriority('low')}
+                <PriorityPill
+                  label="גבוהה"
+                  dotColor="#ef4444"
+                  active={priority === 'high'}
+                  onPress={() => setPriority('high')}
                 />
               </View>
             </View>
@@ -402,8 +426,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 style={({ pressed }) => [
                   styles.pickerBtn,
                   {
-                    backgroundColor: isDark ? '#262626' : '#ffffff',
-                    borderColor: isDark ? 'rgba(75, 85, 99, 0.40)' : '#f1f5f9',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e2e8f0',
                     opacity: pressed ? 0.92 : 1,
                     transform: [{ scale: pressed ? 0.99 : 1 }],
                   },
@@ -413,7 +437,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   <View
                     style={[
                       styles.pickerIconCircle,
-                      { backgroundColor: isDark ? 'rgba(77, 127, 255, 0.20)' : '#eff6ff' },
+                      { backgroundColor: '#eff6ff' },
                     ]}
                   >
                     <MaterialIcons name="category" size={20} color={theme.colors.primary} />
@@ -421,7 +445,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   <View style={{ gap: 2, flexShrink: 1 }}>
                     <Text
                       style={{
-                        color: isDark ? '#9ca3af' : '#6b7280',
+                        color: '#64748b',
                         fontSize: 13,
                         fontWeight: '600',
                         textAlign: 'right',
@@ -431,7 +455,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     </Text>
                     <Text
                       style={{
-                        color: isDark ? '#fff' : '#111827',
+                        color: '#0f172a',
                         fontSize: 15,
                         fontWeight: '900',
                         textAlign: 'right',
@@ -441,7 +465,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     </Text>
                   </View>
                 </View>
-                <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
+                <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
               </Pressable>
 
               <Pressable
@@ -449,77 +473,36 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 style={({ pressed }) => [
                   styles.pickerBtn,
                   {
-                    backgroundColor: isDark ? '#262626' : '#ffffff',
-                    borderColor: isDark ? 'rgba(75, 85, 99, 0.40)' : '#f1f5f9',
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e2e8f0',
                     opacity: pressed ? 0.92 : 1,
                     transform: [{ scale: pressed ? 0.99 : 1 }],
                   },
                 ]}
               >
                 <View style={styles.pickerMain}>
-                  <View style={[styles.pickerIconCircle, { backgroundColor: isDark ? 'rgba(59,130,246,0.20)' : '#eff6ff' }]}>
+                  <View style={[styles.pickerIconCircle, { backgroundColor: '#eff6ff' }]}>
                     <MaterialIcons name="calendar-today" size={20} color={theme.colors.primary} />
                   </View>
                   <View style={{ gap: 2, flexShrink: 1 }}>
-                    <Text style={{ color: isDark ? '#9ca3af' : '#6b7280', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
+                    <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
                       תאריך יעד
                     </Text>
-                    <Text style={{ color: isDark ? '#fff' : '#111827', fontSize: 15, fontWeight: '900', textAlign: 'right' }}>
+                    <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '900', textAlign: 'right' }}>
                       {dateLabel}
                     </Text>
                   </View>
                 </View>
-                <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
+                <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
               </Pressable>
 
-              <Pressable
-                onPress={() => setTagsModalOpen(true)}
-                style={({ pressed }) => [
-                  styles.pickerBtn,
-                  {
-                    backgroundColor: isDark ? '#262626' : '#ffffff',
-                    borderColor: isDark ? 'rgba(75, 85, 99, 0.40)' : '#f1f5f9',
-                    opacity: pressed ? 0.92 : 1,
-                    transform: [{ scale: pressed ? 0.99 : 1 }],
-                  },
-                ]}
-              >
-                <View style={styles.pickerMain}>
-                  <View style={[styles.pickerIconCircle, { backgroundColor: isDark ? 'rgba(168,85,247,0.20)' : '#f3e8ff' }]}>
-                    <MaterialIcons name="sell" size={20} color={isDark ? '#c084fc' : '#7c3aed'} />
-                  </View>
-                  <View style={{ gap: 4, flexShrink: 1 }}>
-                    <Text style={{ color: isDark ? '#9ca3af' : '#6b7280', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
-                      תגיות
-                    </Text>
-                    <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 6 }}>
-                      {(tags.length ? tags : ['עיצוב', 'דחוף']).slice(0, 3).map((t) => (
-                        <View
-                          key={t}
-                          style={{
-                            backgroundColor: isDark ? '#374151' : '#f3f4f6',
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 8,
-                          }}
-                        >
-                          <Text style={{ color: isDark ? '#d1d5db' : '#4b5563', fontSize: 11, fontWeight: '800' }}>
-                            #{t}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-                <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
-              </Pressable>
             </View>
-          </ScrollView>
+        </ScrollView>
 
-          <View style={[styles.footer, { backgroundColor: isDark ? 'rgba(26,26,26,0.92)' : 'rgba(255,255,255,0.92)' }]}>
-            <Pressable
-              disabled={!canSave}
-              onPress={async () => {
+        <View style={[styles.footer, { backgroundColor: 'rgba(255,255,255,0.95)', borderTopColor: '#e2e8f0' }]}>
+          <Pressable
+            disabled={!canSave}
+            onPress={async () => {
                 if (!canSave) return;
 
                 if (mode === 'create') {
@@ -563,268 +546,103 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 }
 
                 navigation.goBack();
-              }}
-              style={({ pressed }) => [
-                styles.saveBtn,
-                {
-                  opacity: !canSave ? 0.5 : pressed ? 0.92 : 1,
-                  transform: [{ scale: pressed ? 0.99 : 1 }],
-                },
-              ]}
-            >
-              <MaterialIcons name="check" size={20} color="#fff" />
-              <Text style={styles.saveTxt}>שמור משימה</Text>
-            </Pressable>
-          </View>
-
-          <Modal
-            visible={clientModalOpen}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setClientModalOpen(false)}
+            }}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              {
+                opacity: !canSave ? 0.5 : pressed ? 0.92 : 1,
+                transform: [{ scale: pressed ? 0.99 : 1 }],
+              },
+            ]}
           >
-            <Pressable style={styles.modalOverlay} onPress={() => setClientModalOpen(false)}>
-              <Pressable style={[styles.modalCard, { backgroundColor: isDark ? '#262626' : '#ffffff' }]} onPress={() => {}}>
-                <Text style={{ fontSize: 16, fontWeight: '900', color: isDark ? '#fff' : '#111827', textAlign: 'right' }}>
-                  בחירת לקוח
-                </Text>
-
-                <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <Pressable
-                    onPress={() => {
-                      setClientId(undefined);
-                      setTaskScope('general');
-                      setClientModalOpen(false);
-                    }}
-                    style={({ pressed }) => [
-                      {
-                        paddingHorizontal: 10,
-                        paddingVertical: 8,
-                        borderRadius: 12,
-                        backgroundColor: theme.colors.primary,
-                        opacity: pressed ? 0.9 : 1,
-                      },
-                    ]}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>משימה כללית</Text>
-                  </Pressable>
-
-                  {clients.items.map((c) => {
-                    const active = clientId === c.id;
-                    return (
-                      <Pressable
-                        key={c.id}
-                        onPress={() => {
-                          setTaskScope('client');
-                          setClientId(c.id);
-                          setClientModalOpen(false);
-                        }}
-                        style={({ pressed }) => [
-                          {
-                            paddingHorizontal: 10,
-                            paddingVertical: 8,
-                            borderRadius: 12,
-                            backgroundColor: active ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
-                            opacity: pressed ? 0.9 : 1,
-                          },
-                        ]}
-                      >
-                        <Text style={{ color: active ? '#fff' : isDark ? '#d1d5db' : '#475569', fontWeight: '900', fontSize: 12 }}>
-                          {c.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <View style={{ marginTop: 16, flexDirection: 'row-reverse', gap: 10 }}>
-                  <Pressable
-                    onPress={() => setClientModalOpen(false)}
-                    style={({ pressed }) => [styles.modalDone, { opacity: pressed ? 0.9 : 1 }]}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: '900' }}>סגור</Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            </Pressable>
-          </Modal>
-
-          <Modal
-            visible={catModalOpen}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setCatModalOpen(false)}
-          >
-            <Pressable style={styles.modalOverlay} onPress={() => setCatModalOpen(false)}>
-              <Pressable
-                style={[styles.modalCard, { backgroundColor: isDark ? '#262626' : '#ffffff' }]}
-                onPress={() => {}}
-              >
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: '900',
-                    color: isDark ? '#fff' : '#111827',
-                    textAlign: 'right',
-                  }}
-                >
-                  קטגוריות משימות
-                </Text>
-
-                <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                  <Pressable
-                    onPress={() => {
-                      setCategoryId(undefined);
-                      setCatModalOpen(false);
-                    }}
-                    style={({ pressed }) => [
-                      {
-                        paddingHorizontal: 10,
-                        paddingVertical: 8,
-                        borderRadius: 12,
-                        backgroundColor: !categoryId ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
-                        opacity: pressed ? 0.9 : 1,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: !categoryId ? '#fff' : isDark ? '#d1d5db' : '#475569',
-                        fontWeight: '900',
-                        fontSize: 12,
-                      }}
-                    >
-                      ללא
-                    </Text>
-                  </Pressable>
-
-                  {cats.items.map((c) => {
-                    const active = categoryId === c.id;
-                    return (
-                      <Pressable
-                        key={c.id}
-                        onPress={() => {
-                          setCategoryId(c.id);
-                          setCatModalOpen(false);
-                        }}
-                        style={({ pressed }) => [
-                          {
-                            paddingHorizontal: 10,
-                            paddingVertical: 8,
-                            borderRadius: 12,
-                            backgroundColor: active ? theme.colors.primary : isDark ? '#1f2937' : '#f1f5f9',
-                            opacity: pressed ? 0.9 : 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={{
-                            color: active ? '#fff' : isDark ? '#d1d5db' : '#475569',
-                            fontWeight: '900',
-                            fontSize: 12,
-                          }}
-                        >
-                          {c.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <View style={{ marginTop: 14 }}>
-                  <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>
-                    הוסף קטגוריה
-                  </Text>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10 }}>
-                    <TextInput
-                      value={newCategoryName}
-                      onChangeText={setNewCategoryName}
-                      placeholder="לדוגמה: פיננסים"
-                      placeholderTextColor={isDark ? '#525252' : '#9ca3af'}
-                      style={[
-                        styles.tagInput,
-                        {
-                          backgroundColor: isDark ? '#1f2937' : theme.colors.surfaceMuted,
-                          color: isDark ? '#fff' : '#111827',
-                        },
-                      ]}
-                      returnKeyType="done"
-                    />
-                    <Pressable
-                      onPress={async () => {
-                        const name = newCategoryName.trim();
-                        if (!name) return;
-                        const slug = slugify(name);
-                        const created = await cats.createCategory({
-                          name,
-                          slug,
-                          color: theme.colors.primary,
-                        });
-                        setCategoryId(created.id);
-                        setNewCategoryName('');
-                        setCatModalOpen(false);
-                      }}
-                      style={({ pressed }) => [
-                        styles.addTagBtn,
-                        { opacity: pressed ? 0.9 : 1 },
-                      ]}
-                    >
-                      <MaterialIcons name="add" size={18} color="#fff" />
-                    </Pressable>
-                  </View>
-                </View>
-
-                <View style={{ marginTop: 16, flexDirection: 'row-reverse', gap: 10 }}>
-                  <Pressable
-                    onPress={() => setCatModalOpen(false)}
-                    style={({ pressed }) => [
-                      styles.modalDone,
-                      { opacity: pressed ? 0.9 : 1 },
-                    ]}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: '900' }}>סגור</Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            </Pressable>
-          </Modal>
+            <MaterialIcons name="check" size={20} color="#fff" />
+            <Text style={styles.saveTxt}>שמור משימה</Text>
+          </Pressable>
         </View>
-      </View>
+
+        <SelectSheet
+          title="בחירת לקוח"
+          visible={clientModalOpen}
+          onClose={() => setClientModalOpen(false)}
+          items={[
+            { key: '__none__', title: 'משימה כללית', subtitle: 'ללא לקוח' },
+            ...clients.items.map((c) => ({ key: c.id, title: c.name })),
+          ]}
+          selectedKey={clientId ?? '__none__'}
+          onSelect={(key) => {
+            if (key === '__none__') {
+              setClientId(undefined);
+              setTaskScope('general');
+            } else {
+              setTaskScope('client');
+              setClientId(key);
+            }
+            setClientModalOpen(false);
+          }}
+        />
+
+        <SelectSheet
+          title="בחירת אחראי"
+          visible={assigneeModalOpen}
+          onClose={() => setAssigneeModalOpen(false)}
+          items={users.map((u) => ({ key: u.id, title: u.displayName }))}
+          selectedKey={assigneeId}
+          onSelect={(key) => {
+            setAssigneeId(key);
+            setAssigneeChoice('iti'); // irrelevant when dropdown is used
+            setAssigneeModalOpen(false);
+          }}
+        />
+
+        <CategorySheet
+          visible={catModalOpen}
+          onClose={() => setCatModalOpen(false)}
+          categories={cats.items.map((c) => ({ id: c.id, name: c.name }))}
+          selectedId={categoryId}
+          newCategoryName={newCategoryName}
+          setNewCategoryName={setNewCategoryName}
+          onSelect={(id) => {
+            setCategoryId(id);
+            setCatModalOpen(false);
+          }}
+          onClear={() => {
+            setCategoryId(undefined);
+            setCatModalOpen(false);
+          }}
+          onCreate={async () => {
+            const name = newCategoryName.trim();
+            if (!name) return;
+            const slug = slugify(name);
+            const created = await cats.createCategory({
+              name,
+              slug,
+              color: theme.colors.primary,
+            });
+            setCategoryId(created.id);
+            setNewCategoryName('');
+            setCatModalOpen(false);
+          }}
+        />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  frame: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
-  frameInner: {
-    width: '100%',
-    maxWidth: 520,
-    flex: 1,
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 18 },
-    elevation: 16,
-  },
+  frame: { flex: 1 },
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 56,
-    paddingHorizontal: 14,
+    height: 60,
+    paddingHorizontal: 20,
     zIndex: 10,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
   cancelBtn: { paddingHorizontal: 8, paddingVertical: 8 },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 76, paddingBottom: 140 },
+  content: { width: '100%', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 160 },
   label: { fontSize: 13, fontWeight: '800', marginBottom: 8, textAlign: 'right' },
   inputWrap: { position: 'relative' },
   inputIcon: { position: 'absolute', right: 14, top: 16 },
@@ -835,6 +653,7 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     fontSize: 18,
     fontWeight: '700',
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -849,6 +668,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     minHeight: 120,
     textAlignVertical: 'top',
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -857,7 +677,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-  segment: { padding: 6, borderRadius: 20, flexDirection: 'row-reverse', gap: 6 },
+  segment: { padding: 6, borderRadius: 20, flexDirection: 'row-reverse', gap: 6, borderWidth: 1 },
   priorityGrid: { flexDirection: 'row-reverse', gap: 10 },
   pickerBtn: {
     borderWidth: 1,
@@ -882,6 +702,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 18,
     paddingTop: 18,
+    borderTopWidth: 1,
   },
   saveBtn: {
     height: 56,
@@ -943,6 +764,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    padding: 16,
+    justifyContent: 'flex-end',
+  },
+  sheetCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  sheetHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
+  sheetTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', textAlign: 'right' },
+  sheetSearch: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    paddingRight: 42,
+    paddingLeft: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  sheetItem: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  sheetItemTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a', textAlign: 'right' },
+  sheetItemSub: { fontSize: 12, fontWeight: '700', color: '#64748b', textAlign: 'right' },
+  sheetDivider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 14, opacity: 0.9 },
 });
 
 function SegmentOption({
@@ -966,7 +834,7 @@ function SegmentOption({
           borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: active ? (isDark ? '#374151' : '#ffffff') : 'transparent',
+          backgroundColor: active ? '#ffffff' : 'transparent',
           shadowColor: '#000',
           shadowOpacity: active ? 0.06 : 0,
           shadowRadius: 8,
@@ -976,27 +844,24 @@ function SegmentOption({
         },
       ]}
     >
-      <Text style={{ color: active ? (isDark ? '#fff' : theme.colors.primary) : isDark ? '#a3a3a3' : '#6b7280', fontWeight: '700', fontSize: 13 }}>
+      <Text style={{ color: active ? theme.colors.primary : '#64748b', fontWeight: active ? '900' : '700', fontSize: 13 }}>
         {label}
       </Text>
     </Pressable>
   );
 }
 
-function PriorityCard({
+function PriorityPill({
   label,
-  tone,
+  dotColor,
   active,
-  isDark,
   onPress,
 }: {
   label: string;
-  tone: 'red' | 'amber' | 'emerald';
+  dotColor: string;
   active: boolean;
-  isDark: boolean;
   onPress: () => void;
 }) {
-  const c = priorityColors(tone, isDark);
   return (
     <Pressable
       onPress={onPress}
@@ -1005,44 +870,230 @@ function PriorityCard({
           flex: 1,
           borderRadius: 20,
           paddingVertical: 12,
-          paddingHorizontal: 10,
-          backgroundColor: c.bg,
-          borderWidth: active ? 2 : 2,
-          borderColor: active ? c.borderActive : 'transparent',
+          paddingHorizontal: 12,
+          backgroundColor: '#ffffff',
+          borderWidth: 1,
+          borderColor: active ? theme.colors.primary : '#e2e8f0',
           alignItems: 'center',
           justifyContent: 'center',
+          flexDirection: 'row-reverse',
           gap: 8,
           opacity: pressed ? 0.92 : 1,
         },
       ]}
     >
-      <MaterialIcons name="flag" size={20} color={c.fg} />
-      <Text style={{ color: c.fg, fontSize: 14, fontWeight: '900' }}>{label}</Text>
+      <View
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: 999,
+          backgroundColor: dotColor,
+          shadowColor: dotColor,
+          shadowOpacity: 0.35,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 2,
+        }}
+      />
+      <Text style={{ color: active ? theme.colors.primary : '#475569', fontSize: 13, fontWeight: active ? '900' : '800' }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
-function priorityColors(tone: 'red' | 'amber' | 'emerald', isDark: boolean) {
-  switch (tone) {
-    case 'red':
-      return {
-        bg: isDark ? 'rgba(127, 29, 29, 0.20)' : '#fef2f2',
-        fg: isDark ? '#fca5a5' : '#dc2626',
-        borderActive: isDark ? '#ef4444' : '#ef4444',
-      };
-    case 'amber':
-      return {
-        bg: isDark ? 'rgba(120, 53, 15, 0.18)' : '#fffbeb',
-        fg: isDark ? '#fcd34d' : '#d97706',
-        borderActive: isDark ? '#f59e0b' : '#f59e0b',
-      };
-    case 'emerald':
-      return {
-        bg: isDark ? 'rgba(6, 78, 59, 0.18)' : '#ecfdf5',
-        fg: isDark ? '#a7f3d0' : '#059669',
-        borderActive: isDark ? '#10b981' : '#10b981',
-      };
-  }
+function SelectSheet(props: {
+  title: string;
+  visible: boolean;
+  onClose: () => void;
+  items: Array<{ key: string; title: string; subtitle?: string }>;
+  selectedKey?: string;
+  onSelect: (key: string) => void;
+}) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return props.items;
+    return props.items.filter((i) => i.title.toLowerCase().includes(s) || (i.subtitle ?? '').toLowerCase().includes(s));
+  }, [q, props.items]);
+
+  return (
+    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
+      <Pressable style={styles.sheetOverlay} onPress={props.onClose}>
+        <Pressable style={styles.sheetCard} onPress={() => {}}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{props.title}</Text>
+            <Pressable onPress={props.onClose} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+              <MaterialIcons name="close" size={22} color="#94a3b8" />
+            </Pressable>
+          </View>
+
+          <View style={{ position: 'relative', marginTop: 10 }}>
+            <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
+              <MaterialIcons name="search" size={20} color={theme.colors.primary} />
+            </View>
+            <TextInput
+              value={q}
+              onChangeText={setQ}
+              placeholder="חיפוש..."
+              placeholderTextColor="#94a3b8"
+              style={styles.sheetSearch}
+            />
+          </View>
+
+          <FlatList
+            data={filtered}
+            keyExtractor={(i) => i.key}
+            keyboardShouldPersistTaps="handled"
+            style={{ marginTop: 12, maxHeight: 420 }}
+            contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+            renderItem={({ item }) => {
+              const active = props.selectedKey === item.key;
+              return (
+                <Pressable
+                  onPress={() => props.onSelect(item.key)}
+                  style={({ pressed }) => [
+                    styles.sheetItem,
+                    {
+                      borderColor: active ? theme.colors.primary : '#e2e8f0',
+                      backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                      opacity: pressed ? 0.92 : 1,
+                    },
+                  ]}
+                >
+                  <View style={{ gap: 2, flex: 1 }}>
+                    <Text style={[styles.sheetItemTitle, { color: '#0f172a' }]} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    {item.subtitle ? (
+                      <Text style={styles.sheetItemSub} numberOfLines={1}>
+                        {item.subtitle}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                </Pressable>
+              );
+            }}
+          />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function CategorySheet(props: {
+  visible: boolean;
+  onClose: () => void;
+  categories: Array<{ id: string; name: string }>;
+  selectedId?: string;
+  newCategoryName: string;
+  setNewCategoryName: (v: string) => void;
+  onSelect: (id: string) => void;
+  onClear: () => void;
+  onCreate: () => Promise<void>;
+}) {
+  const [q, setQ] = useState('');
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return props.categories;
+    return props.categories.filter((c) => c.name.toLowerCase().includes(s));
+  }, [q, props.categories]);
+
+  return (
+    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
+      <Pressable style={styles.sheetOverlay} onPress={props.onClose}>
+        <Pressable style={styles.sheetCard} onPress={() => {}}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>קטגוריה</Text>
+            <Pressable onPress={props.onClose} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+              <MaterialIcons name="close" size={22} color="#94a3b8" />
+            </Pressable>
+          </View>
+
+          <View style={{ position: 'relative', marginTop: 10 }}>
+            <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
+              <MaterialIcons name="search" size={20} color={theme.colors.primary} />
+            </View>
+            <TextInput
+              value={q}
+              onChangeText={setQ}
+              placeholder="חיפוש קטגוריה..."
+              placeholderTextColor="#94a3b8"
+              style={styles.sheetSearch}
+            />
+          </View>
+
+          <View style={{ marginTop: 12, gap: 10 }}>
+            <Pressable
+              onPress={props.onClear}
+              style={({ pressed }) => [
+                styles.sheetItem,
+                {
+                  borderColor: !props.selectedId ? theme.colors.primary : '#e2e8f0',
+                  backgroundColor: !props.selectedId ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                  opacity: pressed ? 0.92 : 1,
+                },
+              ]}
+            >
+              <View style={{ gap: 2, flex: 1 }}>
+                <Text style={styles.sheetItemTitle}>ללא קטגוריה</Text>
+                <Text style={styles.sheetItemSub}>ברירת מחדל</Text>
+              </View>
+              {!props.selectedId ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+            </Pressable>
+          </View>
+
+          <FlatList
+            data={filtered}
+            keyExtractor={(i) => i.id}
+            keyboardShouldPersistTaps="handled"
+            style={{ marginTop: 10, maxHeight: 320 }}
+            contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+            renderItem={({ item }) => {
+              const active = props.selectedId === item.id;
+              return (
+                <Pressable
+                  onPress={() => props.onSelect(item.id)}
+                  style={({ pressed }) => [
+                    styles.sheetItem,
+                    {
+                      borderColor: active ? theme.colors.primary : '#e2e8f0',
+                      backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                      opacity: pressed ? 0.92 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={styles.sheetItemTitle} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                </Pressable>
+              );
+            }}
+          />
+
+          <View style={styles.sheetDivider} />
+
+          <Text style={[styles.label, { color: '#64748b', marginBottom: 8 }]}>הוסף קטגוריה</Text>
+          <View style={{ flexDirection: 'row-reverse', gap: 10, alignItems: 'center' }}>
+            <TextInput
+              value={props.newCategoryName}
+              onChangeText={props.setNewCategoryName}
+              placeholder="לדוגמה: פיננסים"
+              placeholderTextColor="#94a3b8"
+              style={[styles.sheetSearch, { flex: 1, marginTop: 0 }]}
+              returnKeyType="done"
+              onSubmitEditing={props.onCreate}
+            />
+            <Pressable onPress={props.onCreate} style={({ pressed }) => [styles.addTagBtn, { opacity: pressed ? 0.9 : 1 }]}>
+              <MaterialIcons name="add" size={18} color="#fff" />
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
 }
 
 function toggleDueAt(current?: string) {

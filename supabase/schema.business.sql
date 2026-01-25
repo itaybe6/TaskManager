@@ -32,9 +32,29 @@ create table if not exists public.clients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   notes text null,
+  total_price numeric(12,2) null,
+  remaining_to_pay numeric(12,2) null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Add pricing columns if table already exists
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='total_price'
+  ) then
+    alter table public.clients add column total_price numeric(12,2) null;
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='remaining_to_pay'
+  ) then
+    alter table public.clients add column remaining_to_pay numeric(12,2) null;
+  end if;
+end $$;
 
 -- Backward-compatible cleanup (if columns exist from older schema)
 do $$

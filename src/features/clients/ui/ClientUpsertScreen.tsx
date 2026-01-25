@@ -8,9 +8,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  FlatList,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Contacts from 'expo-contacts/src/Contacts';
 import { useClientsStore } from '../store/clientsStore';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
@@ -23,7 +27,16 @@ export function ClientUpsertScreen({ route, navigation }: any) {
 
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
+  const [remainingToPay, setRemainingToPay] = useState('');
   const [contacts, setContacts] = useState<ClientContactInput[]>([{ name: '', email: '', phone: '' }]);
+  const [phonePicker, setPhonePicker] = useState<{
+    isOpen: boolean;
+    targetIdx: number | null;
+    contactName: string;
+    email?: string;
+    phones: string[];
+  }>({ isOpen: false, targetIdx: null, contactName: '', phones: [] });
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -32,6 +45,8 @@ export function ClientUpsertScreen({ route, navigation }: any) {
       if (!c) return;
       setName(c.name);
       setNotes(c.notes ?? '');
+      setTotalPrice(c.totalPrice !== undefined ? String(c.totalPrice) : '');
+      setRemainingToPay(c.remainingToPay !== undefined ? String(c.remainingToPay) : '');
       setContacts(
         c.contacts.length
           ? c.contacts.map((cc) => ({ name: cc.name ?? '', email: cc.email ?? '', phone: cc.phone ?? '' }))
@@ -58,6 +73,77 @@ export function ClientUpsertScreen({ route, navigation }: any) {
       saveShadow: 'rgba(165, 148, 249, 0.35)',
     };
   }, [isDark]);
+
+  function closePhonePicker() {
+    setPhonePicker({ isOpen: false, targetIdx: null, contactName: '', phones: [] });
+  }
+
+  function normalizePhone(value: string) {
+    // Keep digits and '+'; remove spaces/dashes/brackets for nicer input.
+    return value.replace(/[^\d+]/g, '');
+  }
+
+  async function pickFromContacts(targetIdx: number) {
+    if (Platform.OS === 'web') {
+      Alert.alert('לא נתמך ב-Web', 'בחירה מאנשי קשר זמינה באפליקציה במובייל.');
+      return;
+    }
+
+    const isAvailable = await Contacts.isAvailableAsync();
+    if (!isAvailable) {
+      Alert.alert('לא זמין', 'גישה לאנשי קשר לא זמינה במכשיר הזה.');
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('אין הרשאה', 'כדי לבחור מספר מתוך אנשי הקשר צריך לאשר הרשאת אנשי קשר.');
+        return;
+      }
+    }
+
+    const picked = await Contacts.presentContactPickerAsync();
+    if (!picked) return;
+
+    const phones = (picked.phoneNumbers ?? [])
+      .map((p) => (p.number ?? p.digits ?? '').trim())
+      .filter((p) => p.length > 0);
+
+    if (phones.length === 0) {
+      Alert.alert('אין מספר', 'לאיש הקשר שנבחר אין מספר טלפון.');
+      return;
+    }
+
+    const pickedName = picked.name ?? '';
+    const pickedEmail =
+      picked.emails?.find((e) => e.isPrimary)?.email ?? picked.emails?.[0]?.email ?? undefined;
+
+    if (phones.length === 1) {
+      const phone = normalizePhone(phones[0]);
+      setContacts((prev) =>
+        prev.map((x, i) =>
+          i === targetIdx
+            ? {
+                ...x,
+                name: x.name?.trim().length ? x.name : pickedName,
+                email: x.email?.trim().length ? x.email : pickedEmail ?? '',
+                phone,
+              }
+            : x
+        )
+      );
+      return;
+    }
+
+    setPhonePicker({
+      isOpen: true,
+      targetIdx,
+      contactName: pickedName,
+      email: pickedEmail,
+      phones: phones.map(normalizePhone),
+    });
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -86,6 +172,29 @@ export function ClientUpsertScreen({ route, navigation }: any) {
             placeholder="לדוגמה: חברת אלפא"
             autoFocus={mode === 'create'}
             textContentType="organizationName"
+          />
+
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.label }]}>תמחור</Text>
+          </View>
+
+          <FormField
+            label="מחיר (₪)"
+            icon="payments"
+            value={totalPrice}
+            onChangeText={(v) => setTotalPrice(normalizeMoney(v))}
+            colors={colors}
+            placeholder="לדוגמה: 12000"
+            keyboardType="phone-pad"
+          />
+          <FormField
+            label="נותר לתשלום (₪)"
+            icon="account-balance-wallet"
+            value={remainingToPay}
+            onChangeText={(v) => setRemainingToPay(normalizeMoney(v))}
+            colors={colors}
+            placeholder="לדוגמה: 4500"
+            keyboardType="phone-pad"
           />
 
           <View style={styles.sectionHeader}>
@@ -142,6 +251,14 @@ export function ClientUpsertScreen({ route, navigation }: any) {
                 keyboardType="phone-pad"
                 textContentType="telephoneNumber"
               />
+
+              <Pressable
+                onPress={() => pickFromContacts(idx)}
+                style={({ pressed }) => [styles.pickContactBtn, { opacity: pressed ? 0.86 : 1 }]}
+              >
+                <MaterialIcons name="contacts" size={20} color={theme.colors.primary} />
+                <Text style={[styles.pickContactText, { color: theme.colors.primary }]}>בחר מאנשי קשר</Text>
+              </Pressable>
             </View>
           ))}
 
@@ -171,6 +288,8 @@ export function ClientUpsertScreen({ route, navigation }: any) {
             const payload = {
               name: name.trim(),
               notes: notes.trim() || undefined,
+              totalPrice: parseMoney(totalPrice),
+              remainingToPay: parseMoney(remainingToPay),
               contacts: normalizedContacts,
             };
             if (mode === 'create') await createClient(payload);
@@ -190,6 +309,62 @@ export function ClientUpsertScreen({ route, navigation }: any) {
           <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>שמור</Text>
           <MaterialIcons name="check" size={22} color="#fff" />
         </Pressable>
+
+        <Modal transparent visible={phonePicker.isOpen} animationType="fade" onRequestClose={closePhonePicker}>
+          <Pressable style={styles.modalOverlay} onPress={closePhonePicker}>
+            <Pressable
+              onPress={() => {}}
+              style={[styles.modalCard, { backgroundColor: colors.inputBg, borderColor: colors.headerBorder }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.inputText }]}>
+                {phonePicker.contactName ? `בחר מספר (${phonePicker.contactName})` : 'בחר מספר'}
+              </Text>
+
+              <FlatList
+                data={phonePicker.phones}
+                keyExtractor={(p, i) => `${p}-${i}`}
+                style={{ maxHeight: 320 }}
+                contentContainerStyle={{ gap: 10, paddingTop: 6 }}
+                renderItem={({ item }) => (
+                  <Pressable
+                    onPress={() => {
+                      if (phonePicker.targetIdx == null) return;
+                      const targetIdx = phonePicker.targetIdx;
+                      const pickedName = phonePicker.contactName ?? '';
+                      const pickedEmail = phonePicker.email;
+                      setContacts((prev) =>
+                        prev.map((x, i) =>
+                          i === targetIdx
+                            ? {
+                                ...x,
+                                name: x.name?.trim().length ? x.name : pickedName,
+                                email: x.email?.trim().length ? x.email : pickedEmail ?? '',
+                                phone: item,
+                              }
+                            : x
+                        )
+                      );
+                      closePhonePicker();
+                    }}
+                    style={({ pressed }) => [
+                      styles.phoneOption,
+                      { backgroundColor: isDark ? '#0B1220' : '#FFFFFF', opacity: pressed ? 0.86 : 1 },
+                    ]}
+                  >
+                    <MaterialIcons name="call" size={18} color={theme.colors.primary} />
+                    <Text style={[styles.phoneOptionText, { color: colors.inputText }]}>{item}</Text>
+                  </Pressable>
+                )}
+              />
+
+              <Pressable onPress={closePhonePicker} style={({ pressed }) => [{ opacity: pressed ? 0.86 : 1 }]}>
+                <Text style={{ color: colors.cancel, fontWeight: '900', textAlign: 'center', paddingTop: 14 }}>
+                  סגור
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -211,7 +386,7 @@ function FormField(props: {
     placeholder: string;
   };
   multiline?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   textContentType?: any;
   autoFocus?: boolean;
@@ -247,6 +422,18 @@ function FormField(props: {
   );
 }
 
+function normalizeMoney(raw: string) {
+  // Digits + optional dot for decimals
+  return raw.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+}
+
+function parseMoney(raw: string): number | undefined {
+  const s = raw.trim();
+  if (!s) return undefined;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
@@ -270,6 +457,17 @@ const styles = StyleSheet.create({
   contactCard: { borderRadius: 18, padding: 14, gap: 14 },
   contactCardHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
   contactCardTitle: { fontSize: 14, fontWeight: '900' },
+  pickContactBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+    alignSelf: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  pickContactText: { fontWeight: '900' },
   input: {
     borderRadius: 18,
     paddingRight: 16,
@@ -321,5 +519,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 12,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 520,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+  },
+  modalTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right' },
+  phoneOption: {
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 10,
+  },
+  phoneOptionText: { fontSize: 16, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
 });
 

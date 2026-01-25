@@ -53,6 +53,8 @@ export interface DbClient {
   id: string;
   name: string;
   notes?: string | null;
+  total_price?: number | null;
+  remaining_to_pay?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -204,6 +206,8 @@ export type DbTaskCategoryUpdate = Partial<DbTaskCategoryInsert>;
 export type DbClientInsert = {
   name: string;
   notes?: string | null;
+  total_price?: number | null;
+  remaining_to_pay?: number | null;
 };
 export type DbClientUpdate = Partial<DbClientInsert>;
 

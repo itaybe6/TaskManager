@@ -17,6 +17,8 @@ export type Client = {
   id: string;
   name: string;
   notes?: string;
+  totalPrice?: number;
+  remainingToPay?: number;
   contacts: ClientContact[];
   createdAt: string;
   updatedAt: string;

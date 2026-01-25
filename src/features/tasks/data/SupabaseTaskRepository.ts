@@ -1,5 +1,5 @@
 import { TaskRepository, TaskQuery } from './TaskRepository';
-import { Task, TaskStatus, TaskPriority } from '../model/taskTypes';
+import type { Task, TaskStatus, TaskPriority } from '../model/taskTypes';
 import { supabaseRest } from '../../../app/supabase/rest';
 
 type DbTaskRow = {

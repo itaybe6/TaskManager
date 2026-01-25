@@ -57,9 +57,6 @@ export function LoginScreen() {
       >
         <View style={styles.wrap}>
           <View style={styles.hero}>
-            <View style={[styles.logoChip, { backgroundColor: theme.colors.primary }]}>
-              <BrandLogo width={34} height={20} style={{ tintColor: '#fff' as any }} />
-            </View>
             <View style={styles.heroText}>
               <BrandLogo width={120} height={40} />
               <Text style={[styles.heroSub, { color: palette.sub }]}>Project</Text>
@@ -96,6 +93,7 @@ export function LoginScreen() {
                   autoCorrect={false}
                   style={[styles.fieldInput, { color: palette.text }]}
                   textAlign="right"
+                  // Email is typically LTR even in RTL UI
                   writingDirection="ltr"
                 />
               </Field>
@@ -117,9 +115,9 @@ export function LoginScreen() {
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
-                  style={[styles.fieldInput, { color: palette.text }]}
+                  style={[styles.fieldInput, styles.rtlInput, { color: palette.text }]}
                   textAlign="right"
-                  writingDirection="ltr"
+                  writingDirection="rtl"
                 />
               </Field>
 
@@ -218,19 +216,6 @@ const styles = StyleSheet.create({
   kav: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
   wrap: { width: '100%', maxWidth: 520, alignSelf: 'center' },
   hero: { alignItems: 'center', marginBottom: 18 },
-  logoChip: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
-    marginBottom: 10,
-  },
   heroText: { alignItems: 'center' },
   heroSub: {
     marginTop: -6,
@@ -307,11 +292,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   fieldIcon: { width: 30, alignItems: 'center', justifyContent: 'center' },
-  fieldInputWrap: { flex: 1, paddingLeft: 6 },
+  fieldInputWrap: { flex: 1, paddingRight: 6 },
   fieldInput: {
     paddingVertical: 12,
     fontSize: 16,
     fontWeight: '600',
+  },
+  rtlInput: {
+    writingDirection: 'rtl',
   },
 
   forgotRow: { alignItems: 'flex-end', marginTop: -6 },

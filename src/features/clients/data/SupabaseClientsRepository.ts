@@ -6,6 +6,8 @@ type DbClientRow = {
   id: string;
   name: string;
   notes: string | null;
+  total_price?: number | string | null;
+  remaining_to_pay?: number | string | null;
   created_at: string;
   updated_at: string;
   client_contacts?: DbClientContactRow[] | null;
@@ -26,6 +28,8 @@ function mapRowToClient(r: DbClientRow): Client {
     id: r.id,
     name: r.name,
     notes: r.notes ?? undefined,
+    totalPrice: toNumber(r.total_price),
+    remainingToPay: toNumber(r.remaining_to_pay),
     contacts:
       (r.client_contacts ?? [])
         ?.filter(Boolean)
@@ -46,6 +50,8 @@ function mapClientToInsert(input: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
   return {
     name: input.name,
     notes: input.notes ?? null,
+    total_price: input.totalPrice ?? null,
+    remaining_to_pay: input.remainingToPay ?? null,
   };
 }
 
@@ -53,6 +59,8 @@ function mapClientToPatch(patch: Partial<Omit<Client, 'id' | 'createdAt' | 'upda
   return {
     ...(patch.name !== undefined ? { name: patch.name } : {}),
     ...(patch.notes !== undefined ? { notes: patch.notes ?? null } : {}),
+    ...(patch.totalPrice !== undefined ? { total_price: patch.totalPrice ?? null } : {}),
+    ...(patch.remainingToPay !== undefined ? { remaining_to_pay: patch.remainingToPay ?? null } : {}),
   };
 }
 
@@ -64,7 +72,7 @@ export class SupabaseClientsRepository implements ClientsRepository {
       path: '/rest/v1/clients',
       query: {
         select:
-          'id,name,notes,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
+          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
         ...(q
           ? {
               or: `(name.ilike.*${escapeIlike(q)}*)`,
@@ -82,7 +90,7 @@ export class SupabaseClientsRepository implements ClientsRepository {
       path: '/rest/v1/clients',
       query: {
         select:
-          'id,name,notes,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
+          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
         id: `eq.${id}`,
         limit: '1',
       },
@@ -169,5 +177,12 @@ function escapeIlike(s: string) {
     .replaceAll(',', '\\,')
     .replaceAll('(', '\\(')
     .replaceAll(')', '\\)');
+}
+
+function toNumber(v: number | string | null | undefined): number | undefined {
+  if (v === null || v === undefined) return undefined;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 }
 

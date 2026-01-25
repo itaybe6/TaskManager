@@ -3,9 +3,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { TasksListScreen } from '../../features/tasks/ui/TasksListScreen';
+import { PersonalTasksScreen } from '../../features/tasks/ui/PersonalTasksScreen';
 import { ClientsListScreen } from '../../features/clients/ui/ClientsListScreen';
 import { NotificationsScreen } from '../../features/notifications/ui/NotificationsScreen';
-import { SettingsScreen } from '../../screens/SettingsScreen';
 import { theme } from '../../shared/ui/theme';
 import { useAppColorScheme } from '../../shared/ui/useAppColorScheme';
 import { useNotificationsStore } from '../../features/notifications/store/notificationsStore';
@@ -55,6 +55,18 @@ export function TabsNavigator() {
         }}
       />
       <Tab.Screen
+        name="PersonalTasks"
+        component={PersonalTasksScreen}
+        options={{
+          title: 'אישיות',
+          tabBarIcon: ({ color, focused, size }) => (
+            <TabIcon focused={focused}>
+              <MaterialIcons name="lock" size={size ?? 24} color={color} />
+            </TabIcon>
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Clients"
         component={ClientsListScreen}
         options={{
@@ -81,18 +93,6 @@ export function TabsNavigator() {
           tabBarIcon: ({ color, focused, size }) => (
             <TabIcon focused={focused}>
               <MaterialIcons name="notifications" size={size ?? 24} color={color} />
-            </TabIcon>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: 'הגדרות',
-          tabBarIcon: ({ color, focused, size }) => (
-            <TabIcon focused={focused}>
-              <MaterialIcons name="settings" size={size ?? 24} color={color} />
             </TabIcon>
           ),
         }}

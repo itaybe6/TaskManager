@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 import { useNotificationsStore } from '../store/notificationsStore';
 import type { Notification } from '../model/notificationTypes';
 
@@ -26,25 +27,28 @@ export function NotificationsScreen({ navigation }: any) {
             <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>התראות</Text>
           </View>
 
-          {unreadCount > 0 ? (
-            <Pressable
-              onPress={() => markAllRead()}
-              style={({ pressed }) => [
-                styles.markAllBtn,
-                {
-                  backgroundColor: isDark ? '#242424' : theme.colors.surface,
-                  opacity: pressed ? 0.86 : 1,
-                },
-              ]}
-            >
-              <MaterialIcons name="done-all" size={18} color={isDark ? '#e5e7eb' : '#374151'} />
-              <Text style={[styles.markAllText, { color: isDark ? '#e5e7eb' : '#374151' }]}>
-                סמן הכל
-              </Text>
-            </Pressable>
-          ) : (
-            <View style={styles.markAllBtnPlaceholder} />
-          )}
+          <View style={styles.headerActions}>
+            <UserAvatarButton />
+            {unreadCount > 0 ? (
+              <Pressable
+                onPress={() => markAllRead()}
+                style={({ pressed }) => [
+                  styles.markAllBtn,
+                  {
+                    backgroundColor: isDark ? '#242424' : theme.colors.surface,
+                    opacity: pressed ? 0.86 : 1,
+                  },
+                ]}
+              >
+                <MaterialIcons name="done-all" size={18} color={isDark ? '#e5e7eb' : '#374151'} />
+                <Text style={[styles.markAllText, { color: isDark ? '#e5e7eb' : '#374151' }]}>
+                  סמן הכל
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={styles.markAllBtnPlaceholder} />
+            )}
+          </View>
         </View>
 
         <View style={styles.sectionRow}>
@@ -166,6 +170,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   title: {

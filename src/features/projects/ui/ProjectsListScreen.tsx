@@ -14,6 +14,7 @@ import { ProjectStatus } from '../model/projectTypes';
 import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 
 export function ProjectsListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery, error } = useProjectsStore();
@@ -32,12 +33,15 @@ export function ProjectsListScreen({ navigation }: any) {
             <BrandLogo width={86} height={30} />
             <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>פרויקטים</Text>
           </View>
-          <Pressable
-            onPress={() => navigation.navigate('ClientsList')}
-            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
-          >
-            <Text style={{ color: theme.colors.primary, fontWeight: '900' }}>לקוחות</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <UserAvatarButton />
+            <Pressable
+              onPress={() => navigation.navigate('ClientsList')}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Text style={{ color: theme.colors.primary, fontWeight: '900' }}>לקוחות</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.searchWrap}>
@@ -211,6 +215,7 @@ function formatMoney(amount: number, currency: string) {
 const styles = StyleSheet.create({
   headerWrap: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10, gap: 12 },
   topRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '900', textAlign: 'right' },
   searchWrap: { position: 'relative' },

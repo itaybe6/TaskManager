@@ -9,6 +9,8 @@ export class InMemoryClientsRepository implements ClientsRepository {
       id: 'c1',
       name: 'חברת אלפא בע״מ',
       notes: 'לקוח אסטרטגי',
+      totalPrice: 12000,
+      remainingToPay: 4500,
       contacts: [
         {
           id: 'cc1',
@@ -33,6 +35,8 @@ export class InMemoryClientsRepository implements ClientsRepository {
     {
       id: 'c2',
       name: 'בטא שירותים',
+      totalPrice: 6000,
+      remainingToPay: 0,
       contacts: [
         {
           id: 'cc3',

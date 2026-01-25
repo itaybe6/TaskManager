@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Task } from '../model/taskTypes';
+import type { Task } from '../model/taskTypes';
 import { TaskRepository, TaskQuery } from '../data/TaskRepository';
 import { InMemoryTaskRepository } from '../data/InMemoryTaskRepository';
 import { SupabaseTaskRepository } from '../data/SupabaseTaskRepository';
