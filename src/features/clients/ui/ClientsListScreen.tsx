@@ -282,7 +282,7 @@ const colors = {
 };
 
 const styles = StyleSheet.create({
-  headerWrap: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10, gap: 14 },
+  headerWrap: { width: '100%', alignSelf: 'stretch', paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10, gap: 14 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

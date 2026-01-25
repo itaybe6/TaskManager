@@ -8,9 +8,11 @@ import {
   TextInput,
   Modal,
   FlatList,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTasksStore } from '../store/tasksStore';
 import type { TaskPriority, TaskStatus } from '../model/taskTypes';
 import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
@@ -56,6 +58,12 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const [assigneeModalOpen, setAssigneeModalOpen] = useState(false);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [dueAt, setDueAt] = useState<string | undefined>(undefined);
+  const [duePickerOpen, setDuePickerOpen] = useState(false);
+  const [dueDraft, setDueDraft] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(18, 0, 0, 0);
+    return d;
+  });
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -138,19 +146,33 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     return dueAt ? formatDueForPicker(dueAt) : 'בחר תאריך';
   }, [dueAt]);
 
+  function openDuePicker() {
+    const existing = dueAt ? new Date(dueAt) : null;
+    const d = existing && !Number.isNaN(existing.getTime()) ? new Date(existing) : new Date();
+    // Default to 18:00 when no date picked yet
+    if (!existing || Number.isNaN(existing.getTime())) d.setHours(18, 0, 0, 0);
+    setDueDraft(d);
+    setDuePickerOpen(true);
+  }
+
+  function saveDueDraft() {
+    const d = new Date(dueDraft);
+    if (Number.isNaN(d.getTime())) return;
+    setDueAt(d.toISOString());
+    setDuePickerOpen(false);
+  }
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: '#ffffff' }]}>
       <View style={styles.header}>
+        <Text style={styles.headerTitle}>{screenTitle}</Text>
+
         <Pressable
           onPress={() => navigation.goBack()}
           style={({ pressed }) => [styles.cancelBtn, { opacity: pressed ? 0.75 : 1 }]}
         >
-          <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '700' }}>ביטול</Text>
+          <Text style={styles.cancelTxt}>ביטול</Text>
         </Pressable>
-
-        <Text style={{ color: '#0f172a', fontSize: 22, fontWeight: '900' }}>{screenTitle}</Text>
-
-        <View style={{ width: 60 }} />
       </View>
 
       <ScrollView
@@ -469,7 +491,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               </Pressable>
 
               <Pressable
-                onPress={() => setDueAt(toggleDueAt(dueAt))}
+                onPress={openDuePicker}
                 style={({ pressed }) => [
                   styles.pickerBtn,
                   {
@@ -623,6 +645,18 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             setCatModalOpen(false);
           }}
         />
+
+        <DateSheet
+          visible={duePickerOpen}
+          onClose={() => setDuePickerOpen(false)}
+          value={dueDraft}
+          onChange={setDueDraft}
+          onClear={() => {
+            setDueAt(undefined);
+            setDuePickerOpen(false);
+          }}
+          onSave={saveDueDraft}
+        />
     </SafeAreaView>
   );
 }
@@ -636,14 +670,24 @@ const styles = StyleSheet.create({
     zIndex: 10,
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   cancelBtn: { paddingHorizontal: 8, paddingVertical: 8 },
+  cancelTxt: { color: '#64748b', fontSize: 16, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
+  headerTitle: {
+    flex: 1,
+    color: '#0f172a',
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   scroll: { flex: 1 },
   content: { width: '100%', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 160 },
-  label: { fontSize: 13, fontWeight: '800', marginBottom: 8, textAlign: 'right' },
+  label: { fontSize: 13, fontWeight: '800', marginBottom: 8, textAlign: 'right', writingDirection: 'rtl' },
   inputWrap: { position: 'relative' },
   inputIcon: { position: 'absolute', right: 14, top: 16 },
   titleInput: {
@@ -784,7 +828,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   sheetHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
-  sheetTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', textAlign: 'right' },
+  sheetTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', textAlign: 'right', writingDirection: 'rtl' },
   sheetSearch: {
     borderRadius: 16,
     borderWidth: 1,
@@ -1096,12 +1140,54 @@ function CategorySheet(props: {
   );
 }
 
-function toggleDueAt(current?: string) {
-  // הדגמה "היום 18:00" בלחיצה: אם לא קיים נקבע להיום 18:00, ואם קיים ננקה.
-  if (current) return undefined;
-  const d = new Date();
-  d.setHours(18, 0, 0, 0);
-  return d.toISOString();
+function DateSheet(props: {
+  visible: boolean;
+  onClose: () => void;
+  value: Date;
+  onChange: (d: Date) => void;
+  onClear: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
+      <Pressable style={styles.sheetOverlay} onPress={props.onClose}>
+        <Pressable style={styles.sheetCard} onPress={() => {}}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>תאריך יעד</Text>
+            <Pressable onPress={props.onClose} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+              <MaterialIcons name="close" size={22} color="#94a3b8" />
+            </Pressable>
+          </View>
+
+          <View style={{ marginTop: 12 }}>
+            <DateTimePicker
+              value={props.value}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(_event, selected) => {
+                if (selected) props.onChange(selected);
+              }}
+            />
+          </View>
+
+          <View style={{ flexDirection: 'row-reverse', gap: 10, marginTop: 16 }}>
+            <Pressable
+              onPress={props.onSave}
+              style={({ pressed }) => [styles.modalDone, { flex: 2, opacity: pressed ? 0.9 : 1 }]}
+            >
+              <Text style={{ color: '#fff', fontWeight: '900' }}>שמור</Text>
+            </Pressable>
+            <Pressable
+              onPress={props.onClear}
+              style={({ pressed }) => [styles.modalClear, { flex: 1, opacity: pressed ? 0.9 : 1 }]}
+            >
+              <Text style={{ color: '#64748b', fontWeight: '900' }}>נקה</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
 }
 
 function formatDueForPicker(iso: string) {
