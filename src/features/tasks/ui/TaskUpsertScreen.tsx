@@ -8,6 +8,7 @@ import {
   TextInput,
   FlatList,
   Platform,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -696,7 +697,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   <View style={styles.sheetDivider} />
 
                   <Text style={[styles.label, { color: '#64748b', marginBottom: 8 }]}>הוסף קטגוריה</Text>
-                  <View style={{ flexDirection: 'row-reverse', gap: 10, alignItems: 'center' }}>
+                  <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, alignItems: 'center' }}>
                     <TextInput
                       value={newCategoryName}
                       onChangeText={setNewCategoryName}
@@ -915,7 +916,7 @@ const styles = StyleSheet.create({
     height: 60,
     paddingHorizontal: 20,
     zIndex: 10,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 12,
@@ -950,12 +951,18 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-  segment: { padding: 6, borderRadius: 20, flexDirection: 'row-reverse', gap: 6, borderWidth: 1 },
+  segment: {
+    padding: 6,
+    borderRadius: 20,
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    gap: 6,
+    borderWidth: 1,
+  },
   pickerBtn: {
     borderWidth: 1,
     borderRadius: 20,
     padding: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#000',
@@ -964,7 +971,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
-  pickerMain: { flexDirection: 'row-reverse', alignItems: 'center', gap: 12, flexShrink: 1 },
+  pickerMain: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 12, flexShrink: 1 },
   pickerIconCircle: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   dropdownCard: {
     backgroundColor: '#ffffff',
@@ -996,7 +1003,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
@@ -1017,7 +1024,7 @@ const styles = StyleSheet.create({
     height: 56,
     backgroundColor: theme.colors.primary,
     borderRadius: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

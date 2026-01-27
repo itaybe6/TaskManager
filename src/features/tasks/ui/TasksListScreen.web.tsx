@@ -7,6 +7,7 @@ import {
   TextInput,
   FlatList,
   useWindowDimensions,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   page: { flex: 1, width: '100%', alignSelf: 'center' },
   topBar: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 12,
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 16,
     borderRadius: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 10,
     shadowColor: theme.colors.primary,
@@ -438,12 +439,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mainRow: { flex: 1, flexDirection: 'row-reverse', alignItems: 'stretch' },
+  mainRow: { flex: 1, flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'stretch' },
   sidebar: { borderRadius: 18, borderWidth: 1, padding: 14, gap: 14, alignSelf: 'flex-start' },
   sideTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   sideLabel: { fontSize: 12, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
   sideDivider: { height: 1, backgroundColor: 'rgba(15, 23, 42, 0.08)' },
-  pillsWrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' },
+  pillsWrap: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' },
   searchIcon: { position: 'absolute', right: 12, top: 12, opacity: 0.85 },
   searchIconMobile: { position: 'absolute', right: 12, top: 12, opacity: 0.85 },
   search: {
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
 
 const segStyles = StyleSheet.create({
   wrap: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     gap: 6,
     padding: 4,
     borderRadius: 14,
@@ -510,12 +511,32 @@ const cardStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   strip: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 6 },
-  topRow: { flexDirection: 'row-reverse', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10, paddingRight: 8 },
-  badges: { flex: 1, flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
+  topRow: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 10,
+    paddingRight: 8,
+  },
+  badges: { flex: 1, flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 8 },
   moreBtn: { padding: 4 },
   title: { fontSize: 16, fontWeight: '900', lineHeight: 22, color: '#0F172A', textAlign: 'right', writingDirection: 'rtl', marginBottom: 12, paddingRight: 8 },
-  bottomRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingRight: 8 },
-  meta: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  bottomRow: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 8,
+  },
+  meta: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
   metaTxt: { fontSize: 12, fontWeight: '800', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
 });
 

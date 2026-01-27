@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BrandLogo } from '../../../shared/ui/BrandLogo';
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
 
   headerWrap: { paddingTop: 6, paddingBottom: 10 },
   topHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  brandRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
   title: {
     fontSize: 32,
     fontWeight: '800',
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
 
   markAllBtn: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   markAllText: { fontSize: 12, fontWeight: '800' },
 
   sectionRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 6,
@@ -222,13 +222,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTopRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 12,
     marginBottom: 10,
   },
-  titleRow: { flex: 1, flexDirection: 'row-reverse', alignItems: 'flex-start', gap: 8 },
+  titleRow: { flex: 1, flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'flex-start', gap: 8 },
   unreadDot: {
     marginTop: 8,
     width: 8,

@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -105,8 +106,8 @@ export function ClientsListScreen({ navigation, route }: any) {
             },
           ]}
         >
-          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10 }}>
+          <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 }}>
               <View
                 style={[
                   styles.summaryIcon,
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sectionRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 2,
@@ -359,16 +360,21 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   cardInner: { paddingRight: 12 },
-  cardTopRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
+  cardTopRow: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
   cardTitle: { fontSize: 18, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  subRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  subRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   subTxt: { fontSize: 13, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
   dot: { width: 4, height: 4, borderRadius: 999, opacity: 0.9 },
   phoneMono: { fontSize: 12, fontWeight: '600', opacity: 0.9, textAlign: 'left' },
-  statsRow: { flexDirection: 'row-reverse', gap: 10, marginTop: 14 },
+  statsRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, marginTop: 14 },
   statChip: {
     flex: 1,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -388,7 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: PRIMARY,
     paddingHorizontal: 22,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 8,
     shadowColor: PRIMARY,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, TextInput } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, TextInput, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTasksStore } from '../store/tasksStore';
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
 
   headerWrap: { paddingTop: 6, paddingBottom: 10 },
   topHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  brandRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
   title: {
     fontSize: 30,
     fontWeight: '900',
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   pillsRow: { gap: 12, paddingBottom: 6 },
 
   sectionRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 6,
@@ -308,12 +308,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTopRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  tagsRow: { flexDirection: 'row-reverse', gap: 8, flexWrap: 'wrap' },
+  tagsRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 8, flexWrap: 'wrap' },
   doneBadge: {
     height: 24,
     width: 24,
@@ -331,11 +331,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   cardBottomRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  metaRow: { flexDirection: 'row-reverse', alignItems: 'center' },
+  metaRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center' },
   metaText: { fontSize: 13, fontWeight: '600' },
 
   fab: {
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 18,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 10,
     shadowColor: theme.colors.primary,

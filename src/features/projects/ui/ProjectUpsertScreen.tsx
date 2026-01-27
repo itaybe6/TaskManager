@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useProjectsStore } from '../store/projectsStore';
@@ -85,7 +85,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
         />
 
         <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>סטטוס</Text>
-        <View style={{ flexDirection: 'row-reverse', gap: 10, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, flexWrap: 'wrap' }}>
           {([
             ['active', 'פעיל'],
             ['planned', 'מתוכנן'],
@@ -113,7 +113,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
           ))}
         </View>
 
-        <View style={{ flexDirection: 'row-reverse', gap: 12 }}>
+        <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 12 }}>
           <View style={{ flex: 1 }}>
             <Field label="תקציב" icon="payments" value={budget} onChangeText={setBudget} isDark={isDark} placeholder="25000" keyboardType="numeric" />
           </View>
@@ -133,7 +133,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
             },
           ]}
         >
-          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10 }}>
+          <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 }}>
             <MaterialIcons name="business" size={20} color={theme.colors.primary} />
             <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900' }}>
               {clientName ?? 'בחר לקוח'}
@@ -201,7 +201,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
                 </Pressable>
               ))}
             </View>
-            <View style={{ flexDirection: 'row-reverse', gap: 10, marginTop: 12 }}>
+            <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, marginTop: 12 }}>
               <Pressable
                 onPress={() => setClientPickerOpen(false)}
                 style={({ pressed }) => [
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   header: {
     height: 56,
     paddingHorizontal: 16,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 16,
     backgroundColor: theme.colors.primary,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

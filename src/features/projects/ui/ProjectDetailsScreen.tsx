@@ -63,7 +63,7 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
           </Text>
         ) : null}
 
-        <View style={{ flexDirection: 'row-reverse', gap: 10, marginTop: 14 }}>
+        <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, marginTop: 14 }}>
           <Pressable
             onPress={() => navigation.navigate('ProjectUpsert', { mode: 'edit', id })}
             style={({ pressed }) => [
@@ -133,7 +133,7 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   headerWrap: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  headerRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
+  headerRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
   h1: { fontSize: 22, fontWeight: '900', textAlign: 'right', flexShrink: 1, marginLeft: 12 },
   backBtn: {
     width: 40,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 14,
     backgroundColor: theme.colors.primary,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 14,
     borderRadius: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

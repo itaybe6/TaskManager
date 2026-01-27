@@ -11,6 +11,7 @@ import {
   Modal,
   FlatList,
   Alert,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -456,13 +457,22 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 18, paddingBottom: 170, gap: 18 },
   fieldWrap: { gap: 10 },
   label: { fontSize: 16, fontWeight: '900', textAlign: 'right', paddingRight: 4 },
-  sectionHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  sectionHeader: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
   sectionTitle: { fontSize: 18, fontWeight: '900', textAlign: 'right' },
   contactCard: { borderRadius: 18, padding: 14, gap: 14 },
-  contactCardHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
+  contactCardHeader: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   contactCardTitle: { fontSize: 14, fontWeight: '900' },
   pickContactBtn: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 8,
@@ -542,7 +552,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 10,
   },

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Pressable, TextInput, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BrandLogo } from '../../../shared/ui/BrandLogo';
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     minHeight: 52,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     paddingRight: 12,
     paddingLeft: 10,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
-  primaryBtnInner: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  primaryBtnInner: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 
   error: {
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
 
   bottomCta: {
     marginTop: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'flex-end',
     alignItems: 'center',
     alignSelf: 'stretch',

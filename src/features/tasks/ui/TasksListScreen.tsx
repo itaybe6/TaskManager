@@ -9,6 +9,7 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -363,7 +364,7 @@ export function TasksListScreen({ navigation }: any) {
                     }}
                   />
 
-                  <View style={{ flexDirection: 'row-reverse', gap: 10, marginTop: 10 }}>
+                <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, marginTop: 10 }}>
                     <Pressable
                       onPress={() => {
                         setFilterDateKey(undefined);
@@ -466,12 +467,17 @@ const styles = StyleSheet.create({
 
   headerWrap: { paddingTop: 10, paddingBottom: 10, width: '100%' },
   topHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
   },
-  profileRow: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
+  profileRow: {
+    flex: 1,
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   greeting: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
   headerActions: {
     flexDirection: 'row',
@@ -553,12 +559,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTopRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  tagsRow: { flexDirection: 'row-reverse', gap: 8, flexWrap: 'wrap' },
+  tagsRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 8, flexWrap: 'wrap' },
   moreBtn: { padding: 4 },
   doneBadge: {
     height: 24,
@@ -577,11 +583,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   cardBottomRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  metaRow: { flexDirection: 'row-reverse', alignItems: 'center' },
+  metaRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center' },
   metaText: { fontSize: 13, fontWeight: '600' },
 
   fab: {
@@ -662,7 +668,7 @@ const segStyles = StyleSheet.create({
   wrap: {
     padding: 4,
     borderRadius: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     gap: 6,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -751,7 +757,7 @@ const chipStyles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 8,
     shadowColor: '#000',
@@ -783,7 +789,7 @@ const modalStyles = StyleSheet.create({
     elevation: 10,
   },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingBottom: 10,
@@ -794,11 +800,16 @@ const modalStyles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 12,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 10,
   },
-  optionsWrap: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' },
+  optionsWrap: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'flex-end',
+  },
   divider: { height: 1, backgroundColor: 'rgba(148, 163, 184, 0.18)', marginVertical: 14 },
   smallBtn: {
     height: 40,
@@ -810,7 +821,7 @@ const modalStyles = StyleSheet.create({
   clearBtn: {
     height: 44,
     borderRadius: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -820,7 +831,9 @@ const modalStyles = StyleSheet.create({
 function SectionHeader({ title, count, isDark, paddingX }: { title: string; count: number; isDark: boolean; paddingX: number }) {
   return (
     <View style={{ paddingHorizontal: paddingX, paddingTop: 18, paddingBottom: 10 }}>
-      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View
+        style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}
+      >
         <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#f3f4f6' : '#1f2937', textAlign: 'right' }}>
           {title}
         </Text>
@@ -914,12 +927,30 @@ const cardStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   strip: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 6 },
-  topRow: { flexDirection: 'row-reverse', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10, paddingRight: 8 },
-  tagsRow: { flexDirection: 'row-reverse', gap: 8, flexWrap: 'wrap', flex: 1 },
+  topRow: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingRight: 8,
+  },
+  tagsRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 8, flexWrap: 'wrap', flex: 1 },
   moreBtn: { padding: 2, marginLeft: 2 },
   title: { fontSize: 16, fontWeight: '900', lineHeight: 22, textAlign: 'right', writingDirection: 'rtl', marginBottom: 12, paddingRight: 8 },
-  bottomRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingRight: 8 },
-  metaPill: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  bottomRow: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 8,
+  },
+  metaPill: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
 });
 
 function Badge({ label, tone, isDark }: { label: string; tone: 'danger' | 'todo' | 'done' | 'category'; isDark: boolean }) {

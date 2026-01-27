@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -118,7 +119,7 @@ export function ProjectsListScreen({ navigation }: any) {
               },
             ]}
           >
-            <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flexShrink: 1 }}>
                 <Text style={[styles.cardTitle, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>
                   {item.name}
@@ -216,9 +217,9 @@ function formatMoney(amount: number, currency: string) {
 
 const styles = StyleSheet.create({
   headerWrap: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10, gap: 12 },
-  topRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
+  topRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', justifyContent: 'space-between', alignItems: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  brandRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
   title: { fontSize: 28, fontWeight: '900', textAlign: 'right' },
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', right: 14, top: 14, opacity: 0.8 },
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-  filtersRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 10 },
+  filtersRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 10 },
   card: {
     borderRadius: 18,
     padding: 16,
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 14,
-    flexDirection: 'row-reverse',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 8,
     shadowColor: theme.colors.primary,

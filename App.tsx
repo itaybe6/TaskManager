@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
-import { DevSettings, I18nManager, Platform } from 'react-native';
+import { DevSettings, I18nManager, Platform, Text, TextInput } from 'react-native';
 import { RootNavigator } from './src/app/navigation/RootNavigator';
 import { theme } from './src/shared/ui/theme';
 
@@ -9,7 +9,14 @@ const SHOULD_RTL = true;
 // Enable RTL globally (Hebrew app). Note: native reload required for this to take effect.
 I18nManager.allowRTL(SHOULD_RTL);
 I18nManager.forceRTL(SHOULD_RTL);
-I18nManager.swapLeftAndRightInRTL(SHOULD_RTL);
+// Keep explicit "left/right" styles as-is so our RTL textAlign stays on the right.
+I18nManager.swapLeftAndRightInRTL(false);
+
+const rtlTextStyle = { textAlign: 'right' as const, writingDirection: 'rtl' as const };
+Text.defaultProps = Text.defaultProps || {};
+Text.defaultProps.style = [Text.defaultProps.style, rtlTextStyle];
+TextInput.defaultProps = TextInput.defaultProps || {};
+TextInput.defaultProps.style = [TextInput.defaultProps.style, rtlTextStyle];
 
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   document.documentElement.dir = 'rtl';
