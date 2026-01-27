@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   TextInput,
-  Modal,
   FlatList,
   Platform,
 } from 'react-native';
@@ -14,13 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTasksStore } from '../store/tasksStore';
-import type { TaskPriority, TaskStatus } from '../model/taskTypes';
+import type { TaskStatus } from '../model/taskTypes';
 import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
 import { useClientsStore } from '../../clients/store/clientsStore';
 import { supabaseRest } from '../../../app/supabase/rest';
 import { useAuthStore } from '../../auth/store/authStore';
 import { theme } from '../../../shared/ui/theme';
-import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 type UserLite = { id: string; displayName: string };
 
@@ -37,14 +36,13 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const session = useAuthStore((s) => s.session);
   // עיצוב לפי הדוגמה (רקע לבן בלבד)
   const isDark = false;
+  const layout = useResponsiveLayout('form');
 
   const [existingProjectId, setExistingProjectId] = useState<string | undefined>(projectId);
   const isProjectTask = Boolean(projectId ?? existingProjectId);
 
-  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
-  const [priority, setPriority] = useState<TaskPriority>('medium');
   const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined);
   const [assigneeChoice, setAssigneeChoice] = useState<'iti' | 'adir' | 'both'>('iti');
   const [users, setUsers] = useState<UserLite[]>([
@@ -54,8 +52,6 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const [visibility, setVisibility] = useState<'shared' | 'personal'>('shared');
   const [clientId, setClientId] = useState<string | undefined>(undefined);
   const [taskScope, setTaskScope] = useState<'general' | 'client'>('general');
-  const [clientModalOpen, setClientModalOpen] = useState(false);
-  const [assigneeModalOpen, setAssigneeModalOpen] = useState(false);
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [dueAt, setDueAt] = useState<string | undefined>(undefined);
   const [duePickerOpen, setDuePickerOpen] = useState(false);
@@ -64,7 +60,12 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     d.setHours(18, 0, 0, 0);
     return d;
   });
-  const [catModalOpen, setCatModalOpen] = useState(false);
+
+  type DropdownKey = 'client' | 'assignee' | 'category';
+  const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
+  const [clientQ, setClientQ] = useState('');
+  const [assigneeQ, setAssigneeQ] = useState('');
+  const [categoryQ, setCategoryQ] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
@@ -113,10 +114,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     (async () => {
       const t = await repo.getById(id);
       if (!t) return;
-      setTitle(t.title);
-      setDescription(t.description ?? '');
+      setDescription(t.description);
       setStatus(t.status);
-      setPriority(t.priority);
       setAssigneeId(t.assigneeId);
       // Edit mode: keep it single (no "both" edit semantics)
       if (t.assigneeId && itiUser?.id && t.assigneeId === itiUser.id) setAssigneeChoice('iti');
@@ -139,7 +138,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     }
   }, [assigneeChoice, isProjectTask, taskScope, itiUser?.id]);
 
-  const canSave = title.trim().length >= 2;
+  const canSave = description.trim().length >= 2;
   const screenTitle = mode === 'create' ? 'משימה חדשה' : 'עריכת משימה';
 
   const dateLabel = useMemo(() => {
@@ -147,6 +146,9 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   }, [dueAt]);
 
   function openDuePicker() {
+    // Close any open dropdowns
+    setOpenDropdown(null);
+
     const existing = dueAt ? new Date(dueAt) : null;
     const d = existing && !Number.isNaN(existing.getTime()) ? new Date(existing) : new Date();
     // Default to 18:00 when no date picked yet
@@ -162,24 +164,96 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     setDuePickerOpen(false);
   }
 
+  function formatYmdLocal(iso: string) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function notificationBodyFromDescription(desc: string) {
+    const s = (desc ?? '').trim().replace(/\s+/g, ' ');
+    if (!s) return undefined;
+    return s.length > 140 ? `${s.slice(0, 140)}…` : s;
+  }
+
+  async function createTaskAssignedNotification(args: { recipientUserId: string; taskId: string; description: string }) {
+    const senderUserId = session?.user?.id;
+    // don't notify yourself
+    if (senderUserId && args.recipientUserId === senderUserId) return;
+
+    try {
+      await supabaseRest<void>({
+        method: 'POST',
+        path: '/rest/v1/notifications',
+        body: {
+          recipient_user_id: args.recipientUserId,
+          sender_user_id: senderUserId ?? null,
+          title: 'נוספה לך משימה',
+          body: notificationBodyFromDescription(args.description) ?? null,
+          data: { kind: 'task_assigned', task_id: args.taskId },
+        },
+      });
+    } catch (e) {
+      // Don't block saving the task if notifications fail.
+      console.warn('Failed to create notification', e);
+    }
+  }
+
+  function toggleDropdown(key: DropdownKey) {
+    setOpenDropdown((prev) => {
+      const next = prev === key ? null : key;
+      // reset searches when toggling
+      if (next !== prev) {
+        if (key === 'client') setClientQ('');
+        if (key === 'assignee') setAssigneeQ('');
+        if (key === 'category') setCategoryQ('');
+      }
+      // close date picker when opening another dropdown
+      setDuePickerOpen(false);
+      return next;
+    });
+  }
+
+  const filteredClients = useMemo(() => {
+    const s = clientQ.trim().toLowerCase();
+    if (!s) return clients.items;
+    return clients.items.filter((c) => c.name.toLowerCase().includes(s));
+  }, [clientQ, clients.items]);
+
+  const filteredUsers = useMemo(() => {
+    const s = assigneeQ.trim().toLowerCase();
+    if (!s) return users;
+    return users.filter((u) => u.displayName.toLowerCase().includes(s));
+  }, [assigneeQ, users]);
+
+  const filteredCategories = useMemo(() => {
+    const s = categoryQ.trim().toLowerCase();
+    if (!s) return cats.items;
+    return cats.items.filter((c) => c.name.toLowerCase().includes(s));
+  }, [categoryQ, cats.items]);
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: '#ffffff' }]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{screenTitle}</Text>
+      <View style={layout.frameStyle}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{screenTitle}</Text>
 
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={({ pressed }) => [styles.cancelBtn, { opacity: pressed ? 0.75 : 1 }]}
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [styles.cancelBtn, { opacity: pressed ? 0.75 : 1 }]}
+          >
+            <Text style={styles.cancelTxt}>ביטול</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.content, layout.contentContainerStyle]}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.cancelTxt}>ביטול</Text>
-        </Pressable>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
             {!isProjectTask && (
               <View style={{ marginBottom: 18 }}>
                 <Text style={[styles.label, { color: '#64748b' }]}>שייכות</Text>
@@ -207,7 +281,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
                 {taskScope === 'client' && (
                   <Pressable
-                    onPress={() => setClientModalOpen(true)}
+                    onPress={() => toggleDropdown('client')}
                     style={({ pressed }) => [
                       styles.pickerBtn,
                       {
@@ -254,6 +328,69 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
                   </Pressable>
                 )}
+
+                {taskScope === 'client' && openDropdown === 'client' ? (
+                  <View style={styles.dropdownCard}>
+                    <View style={{ position: 'relative' }}>
+                      <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
+                        <MaterialIcons name="search" size={20} color={theme.colors.primary} />
+                      </View>
+                      <TextInput
+                        value={clientQ}
+                        onChangeText={setClientQ}
+                        placeholder="חיפוש לקוח..."
+                        placeholderTextColor="#94a3b8"
+                        style={styles.dropdownSearch}
+                      />
+                    </View>
+
+                    <FlatList
+                      data={[{ id: '__none__', name: 'משימה כללית' } as any, ...filteredClients]}
+                      keyExtractor={(item: any) => item.id}
+                      keyboardShouldPersistTaps="handled"
+                      style={{ marginTop: 10, maxHeight: 280 }}
+                      contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+                      renderItem={({ item }: any) => {
+                        const isNone = item.id === '__none__';
+                        const active = isNone ? !clientId : clientId === item.id;
+                        return (
+                          <Pressable
+                            onPress={() => {
+                              if (isNone) {
+                                setClientId(undefined);
+                                setTaskScope('general');
+                              } else {
+                                setTaskScope('client');
+                                setClientId(item.id);
+                              }
+                              setOpenDropdown(null);
+                            }}
+                            style={({ pressed }) => [
+                              styles.dropdownItem,
+                              {
+                                borderColor: active ? theme.colors.primary : '#e2e8f0',
+                                backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                                opacity: pressed ? 0.92 : 1,
+                              },
+                            ]}
+                          >
+                            <View style={{ gap: 2, flex: 1 }}>
+                              <Text style={styles.dropdownItemTitle} numberOfLines={1}>
+                                {isNone ? 'משימה כללית' : item.name}
+                              </Text>
+                              {isNone ? (
+                                <Text style={styles.dropdownItemSub} numberOfLines={1}>
+                                  ללא לקוח
+                                </Text>
+                              ) : null}
+                            </View>
+                            {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                          </Pressable>
+                        );
+                      }}
+                    />
+                  </View>
+                ) : null}
               </View>
             )}
 
@@ -322,7 +459,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               ) : (
                 <Pressable
                   onPress={() => {
-                    setAssigneeModalOpen(true);
+                    toggleDropdown('assignee');
                   }}
                   style={({ pressed }) => [
                     styles.pickerBtn,
@@ -350,29 +487,56 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   <MaterialIcons name="expand-more" size={22} color="#94a3b8" />
                 </Pressable>
               )}
-            </View>
 
-            <View style={{ marginBottom: 18 }}>
-              <Text style={[styles.label, { color: '#64748b' }]}>כותרת</Text>
-              <View style={styles.inputWrap}>
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="מה צריך לעשות?"
-                  placeholderTextColor="#94a3b8"
-                  style={[
-                    styles.titleInput,
-                    {
-                      backgroundColor: '#ffffff',
-                      color: '#0f172a',
-                      borderColor: '#e2e8f0',
-                    },
-                  ]}
-                />
-                <View pointerEvents="none" style={styles.inputIcon}>
-                  <MaterialIcons name="edit-note" size={22} color={theme.colors.primary} />
+              {!(users.length <= 2 && visibility === 'shared') && openDropdown === 'assignee' ? (
+                <View style={[styles.dropdownCard, { marginTop: 10 }]}>
+                  <View style={{ position: 'relative' }}>
+                    <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
+                      <MaterialIcons name="search" size={20} color={theme.colors.primary} />
+                    </View>
+                    <TextInput
+                      value={assigneeQ}
+                      onChangeText={setAssigneeQ}
+                      placeholder="חיפוש אחראי..."
+                      placeholderTextColor="#94a3b8"
+                      style={styles.dropdownSearch}
+                    />
+                  </View>
+
+                  <FlatList
+                    data={filteredUsers}
+                    keyExtractor={(i) => i.id}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ marginTop: 10, maxHeight: 280 }}
+                    contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+                    renderItem={({ item }) => {
+                      const active = assigneeId === item.id;
+                      return (
+                        <Pressable
+                          onPress={() => {
+                            setAssigneeId(item.id);
+                            setAssigneeChoice('iti');
+                            setOpenDropdown(null);
+                          }}
+                          style={({ pressed }) => [
+                            styles.dropdownItem,
+                            {
+                              borderColor: active ? theme.colors.primary : '#e2e8f0',
+                              backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                              opacity: pressed ? 0.92 : 1,
+                            },
+                          ]}
+                        >
+                          <Text style={styles.dropdownItemTitle} numberOfLines={1}>
+                            {item.displayName}
+                          </Text>
+                          {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                        </Pressable>
+                      );
+                    }}
+                  />
                 </View>
-              </View>
+              ) : null}
             </View>
 
             <View style={{ marginBottom: 22 }}>
@@ -380,7 +544,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               <TextInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="הוסף פרטים נוספים, הערות או קישורים..."
+                placeholder="מה צריך לעשות? כתוב כאן את כל הפרטים..."
                 placeholderTextColor="#94a3b8"
                 multiline
                 style={[
@@ -398,19 +562,13 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               <Text style={[styles.label, { color: '#64748b' }]}>סטטוס</Text>
               <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                 <SegmentOption
-                  label="לביצוע"
+                  label="לא נעשה"
                   active={status === 'todo'}
                   isDark={isDark}
                   onPress={() => setStatus('todo')}
                 />
                 <SegmentOption
-                  label="בתהליך"
-                  active={status === 'in_progress'}
-                  isDark={isDark}
-                  onPress={() => setStatus('in_progress')}
-                />
-                <SegmentOption
-                  label="בוצע"
+                  label="נעשה"
                   active={status === 'done'}
                   isDark={isDark}
                   onPress={() => setStatus('done')}
@@ -418,33 +576,9 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               </View>
             </View>
 
-            <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: '#64748b' }]}>עדיפות</Text>
-              <View style={styles.priorityGrid}>
-                <PriorityPill
-                  label="נמוכה"
-                  dotColor="#34d399"
-                  active={priority === 'low'}
-                  onPress={() => setPriority('low')}
-                />
-                <PriorityPill
-                  label="בינונית"
-                  dotColor="#facc15"
-                  active={priority === 'medium'}
-                  onPress={() => setPriority('medium')}
-                />
-                <PriorityPill
-                  label="גבוהה"
-                  dotColor="#ef4444"
-                  active={priority === 'high'}
-                  onPress={() => setPriority('high')}
-                />
-              </View>
-            </View>
-
             <View style={{ gap: 12 }}>
               <Pressable
-                onPress={() => setCatModalOpen(true)}
+                onPress={() => toggleDropdown('category')}
                 style={({ pressed }) => [
                   styles.pickerBtn,
                   {
@@ -490,8 +624,124 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
               </Pressable>
 
+              {openDropdown === 'category' ? (
+                <View style={styles.dropdownCard}>
+                  <View style={{ position: 'relative' }}>
+                    <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
+                      <MaterialIcons name="search" size={20} color={theme.colors.primary} />
+                    </View>
+                    <TextInput
+                      value={categoryQ}
+                      onChangeText={setCategoryQ}
+                      placeholder="חיפוש קטגוריה..."
+                      placeholderTextColor="#94a3b8"
+                      style={styles.dropdownSearch}
+                    />
+                  </View>
+
+                  <Pressable
+                    onPress={() => {
+                      setCategoryId(undefined);
+                      setOpenDropdown(null);
+                    }}
+                    style={({ pressed }) => [
+                      styles.dropdownItem,
+                      {
+                        marginTop: 10,
+                        borderColor: !categoryId ? theme.colors.primary : '#e2e8f0',
+                        backgroundColor: !categoryId ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                        opacity: pressed ? 0.92 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={{ gap: 2, flex: 1 }}>
+                      <Text style={styles.dropdownItemTitle}>ללא קטגוריה</Text>
+                      <Text style={styles.dropdownItemSub}>ברירת מחדל</Text>
+                    </View>
+                    {!categoryId ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                  </Pressable>
+
+                  <FlatList
+                    data={filteredCategories}
+                    keyExtractor={(i) => i.id}
+                    keyboardShouldPersistTaps="handled"
+                    style={{ marginTop: 10, maxHeight: 240 }}
+                    contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+                    renderItem={({ item }) => {
+                      const active = categoryId === item.id;
+                      return (
+                        <Pressable
+                          onPress={() => {
+                            setCategoryId(item.id);
+                            setOpenDropdown(null);
+                          }}
+                          style={({ pressed }) => [
+                            styles.dropdownItem,
+                            {
+                              borderColor: active ? theme.colors.primary : '#e2e8f0',
+                              backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                              opacity: pressed ? 0.92 : 1,
+                            },
+                          ]}
+                        >
+                          <Text style={styles.dropdownItemTitle} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                          {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                        </Pressable>
+                      );
+                    }}
+                  />
+
+                  <View style={styles.sheetDivider} />
+
+                  <Text style={[styles.label, { color: '#64748b', marginBottom: 8 }]}>הוסף קטגוריה</Text>
+                  <View style={{ flexDirection: 'row-reverse', gap: 10, alignItems: 'center' }}>
+                    <TextInput
+                      value={newCategoryName}
+                      onChangeText={setNewCategoryName}
+                      placeholder="לדוגמה: פיננסים"
+                      placeholderTextColor="#94a3b8"
+                      style={[styles.dropdownSearch, { flex: 1, marginTop: 0 }]}
+                      returnKeyType="done"
+                      onSubmitEditing={async () => {
+                        const name = newCategoryName.trim();
+                        if (!name) return;
+                        const slug = slugify(name);
+                        const created = await cats.createCategory({
+                          name,
+                          slug,
+                          color: theme.colors.primary,
+                        });
+                        setCategoryId(created.id);
+                        setNewCategoryName('');
+                        setOpenDropdown(null);
+                      }}
+                    />
+                    <Pressable
+                      onPress={async () => {
+                        const name = newCategoryName.trim();
+                        if (!name) return;
+                        const slug = slugify(name);
+                        const created = await cats.createCategory({
+                          name,
+                          slug,
+                          color: theme.colors.primary,
+                        });
+                        setCategoryId(created.id);
+                        setNewCategoryName('');
+                        setOpenDropdown(null);
+                      }}
+                      style={({ pressed }) => [styles.addTagBtn, { opacity: pressed ? 0.9 : 1 }]}
+                    >
+                      <MaterialIcons name="add" size={18} color="#fff" />
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
+
               <Pressable
-                onPress={openDuePicker}
+                onPress={Platform.OS === 'web' ? undefined : openDuePicker}
                 style={({ pressed }) => [
                   styles.pickerBtn,
                   {
@@ -502,6 +752,30 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   },
                 ]}
               >
+                {Platform.OS === 'web' ? (
+                  // On web, use a real date input so clicking opens the browser date picker (not a dropdown panel).
+                  <input
+                    type="date"
+                    value={dueAt ? formatYmdLocal(dueAt) : ''}
+                    onChange={(e) => {
+                      const v = e.currentTarget.value; // YYYY-MM-DD
+                      if (!v) {
+                        setDueAt(undefined);
+                        return;
+                      }
+                      const d = new Date(`${v}T18:00:00`);
+                      if (!Number.isNaN(d.getTime())) setDueAt(d.toISOString());
+                    }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer',
+                    }}
+                  />
+                ) : null}
                 <View style={styles.pickerMain}>
                   <View style={[styles.pickerIconCircle, { backgroundColor: '#eff6ff' }]}>
                     <MaterialIcons name="calendar-today" size={20} color={theme.colors.primary} />
@@ -518,6 +792,23 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
               </Pressable>
 
+              {duePickerOpen && Platform.OS !== 'web' ? (
+                <DateTimePicker
+                  value={dueDraft}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'default' : 'default'}
+                  onChange={(_event, selected) => {
+                    if (!selected) {
+                      setDuePickerOpen(false);
+                      return;
+                    }
+                    setDueDraft(selected);
+                    setDueAt(new Date(selected).toISOString());
+                    setDuePickerOpen(false);
+                  }}
+                />
+              ) : null}
+
             </View>
         </ScrollView>
 
@@ -525,49 +816,79 @@ export function TaskUpsertScreen({ route, navigation }: any) {
           <Pressable
             disabled={!canSave}
             onPress={async () => {
-                if (!canSave) return;
+              if (!canSave) return;
 
-                if (mode === 'create') {
-                  const base = {
-                    title: title.trim(),
-                    description,
-                    status,
-                    priority,
-                    clientId: !isProjectTask && taskScope === 'client' ? clientId : undefined,
-                    projectId,
-                    categoryId,
-                    dueAt,
-                    isPersonal: visibility === 'personal',
-                    ownerUserId: visibility === 'personal' ? session?.user?.id : undefined,
-                  };
+              if (mode === 'create') {
+                const base = {
+                  description: description.trim(),
+                  status,
+                  clientId: !isProjectTask && taskScope === 'client' ? clientId : undefined,
+                  projectId,
+                  categoryId,
+                  dueAt,
+                  isPersonal: visibility === 'personal',
+                  ownerUserId: visibility === 'personal' ? session?.user?.id : undefined,
+                };
 
-                  if (visibility === 'personal') {
-                    const me = session?.user?.id;
-                    await createTask({ ...base, assigneeId: me });
-                  } else if (!isProjectTask && taskScope === 'general' && assigneeChoice === 'both' && itiUser?.id && adirUser?.id) {
-                    await createTask({ ...base, assigneeId: itiUser.id });
-                    await createTask({ ...base, assigneeId: adirUser.id });
-                  } else {
-                    await createTask({ ...base, assigneeId });
+                if (visibility === 'personal') {
+                  const me = session?.user?.id;
+                  const created = await createTask({ ...base, assigneeId: me });
+                  if (created.assigneeId) {
+                    await createTaskAssignedNotification({
+                      recipientUserId: created.assigneeId,
+                      taskId: created.id,
+                      description: created.description,
+                    });
                   }
-                } else if (id) {
-                  await updateTask(id, {
-                    title: title.trim(),
-                    description,
-                    status,
-                    priority,
-                    assigneeId,
-                    ...(!isProjectTask ? { clientId: taskScope === 'client' ? clientId : undefined } : {}),
-                    projectId,
-                    categoryId,
-                    dueAt,
-                    ...(visibility === 'personal'
-                      ? { isPersonal: true, ownerUserId: session?.user?.id, assigneeId: session?.user?.id }
-                      : { isPersonal: false, ownerUserId: undefined }),
-                  });
+                } else if (
+                  !isProjectTask &&
+                  taskScope === 'general' &&
+                  assigneeChoice === 'both' &&
+                  itiUser?.id &&
+                  adirUser?.id
+                ) {
+                  const created1 = await createTask({ ...base, assigneeId: itiUser.id });
+                  const created2 = await createTask({ ...base, assigneeId: adirUser.id });
+                  if (created1.assigneeId) {
+                    await createTaskAssignedNotification({
+                      recipientUserId: created1.assigneeId,
+                      taskId: created1.id,
+                      description: created1.description,
+                    });
+                  }
+                  if (created2.assigneeId) {
+                    await createTaskAssignedNotification({
+                      recipientUserId: created2.assigneeId,
+                      taskId: created2.id,
+                      description: created2.description,
+                    });
+                  }
+                } else {
+                  const created = await createTask({ ...base, assigneeId });
+                  if (created.assigneeId) {
+                    await createTaskAssignedNotification({
+                      recipientUserId: created.assigneeId,
+                      taskId: created.id,
+                      description: created.description,
+                    });
+                  }
                 }
+              } else if (id) {
+                await updateTask(id, {
+                  description: description.trim(),
+                  status,
+                  assigneeId,
+                  ...(!isProjectTask ? { clientId: taskScope === 'client' ? clientId : undefined } : {}),
+                  projectId,
+                  categoryId,
+                  dueAt,
+                  ...(visibility === 'personal'
+                    ? { isPersonal: true, ownerUserId: session?.user?.id, assigneeId: session?.user?.id }
+                    : { isPersonal: false, ownerUserId: undefined }),
+                });
+              }
 
-                navigation.goBack();
+              navigation.goBack();
             }}
             style={({ pressed }) => [
               styles.saveBtn,
@@ -581,82 +902,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             <Text style={styles.saveTxt}>שמור משימה</Text>
           </Pressable>
         </View>
+      </View>
 
-        <SelectSheet
-          title="בחירת לקוח"
-          visible={clientModalOpen}
-          onClose={() => setClientModalOpen(false)}
-          items={[
-            { key: '__none__', title: 'משימה כללית', subtitle: 'ללא לקוח' },
-            ...clients.items.map((c) => ({ key: c.id, title: c.name })),
-          ]}
-          selectedKey={clientId ?? '__none__'}
-          onSelect={(key) => {
-            if (key === '__none__') {
-              setClientId(undefined);
-              setTaskScope('general');
-            } else {
-              setTaskScope('client');
-              setClientId(key);
-            }
-            setClientModalOpen(false);
-          }}
-        />
-
-        <SelectSheet
-          title="בחירת אחראי"
-          visible={assigneeModalOpen}
-          onClose={() => setAssigneeModalOpen(false)}
-          items={users.map((u) => ({ key: u.id, title: u.displayName }))}
-          selectedKey={assigneeId}
-          onSelect={(key) => {
-            setAssigneeId(key);
-            setAssigneeChoice('iti'); // irrelevant when dropdown is used
-            setAssigneeModalOpen(false);
-          }}
-        />
-
-        <CategorySheet
-          visible={catModalOpen}
-          onClose={() => setCatModalOpen(false)}
-          categories={cats.items.map((c) => ({ id: c.id, name: c.name }))}
-          selectedId={categoryId}
-          newCategoryName={newCategoryName}
-          setNewCategoryName={setNewCategoryName}
-          onSelect={(id) => {
-            setCategoryId(id);
-            setCatModalOpen(false);
-          }}
-          onClear={() => {
-            setCategoryId(undefined);
-            setCatModalOpen(false);
-          }}
-          onCreate={async () => {
-            const name = newCategoryName.trim();
-            if (!name) return;
-            const slug = slugify(name);
-            const created = await cats.createCategory({
-              name,
-              slug,
-              color: theme.colors.primary,
-            });
-            setCategoryId(created.id);
-            setNewCategoryName('');
-            setCatModalOpen(false);
-          }}
-        />
-
-        <DateSheet
-          visible={duePickerOpen}
-          onClose={() => setDuePickerOpen(false)}
-          value={dueDraft}
-          onChange={setDueDraft}
-          onClear={() => {
-            setDueAt(undefined);
-            setDuePickerOpen(false);
-          }}
-          onSave={saveDueDraft}
-        />
     </SafeAreaView>
   );
 }
@@ -688,24 +935,6 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { width: '100%', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 160 },
   label: { fontSize: 13, fontWeight: '800', marginBottom: 8, textAlign: 'right', writingDirection: 'rtl' },
-  inputWrap: { position: 'relative' },
-  inputIcon: { position: 'absolute', right: 14, top: 16 },
-  titleInput: {
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingRight: 44,
-    paddingLeft: 14,
-    fontSize: 18,
-    fontWeight: '700',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
   descInput: {
     borderRadius: 16,
     padding: 14,
@@ -722,7 +951,6 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   segment: { padding: 6, borderRadius: 20, flexDirection: 'row-reverse', gap: 6, borderWidth: 1 },
-  priorityGrid: { flexDirection: 'row-reverse', gap: 10 },
   pickerBtn: {
     borderWidth: 1,
     borderRadius: 20,
@@ -738,6 +966,43 @@ const styles = StyleSheet.create({
   },
   pickerMain: { flexDirection: 'row-reverse', alignItems: 'center', gap: 12, flexShrink: 1 },
   pickerIconCircle: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  dropdownCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  dropdownSearch: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    paddingRight: 42,
+    paddingLeft: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  dropdownItem: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  dropdownItemTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a', textAlign: 'right' },
+  dropdownItemSub: { fontSize: 12, fontWeight: '700', color: '#64748b', textAlign: 'right' },
   footer: {
     position: 'absolute',
     left: 0,
@@ -809,51 +1074,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    padding: 16,
-    justifyContent: 'flex-end',
-  },
-  sheetCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
-  },
-  sheetHeader: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' },
-  sheetTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', textAlign: 'right', writingDirection: 'rtl' },
-  sheetSearch: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
-    paddingRight: 42,
-    paddingLeft: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
-  sheetItem: {
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  sheetItemTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a', textAlign: 'right' },
-  sheetItemSub: { fontSize: 12, fontWeight: '700', color: '#64748b', textAlign: 'right' },
   sheetDivider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 14, opacity: 0.9 },
 });
 
@@ -892,301 +1112,6 @@ function SegmentOption({
         {label}
       </Text>
     </Pressable>
-  );
-}
-
-function PriorityPill({
-  label,
-  dotColor,
-  active,
-  onPress,
-}: {
-  label: string;
-  dotColor: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        {
-          flex: 1,
-          borderRadius: 20,
-          paddingVertical: 12,
-          paddingHorizontal: 12,
-          backgroundColor: '#ffffff',
-          borderWidth: 1,
-          borderColor: active ? theme.colors.primary : '#e2e8f0',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'row-reverse',
-          gap: 8,
-          opacity: pressed ? 0.92 : 1,
-        },
-      ]}
-    >
-      <View
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: 999,
-          backgroundColor: dotColor,
-          shadowColor: dotColor,
-          shadowOpacity: 0.35,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 2,
-        }}
-      />
-      <Text style={{ color: active ? theme.colors.primary : '#475569', fontSize: 13, fontWeight: active ? '900' : '800' }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function SelectSheet(props: {
-  title: string;
-  visible: boolean;
-  onClose: () => void;
-  items: Array<{ key: string; title: string; subtitle?: string }>;
-  selectedKey?: string;
-  onSelect: (key: string) => void;
-}) {
-  const [q, setQ] = useState('');
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return props.items;
-    return props.items.filter((i) => i.title.toLowerCase().includes(s) || (i.subtitle ?? '').toLowerCase().includes(s));
-  }, [q, props.items]);
-
-  return (
-    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
-      <Pressable style={styles.sheetOverlay} onPress={props.onClose}>
-        <Pressable style={styles.sheetCard} onPress={() => {}}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{props.title}</Text>
-            <Pressable onPress={props.onClose} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
-              <MaterialIcons name="close" size={22} color="#94a3b8" />
-            </Pressable>
-          </View>
-
-          <View style={{ position: 'relative', marginTop: 10 }}>
-            <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
-              <MaterialIcons name="search" size={20} color={theme.colors.primary} />
-            </View>
-            <TextInput
-              value={q}
-              onChangeText={setQ}
-              placeholder="חיפוש..."
-              placeholderTextColor="#94a3b8"
-              style={styles.sheetSearch}
-            />
-          </View>
-
-          <FlatList
-            data={filtered}
-            keyExtractor={(i) => i.key}
-            keyboardShouldPersistTaps="handled"
-            style={{ marginTop: 12, maxHeight: 420 }}
-            contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
-            renderItem={({ item }) => {
-              const active = props.selectedKey === item.key;
-              return (
-                <Pressable
-                  onPress={() => props.onSelect(item.key)}
-                  style={({ pressed }) => [
-                    styles.sheetItem,
-                    {
-                      borderColor: active ? theme.colors.primary : '#e2e8f0',
-                      backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
-                      opacity: pressed ? 0.92 : 1,
-                    },
-                  ]}
-                >
-                  <View style={{ gap: 2, flex: 1 }}>
-                    <Text style={[styles.sheetItemTitle, { color: '#0f172a' }]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    {item.subtitle ? (
-                      <Text style={styles.sheetItemSub} numberOfLines={1}>
-                        {item.subtitle}
-                      </Text>
-                    ) : null}
-                  </View>
-                  {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
-                </Pressable>
-              );
-            }}
-          />
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function CategorySheet(props: {
-  visible: boolean;
-  onClose: () => void;
-  categories: Array<{ id: string; name: string }>;
-  selectedId?: string;
-  newCategoryName: string;
-  setNewCategoryName: (v: string) => void;
-  onSelect: (id: string) => void;
-  onClear: () => void;
-  onCreate: () => Promise<void>;
-}) {
-  const [q, setQ] = useState('');
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return props.categories;
-    return props.categories.filter((c) => c.name.toLowerCase().includes(s));
-  }, [q, props.categories]);
-
-  return (
-    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
-      <Pressable style={styles.sheetOverlay} onPress={props.onClose}>
-        <Pressable style={styles.sheetCard} onPress={() => {}}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>קטגוריה</Text>
-            <Pressable onPress={props.onClose} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
-              <MaterialIcons name="close" size={22} color="#94a3b8" />
-            </Pressable>
-          </View>
-
-          <View style={{ position: 'relative', marginTop: 10 }}>
-            <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
-              <MaterialIcons name="search" size={20} color={theme.colors.primary} />
-            </View>
-            <TextInput
-              value={q}
-              onChangeText={setQ}
-              placeholder="חיפוש קטגוריה..."
-              placeholderTextColor="#94a3b8"
-              style={styles.sheetSearch}
-            />
-          </View>
-
-          <View style={{ marginTop: 12, gap: 10 }}>
-            <Pressable
-              onPress={props.onClear}
-              style={({ pressed }) => [
-                styles.sheetItem,
-                {
-                  borderColor: !props.selectedId ? theme.colors.primary : '#e2e8f0',
-                  backgroundColor: !props.selectedId ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
-                  opacity: pressed ? 0.92 : 1,
-                },
-              ]}
-            >
-              <View style={{ gap: 2, flex: 1 }}>
-                <Text style={styles.sheetItemTitle}>ללא קטגוריה</Text>
-                <Text style={styles.sheetItemSub}>ברירת מחדל</Text>
-              </View>
-              {!props.selectedId ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
-            </Pressable>
-          </View>
-
-          <FlatList
-            data={filtered}
-            keyExtractor={(i) => i.id}
-            keyboardShouldPersistTaps="handled"
-            style={{ marginTop: 10, maxHeight: 320 }}
-            contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
-            renderItem={({ item }) => {
-              const active = props.selectedId === item.id;
-              return (
-                <Pressable
-                  onPress={() => props.onSelect(item.id)}
-                  style={({ pressed }) => [
-                    styles.sheetItem,
-                    {
-                      borderColor: active ? theme.colors.primary : '#e2e8f0',
-                      backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
-                      opacity: pressed ? 0.92 : 1,
-                    },
-                  ]}
-                >
-                  <Text style={styles.sheetItemTitle} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
-                </Pressable>
-              );
-            }}
-          />
-
-          <View style={styles.sheetDivider} />
-
-          <Text style={[styles.label, { color: '#64748b', marginBottom: 8 }]}>הוסף קטגוריה</Text>
-          <View style={{ flexDirection: 'row-reverse', gap: 10, alignItems: 'center' }}>
-            <TextInput
-              value={props.newCategoryName}
-              onChangeText={props.setNewCategoryName}
-              placeholder="לדוגמה: פיננסים"
-              placeholderTextColor="#94a3b8"
-              style={[styles.sheetSearch, { flex: 1, marginTop: 0 }]}
-              returnKeyType="done"
-              onSubmitEditing={props.onCreate}
-            />
-            <Pressable onPress={props.onCreate} style={({ pressed }) => [styles.addTagBtn, { opacity: pressed ? 0.9 : 1 }]}>
-              <MaterialIcons name="add" size={18} color="#fff" />
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function DateSheet(props: {
-  visible: boolean;
-  onClose: () => void;
-  value: Date;
-  onChange: (d: Date) => void;
-  onClear: () => void;
-  onSave: () => void;
-}) {
-  return (
-    <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
-      <Pressable style={styles.sheetOverlay} onPress={props.onClose}>
-        <Pressable style={styles.sheetCard} onPress={() => {}}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>תאריך יעד</Text>
-            <Pressable onPress={props.onClose} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
-              <MaterialIcons name="close" size={22} color="#94a3b8" />
-            </Pressable>
-          </View>
-
-          <View style={{ marginTop: 12 }}>
-            <DateTimePicker
-              value={props.value}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(_event, selected) => {
-                if (selected) props.onChange(selected);
-              }}
-            />
-          </View>
-
-          <View style={{ flexDirection: 'row-reverse', gap: 10, marginTop: 16 }}>
-            <Pressable
-              onPress={props.onSave}
-              style={({ pressed }) => [styles.modalDone, { flex: 2, opacity: pressed ? 0.9 : 1 }]}
-            >
-              <Text style={{ color: '#fff', fontWeight: '900' }}>שמור</Text>
-            </Pressable>
-            <Pressable
-              onPress={props.onClear}
-              style={({ pressed }) => [styles.modalClear, { flex: 1, opacity: pressed ? 0.9 : 1 }]}
-            >
-              <Text style={{ color: '#64748b', fontWeight: '900' }}>נקה</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
   );
 }
 

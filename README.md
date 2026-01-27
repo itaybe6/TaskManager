@@ -1,17 +1,53 @@
-# TaskManager (Starter)
+# TaskManager (Expo) – Mobile + Web
 
-This is a starter React Native (Expo) project for managing business tasks.
+הפרויקט הזה בנוי על **Expo** ולכן יכול לרוץ:
+- **במובייל** (Android/iOS)
+- **בדפדפן** (Web)
 
-## Run
-1) Install Node.js 18+
-2) Install Expo CLI (optional): `npm i -g expo`
-3) In this folder:
+## דרישות
+- Node.js 18+
+
+## הרצה מקומית
+בתיקיית הפרויקט:
 
 ```bash
 npm install
+```
+
+### מובייל
+
+```bash
 npm run start
 ```
 
+לאחר מכן אפשר לבחור Android / iOS (או לסרוק QR עם Expo Go).
+
+### Web (בדפדפן)
+
+```bash
+npm run web
+```
+
+## פריסה לאינטרנט (Hosting)
+ה‑Web נבנה כאתר סטטי לתיקיית `dist/`.
+
+### Build
+
+```bash
+npm run build:web
+```
+
+### בדיקה מקומית של ה‑build
+
+```bash
+npm run serve:web
+```
+
+### העלאה ל‑Vercel / Netlify / כל Static Hosting
+- מעלים את התוכן של התיקייה **`dist/`**
+- Build command: `npm run build:web`
+- Output directory: `dist`
+
 ## Notes
-- Data layer uses an InMemory repository now.
-- Swap `InMemoryTaskRepository` with your Sofa Base implementation later.
+- שכבת הדאטה משתמשת כרגע ב‑InMemory repository.
+- אפשר להחליף `InMemoryTaskRepository` במימוש Supabase/DB לפי הצורך.

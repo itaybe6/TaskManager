@@ -7,8 +7,7 @@
  * - Nullable columns are modeled as `T | null` (and optional for convenience).
  */
 
-export type TaskStatus = 'todo' | 'in_progress' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high';
+export type TaskStatus = 'todo' | 'done';
 export type ProjectStatus = 'planned' | 'active' | 'on_hold' | 'completed' | 'cancelled';
 export type DocKind = 'general' | 'receipt' | 'invoice' | 'quote' | 'contract' | 'other';
 export type TransactionType = 'income' | 'expense';
@@ -33,10 +32,8 @@ export interface DbUser {
 
 export interface DbTask {
   id: string;
-  title: string;
-  description?: string | null;
+  description: string;
   status: TaskStatus;
-  priority: TaskPriority;
   assignee_id?: string | null;
   due_at?: string | null;
   tags?: string[] | null;
@@ -180,10 +177,8 @@ export type DbUserInsert = {
 export type DbUserUpdate = Partial<DbUserInsert>;
 
 export type DbTaskInsert = {
-  title: string;
-  description?: string | null;
+  description: string;
   status?: TaskStatus; // default: 'todo'
-  priority?: TaskPriority; // default: 'medium'
   assignee_id?: string | null;
   due_at?: string | null;
   tags?: string[] | null;

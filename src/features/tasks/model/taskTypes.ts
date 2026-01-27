@@ -1,5 +1,4 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high';
+export type TaskStatus = 'todo' | 'done';
 
 export type TaskCategory = {
   id: string;
@@ -12,10 +11,8 @@ export type TaskCategory = {
 
 export type Task = {
   id: string;
-  title: string;
-  description?: string;
+  description: string;
   status: TaskStatus;
-  priority: TaskPriority;
 
   assigneeId?: string;
   assignee?: string;

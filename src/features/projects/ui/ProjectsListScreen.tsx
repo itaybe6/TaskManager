@@ -15,10 +15,12 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function ProjectsListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery, error } = useProjectsStore();
   const isDark = useAppColorScheme() === 'dark';
+  const layout = useResponsiveLayout('list');
 
   useEffect(() => {
     load();
@@ -135,7 +137,7 @@ export function ProjectsListScreen({ navigation }: any) {
             ) : null}
           </Pressable>
         )}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 140, gap: 12 }}
+        contentContainerStyle={[{ paddingHorizontal: 20, paddingBottom: 140, gap: 12 }, layout.contentContainerStyle]}
       />
 
       <Pressable

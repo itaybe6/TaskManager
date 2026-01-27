@@ -19,11 +19,13 @@ import { useClientsStore } from '../store/clientsStore';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { ClientContactInput } from '../model/clientTypes';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function ClientUpsertScreen({ route, navigation }: any) {
   const { mode, id } = route.params as { mode: 'create' | 'edit'; id?: string };
   const { repo, createClient, updateClient } = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
+  const layout = useResponsiveLayout('form');
 
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -148,21 +150,22 @@ export function ClientUpsertScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.headerBorder }]}>
-          <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#111827' }]}>{title}</Text>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={({ pressed }) => [styles.headerCancel, { opacity: pressed ? 0.85 : 1 }]}
-          >
-            <Text style={{ color: colors.cancel, fontWeight: '800', fontSize: 18 }}>ביטול</Text>
-          </Pressable>
-        </View>
+        <View style={layout.frameStyle}>
+          <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.headerBorder }]}>
+            <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#111827' }]}>{title}</Text>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={({ pressed }) => [styles.headerCancel, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Text style={{ color: colors.cancel, fontWeight: '800', fontSize: 18 }}>ביטול</Text>
+            </Pressable>
+          </View>
 
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.content}
-          style={{ flex: 1 }}
-        >
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[styles.content, layout.contentContainerStyle]}
+            style={{ flex: 1 }}
+          >
           <FormField
             label="שם לקוח"
             icon="domain"
@@ -271,44 +274,45 @@ export function ClientUpsertScreen({ route, navigation }: any) {
             placeholder="פרטים נוספים..."
             multiline
           />
-        </ScrollView>
+          </ScrollView>
 
-        <View pointerEvents="none" style={[styles.footerFade, { backgroundColor: colors.footerFade }]} />
-        <Pressable
-          disabled={!canSave}
-          onPress={async () => {
-            if (!canSave) return;
-            const normalizedContacts = contacts
-              .map((c) => ({
-                name: c.name.trim(),
-                email: c.email?.trim() || undefined,
-                phone: c.phone?.trim() || undefined,
-              }))
-              .filter((c) => c.name.length > 0);
-            const payload = {
-              name: name.trim(),
-              notes: notes.trim() || undefined,
-              totalPrice: parseMoney(totalPrice),
-              remainingToPay: parseMoney(remainingToPay),
-              contacts: normalizedContacts,
-            };
-            if (mode === 'create') await createClient(payload);
-            else if (id) await updateClient(id, payload);
-            navigation.goBack();
-          }}
-          style={({ pressed }) => [
-            styles.saveBtn,
-            {
-              backgroundColor: colors.saveBg,
-              opacity: !canSave ? 0.5 : 1,
-              transform: [{ scale: pressed && canSave ? 0.985 : 1 }],
-              shadowColor: colors.saveShadow,
-            },
-          ]}
-        >
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>שמור</Text>
-          <MaterialIcons name="check" size={22} color="#fff" />
-        </Pressable>
+          <View pointerEvents="none" style={[styles.footerFade, { backgroundColor: colors.footerFade }]} />
+          <Pressable
+            disabled={!canSave}
+            onPress={async () => {
+              if (!canSave) return;
+              const normalizedContacts = contacts
+                .map((c) => ({
+                  name: c.name.trim(),
+                  email: c.email?.trim() || undefined,
+                  phone: c.phone?.trim() || undefined,
+                }))
+                .filter((c) => c.name.length > 0);
+              const payload = {
+                name: name.trim(),
+                notes: notes.trim() || undefined,
+                totalPrice: parseMoney(totalPrice),
+                remainingToPay: parseMoney(remainingToPay),
+                contacts: normalizedContacts,
+              };
+              if (mode === 'create') await createClient(payload);
+              else if (id) await updateClient(id, payload);
+              navigation.goBack();
+            }}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              {
+                backgroundColor: colors.saveBg,
+                opacity: !canSave ? 0.5 : 1,
+                transform: [{ scale: pressed && canSave ? 0.985 : 1 }],
+                shadowColor: colors.saveShadow,
+              },
+            ]}
+          >
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>שמור</Text>
+            <MaterialIcons name="check" size={22} color="#fff" />
+          </Pressable>
+        </View>
 
         <Modal transparent visible={phonePicker.isOpen} animationType="fade" onRequestClose={closePhonePicker}>
           <Pressable style={styles.modalOverlay} onPress={closePhonePicker}>

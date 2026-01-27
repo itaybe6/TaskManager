@@ -22,10 +22,8 @@
   - `updated_at timestamptz default now()`
 - טבלת `public.tasks`:
   - `id uuid primary key default gen_random_uuid()`
-  - `title text not null`
-  - `description text`
-  - `status` enum עם הערכים: `todo`, `in_progress`, `done` (ברירת מחדל `todo`)
-  - `priority` enum עם הערכים: `low`, `medium`, `high` (ברירת מחדל `medium`)
+  - `description text not null`
+  - `status` enum עם הערכים: `todo`, `done` (ברירת מחדל `todo`)
   - `assignee_id uuid references public.users(id) on delete set null`
   - `due_at timestamptz`
   - `tags text[] default '{}'`
@@ -33,8 +31,8 @@
   - `updated_at timestamptz default now()`
 - טריגר שמעדכן `updated_at` בכל `UPDATE` לשתי הטבלאות.
 - אינדקסים:
-  - על `tasks.status`, `tasks.priority`, `tasks.due_at`, `tasks.updated_at desc`, `tasks.assignee_id`
-  - אינדקס חיפוש GIN על `to_tsvector(title || ' ' || description)`
+  - על `tasks.status`, `tasks.due_at`, `tasks.updated_at desc`, `tasks.assignee_id`
+  - אינדקס חיפוש GIN על `to_tsvector(description)`
 - הפעל RLS לשתי הטבלאות + מדיניות פיתוח זמנית שמאפשרת CRUD לכולם (אזהרה: לא לפרודקשן).
 
 בסוף, צור גם קובץ seed שמכניס 3 משתמשים ו־3 משימות לדוגמה.

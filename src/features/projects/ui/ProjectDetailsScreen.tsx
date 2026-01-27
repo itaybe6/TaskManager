@@ -4,13 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useProjectsStore } from '../store/projectsStore';
 import { useTasksStore } from '../../tasks/store/tasksStore';
-import { Task } from '../../tasks/model/taskTypes';
+import type { Task } from '../../tasks/model/taskTypes';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function ProjectDetailsScreen({ route, navigation }: any) {
   const { id } = route.params as { id: string };
   const isDark = useAppColorScheme() === 'dark';
+  const layout = useResponsiveLayout('detail');
   const { repo: projectsRepo } = useProjectsStore();
   const { repo: tasksRepo } = useTasksStore();
 
@@ -116,14 +118,14 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
             ]}
           >
             <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900', textAlign: 'right' }} numberOfLines={1}>
-              {item.title}
+              {item.description}
             </Text>
             <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', marginTop: 6, textAlign: 'right' }} numberOfLines={1}>
-              {item.status} • {item.priority}
+              {item.status}
             </Text>
           </Pressable>
         )}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, gap: 12 }}
+        contentContainerStyle={[{ paddingHorizontal: 20, paddingBottom: 120, gap: 12 }, layout.contentContainerStyle]}
       />
     </SafeAreaView>
   );

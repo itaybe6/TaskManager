@@ -14,10 +14,12 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function ClientsListScreen({ navigation, route }: any) {
   const { items, load, isLoading, query, setQuery, error } = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
+  const layout = useResponsiveLayout('list');
   const isTabRoot = route?.name === 'Clients';
 
   useEffect(() => {
@@ -252,7 +254,10 @@ export function ClientsListScreen({ navigation, route }: any) {
             </View>
           </Pressable>
         )}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160, gap: 16, alignItems: 'stretch' }}
+        contentContainerStyle={[
+          { paddingHorizontal: 24, paddingBottom: 160, gap: 16, alignItems: 'stretch' },
+          layout.contentContainerStyle,
+        ]}
       />
 
       <Pressable

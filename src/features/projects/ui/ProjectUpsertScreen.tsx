@@ -7,12 +7,14 @@ import { useClientsStore } from '../../clients/store/clientsStore';
 import { ProjectStatus } from '../model/projectTypes';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function ProjectUpsertScreen({ route, navigation }: any) {
   const { mode, id } = route.params as { mode: 'create' | 'edit'; id?: string };
   const { repo, createProject, updateProject } = useProjectsStore();
   const clients = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
+  const layout = useResponsiveLayout('form');
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -52,16 +54,22 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#1a1a1a' : '#ffffff' }}>
-      <View style={[styles.header, { borderBottomColor: isDark ? '#262626' : '#f1f5f9' }]}>
-        <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
-          <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontWeight: '800' }}>ביטול</Text>
-        </Pressable>
-        <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900' }}>{title}</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <View style={layout.frameStyle}>
+        <View style={[styles.header, { borderBottomColor: isDark ? '#262626' : '#f1f5f9' }]}>
+          <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
+            <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontWeight: '800' }}>ביטול</Text>
+          </Pressable>
+          <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900' }}>{title}</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 14 }}>
-        <Field label="שם פרויקט" icon="work" value={name} onChangeText={setName} isDark={isDark} placeholder="לדוגמה: מיתוג Q4" />
+        <ScrollView
+          contentContainerStyle={[
+            { padding: 20, paddingBottom: 120, gap: 14 },
+            layout.contentContainerStyle,
+          ]}
+        >
+          <Field label="שם פרויקט" icon="work" value={name} onChangeText={setName} isDark={isDark} placeholder="לדוגמה: מיתוג Q4" />
 
         <Text style={[styles.label, { color: isDark ? '#d1d5db' : '#374151' }]}>תיאור</Text>
         <TextInput
@@ -133,34 +141,35 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
           </View>
           <MaterialIcons name="chevron-right" size={22} color={isDark ? '#737373' : '#9ca3af'} />
         </Pressable>
-      </ScrollView>
+        </ScrollView>
 
-      <Pressable
-        disabled={!canSave}
-        onPress={async () => {
-          if (!canSave || !clientId) return;
-          const payload = {
-            clientId,
-            name: name.trim(),
-            description: description.trim() || undefined,
-            status,
-            budget: budget.trim() ? Number(budget) : undefined,
-            currency: currency.trim() || 'ILS',
-            startDate: undefined,
-            endDate: undefined,
-          };
-          if (mode === 'create') await createProject(payload);
-          else if (id) await updateProject(id, payload);
-          navigation.goBack();
-        }}
-        style={({ pressed }) => [
-          styles.saveBtn,
-          { opacity: !canSave ? 0.5 : pressed ? 0.92 : 1 },
-        ]}
-      >
-        <MaterialIcons name="check" size={20} color="#fff" />
-        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>שמור</Text>
-      </Pressable>
+        <Pressable
+          disabled={!canSave}
+          onPress={async () => {
+            if (!canSave || !clientId) return;
+            const payload = {
+              clientId,
+              name: name.trim(),
+              description: description.trim() || undefined,
+              status,
+              budget: budget.trim() ? Number(budget) : undefined,
+              currency: currency.trim() || 'ILS',
+              startDate: undefined,
+              endDate: undefined,
+            };
+            if (mode === 'create') await createProject(payload);
+            else if (id) await updateProject(id, payload);
+            navigation.goBack();
+          }}
+          style={({ pressed }) => [
+            styles.saveBtn,
+            { opacity: !canSave ? 0.5 : pressed ? 0.92 : 1 },
+          ]}
+        >
+          <MaterialIcons name="check" size={20} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>שמור</Text>
+        </Pressable>
+      </View>
 
       <Modal visible={clientPickerOpen} transparent animationType="fade" onRequestClose={() => setClientPickerOpen(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setClientPickerOpen(false)}>

@@ -6,11 +6,13 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { useAuthStore } from '../store/authStore';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function LoginScreen() {
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
   const auth = useAuthStore();
+  const layout = useResponsiveLayout('narrow');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +54,7 @@ export function LoginScreen() {
       </View>
 
       <KeyboardAvoidingView
-        style={styles.kav}
+        style={[styles.kav, { paddingHorizontal: layout.paddingX }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.wrap}>

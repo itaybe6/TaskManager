@@ -8,10 +8,8 @@ export class InMemoryTaskRepository implements TaskRepository {
   private tasks: Task[] = [
     {
       id: 't1',
-      title: "להרים פיצ'ר בסיסי",
-      description: 'רשימה + יצירה + פרטים',
-      status: 'in_progress',
-      priority: 'high',
+      description: "להרים פיצ'ר בסיסי — רשימה + יצירה + פרטים",
+      status: 'todo',
       assigneeId: 'u_iti',
       assignee: 'איתי',
       projectId: 'p1111111-1111-1111-1111-111111111111',
@@ -23,9 +21,8 @@ export class InMemoryTaskRepository implements TaskRepository {
     },
     {
       id: 't2',
-      title: 'לשוחח עם לקוח',
+      description: 'לשוחח עם לקוח',
       status: 'todo',
-      priority: 'medium',
       assigneeId: 'u_adir',
       assignee: 'אדיר',
       clientId: 'c1111111-1111-1111-1111-111111111111',
@@ -54,17 +51,11 @@ export class InMemoryTaskRepository implements TaskRepository {
       const s = query.searchText.trim().toLowerCase();
       out = out.filter(
         t =>
-          t.title.toLowerCase().includes(s) ||
-          (t.description ?? '').toLowerCase().includes(s)
+          t.description.toLowerCase().includes(s)
       );
     }
 
-    const priorityRank: Record<Task['priority'], number> = { high: 0, medium: 1, low: 2 };
-    out.sort((a, b) => {
-      const pr = priorityRank[a.priority] - priorityRank[b.priority];
-      if (pr !== 0) return pr;
-      return b.updatedAt.localeCompare(a.updatedAt);
-    });
+    out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
     return out;
   }

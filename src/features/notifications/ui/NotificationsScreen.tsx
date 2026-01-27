@@ -6,12 +6,14 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 import { useNotificationsStore } from '../store/notificationsStore';
 import type { Notification } from '../model/notificationTypes';
 
 export function NotificationsScreen({ navigation }: any) {
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+  const layout = useResponsiveLayout('list');
   const { items, load, isLoading, unreadCount, markRead, markAllRead } = useNotificationsStore();
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function NotificationsScreen({ navigation }: any) {
         ListHeaderComponent={header}
         refreshing={isLoading}
         onRefresh={load}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, layout.contentContainerStyle]}
         ListEmptyComponent={
           !isLoading ? (
             <View style={[styles.emptyWrap, { backgroundColor: isDark ? '#242424' : theme.colors.surface }]}>

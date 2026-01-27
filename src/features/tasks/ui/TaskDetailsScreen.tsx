@@ -14,12 +14,14 @@ import { useTasksStore } from '../store/tasksStore';
 import type { Task } from '../model/taskTypes';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function TaskDetailsScreen({ route, navigation }: any) {
   const { id } = route.params;
   const { repo, deleteTask } = useTasksStore();
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+  const layout = useResponsiveLayout('detail');
 
   const [task, setTask] = useState<Task | null>(null);
 
@@ -33,9 +35,8 @@ export function TaskDetailsScreen({ route, navigation }: any) {
   const ui = useMemo(() => {
     if (!task) return null;
     const status = statusChip(task.status);
-    const priority = priorityChip(task.priority);
     const due = dueInfo(task.dueAt);
-    return { status, priority, due };
+    return { status, due };
   }, [task]);
 
   return (
@@ -47,7 +48,12 @@ export function TaskDetailsScreen({ route, navigation }: any) {
       ]}
     >
       <View style={styles.frame}>
-        <View style={[styles.frameInner, { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background }]}>
+        <View
+          style={[
+            styles.frameInner,
+            { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background, maxWidth: layout.maxWidth },
+          ]}
+        >
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
@@ -87,19 +93,11 @@ export function TaskDetailsScreen({ route, navigation }: any) {
                     { color: isDark ? '#fff' : '#0f172a' },
                   ]}
                 >
-                  {task?.title ?? '...'}
+                  {task ? deriveTaskTitle(task.description) : '...'}
                 </Text>
 
                 <View style={styles.chipsRow}>
                   {ui?.status ? <Chip label={ui.status.label} tone={ui.status.tone} isDark={isDark} dot /> : null}
-                  {ui?.priority ? (
-                    <Chip
-                      label={ui.priority.label}
-                      tone={ui.priority.tone}
-                      isDark={isDark}
-                      icon="priority-high"
-                    />
-                  ) : null}
                 </View>
               </View>
 
@@ -118,11 +116,7 @@ export function TaskDetailsScreen({ route, navigation }: any) {
                     תיאור
                   </Text>
                 </View>
-                <Text style={[styles.desc, { color: isDark ? '#e5e7eb' : '#334155' }]}>
-                  {task?.description?.trim()
-                    ? task.description
-                    : 'אין תיאור למשימה הזו כרגע.'}
-                </Text>
+                <Text style={[styles.desc, { color: isDark ? '#e5e7eb' : '#334155' }]}>{task?.description ?? ''}</Text>
               </View>
 
               <View style={styles.grid}>
@@ -502,15 +496,8 @@ function chipColors(tone: 'amber' | 'rose' | 'slate' | 'emerald', isDark: boolea
 }
 
 function statusChip(s: Task['status']) {
-  if (s === 'in_progress') return { label: 'בעבודה', tone: 'amber' as const };
-  if (s === 'done') return { label: 'בוצע', tone: 'emerald' as const };
-  return { label: 'To Do', tone: 'slate' as const };
-}
-
-function priorityChip(p: Task['priority']) {
-  if (p === 'high') return { label: 'דחיפות גבוהה', tone: 'rose' as const };
-  if (p === 'low') return { label: 'דחיפות נמוכה', tone: 'slate' as const };
-  return { label: 'דחיפות רגילה', tone: 'slate' as const };
+  if (s === 'done') return { label: 'נעשה', tone: 'emerald' as const };
+  return { label: 'לא נעשה', tone: 'slate' as const };
 }
 
 function dueInfo(iso?: string) {
@@ -560,4 +547,10 @@ function stringToColor(s: string) {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   const hue = h % 360;
   return `hsl(${hue}, 70%, 45%)`;
+}
+
+function deriveTaskTitle(description: string) {
+  const s = (description ?? '').trim().replace(/\s+/g, ' ');
+  if (!s) return 'משימה';
+  return s.length > 46 ? `${s.slice(0, 46)}…` : s;
 }

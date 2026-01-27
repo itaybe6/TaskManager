@@ -8,11 +8,7 @@ create extension if not exists pgcrypto;
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'task_status') then
-    create type public.task_status as enum ('todo', 'in_progress', 'done');
-  end if;
-
-  if not exists (select 1 from pg_type where typname = 'task_priority') then
-    create type public.task_priority as enum ('low', 'medium', 'high');
+    create type public.task_status as enum ('todo', 'done');
   end if;
 end $$;
 
@@ -43,10 +39,8 @@ for each row execute function public.set_updated_at();
 -- Tasks table
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
-  title text not null,
-  description text null,
+  description text not null,
   status public.task_status not null default 'todo',
-  priority public.task_priority not null default 'medium',
 
   assignee_id uuid null references public.users(id) on delete set null,
   due_at timestamptz null,
@@ -63,14 +57,13 @@ for each row execute function public.set_updated_at();
 
 -- Indexes (for list + filter + search)
 create index if not exists tasks_status_idx on public.tasks(status);
-create index if not exists tasks_priority_idx on public.tasks(priority);
 create index if not exists tasks_due_at_idx on public.tasks(due_at);
 create index if not exists tasks_updated_at_idx on public.tasks(updated_at desc);
 create index if not exists tasks_assignee_idx on public.tasks(assignee_id);
 
 -- Basic full-text search over title/description (optional)
 create index if not exists tasks_search_idx
-on public.tasks using gin (to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,'')));
+on public.tasks using gin (to_tsvector('simple', coalesce(description,'')));
 
 -- RLS (development-friendly defaults)
 -- NOTE: If you want production security, replace these permissive policies.

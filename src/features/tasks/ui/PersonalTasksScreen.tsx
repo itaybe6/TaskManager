@@ -7,12 +7,14 @@ import { useAuthStore } from '../../auth/store/authStore';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 import type { Task } from '../model/taskTypes';
 
 export function PersonalTasksScreen({ navigation }: any) {
   const repo = useTasksStore((s) => s.repo);
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+  const layout = useResponsiveLayout('list');
   const userId = useAuthStore((s) => s.session?.user?.id);
 
   const [items, setItems] = useState<Task[]>([]);
@@ -39,7 +41,7 @@ export function PersonalTasksScreen({ navigation }: any) {
 
   const header = useMemo(() => {
     const countLabel = `${items.length} משימות אישיות`;
-    const active = (status ?? 'all') as 'all' | 'todo' | 'in_progress' | 'done';
+    const active = (status ?? 'all') as 'all' | 'todo' | 'done';
 
     return (
       <View style={styles.headerWrap}>
@@ -78,7 +80,7 @@ export function PersonalTasksScreen({ navigation }: any) {
         <View style={styles.pillsScroller}>
           <FlatList
             horizontal
-            data={(['all', 'todo', 'in_progress', 'done'] as const).map((k) => k)}
+            data={(['all', 'todo', 'done'] as const).map((k) => k)}
             keyExtractor={(k) => k}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pillsRow}
@@ -88,10 +90,8 @@ export function PersonalTasksScreen({ navigation }: any) {
                   s === 'all'
                     ? 'הכל'
                     : s === 'todo'
-                      ? 'To Do'
-                      : s === 'in_progress'
-                        ? 'בתהליך'
-                        : 'בוצע'
+                      ? 'לא נעשה'
+                      : 'נעשה'
                 }
                 active={active === s}
                 isDark={isDark}
@@ -166,7 +166,6 @@ export function PersonalTasksScreen({ navigation }: any) {
             <View style={styles.cardTopRow}>
               <View style={styles.tagsRow}>
                 <Tag label="אישי" tone="category" isDark={isDark} />
-                <Tag label={priorityLabel(item.priority)} tone={item.priority} isDark={isDark} />
                 <Tag label={statusLabel(item.status)} tone={item.status} isDark={isDark} />
               </View>
 
@@ -198,7 +197,7 @@ export function PersonalTasksScreen({ navigation }: any) {
               ]}
               numberOfLines={2}
             >
-              {item.title}
+              {item.description}
             </Text>
 
             <View style={styles.cardBottomRow}>
@@ -216,7 +215,7 @@ export function PersonalTasksScreen({ navigation }: any) {
             </View>
           </Pressable>
         )}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, layout.contentContainerStyle]}
       />
 
       <Pressable
@@ -411,7 +410,7 @@ function Tag({
   isDark,
 }: {
   label: string;
-  tone: 'low' | 'medium' | 'high' | 'todo' | 'in_progress' | 'done' | 'category';
+  tone: 'todo' | 'done' | 'category';
   isDark: boolean;
 }) {
   const { bg, fg } = tagColors(tone, isDark);
@@ -422,31 +421,19 @@ function Tag({
   );
 }
 
-function tagColors(tone: 'low' | 'medium' | 'high' | 'todo' | 'in_progress' | 'done' | 'category', isDark: boolean) {
+function tagColors(tone: 'todo' | 'done' | 'category', isDark: boolean) {
   switch (tone) {
     case 'category':
       return { bg: isDark ? 'rgba(77, 127, 255, 0.18)' : '#eff6ff', fg: isDark ? '#bfdbfe' : '#2563eb' };
-    case 'high':
-      return { bg: isDark ? 'rgba(239, 68, 68, 0.25)' : '#fef2f2', fg: isDark ? '#fecaca' : '#dc2626' };
-    case 'medium':
-      return { bg: isDark ? 'rgba(107, 114, 128, 0.25)' : '#f3f4f6', fg: isDark ? '#e5e7eb' : '#4b5563' };
-    case 'low':
-      return { bg: isDark ? 'rgba(16, 185, 129, 0.22)' : '#ecfdf5', fg: isDark ? '#a7f3d0' : '#059669' };
     case 'todo':
       return { bg: isDark ? 'rgba(249, 115, 22, 0.25)' : '#fff7ed', fg: isDark ? '#fed7aa' : '#ea580c' };
-    case 'in_progress':
-      return { bg: isDark ? 'rgba(59, 130, 246, 0.22)' : theme.colors.primarySoft, fg: isDark ? '#bfdbfe' : theme.colors.primary };
     case 'done':
       return { bg: isDark ? 'rgba(16, 185, 129, 0.22)' : '#ecfdf5', fg: isDark ? '#a7f3d0' : '#059669' };
   }
 }
 
-function statusLabel(s: 'todo' | 'in_progress' | 'done') {
-  return s === 'todo' ? 'To Do' : s === 'in_progress' ? 'בתהליך' : 'בוצע';
-}
-
-function priorityLabel(p: 'low' | 'medium' | 'high') {
-  return p === 'high' ? 'גבוהה' : p === 'medium' ? 'רגילה' : 'נמוכה';
+function statusLabel(s: 'todo' | 'done') {
+  return s === 'todo' ? 'לא נעשה' : 'נעשה';
 }
 
 function formatHebDateTime(iso: string) {
