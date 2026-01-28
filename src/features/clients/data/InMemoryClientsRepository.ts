@@ -1,5 +1,5 @@
 import { ClientsRepository, ClientsQuery } from './ClientsRepository';
-import { Client } from '../model/clientTypes';
+import { Client, ClientDocument } from '../model/clientTypes';
 
 const nowIso = () => new Date().toISOString();
 
@@ -29,6 +29,7 @@ export class InMemoryClientsRepository implements ClientsRepository {
           updatedAt: nowIso(),
         },
       ],
+      documents: [],
       createdAt: nowIso(),
       updatedAt: nowIso(),
     },
@@ -47,6 +48,7 @@ export class InMemoryClientsRepository implements ClientsRepository {
           updatedAt: nowIso(),
         },
       ],
+      documents: [],
       createdAt: nowIso(),
       updatedAt: nowIso(),
     },
@@ -75,7 +77,7 @@ export class InMemoryClientsRepository implements ClientsRepository {
     return this.clients.find((c) => c.id === id) ?? null;
   }
 
-  async create(input: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Promise<Client> {
+  async create(input: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<Client> {
     const created: Client = {
       id: `c_${Math.random().toString(16).slice(2)}`,
       ...input,
@@ -85,6 +87,7 @@ export class InMemoryClientsRepository implements ClientsRepository {
         createdAt: nowIso(),
         updatedAt: nowIso(),
       })),
+      documents: [],
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
@@ -94,7 +97,7 @@ export class InMemoryClientsRepository implements ClientsRepository {
 
   async update(
     id: string,
-    patch: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt'>>
+    patch: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'>>
   ): Promise<Client> {
     const existing = await this.getById(id);
     if (!existing) throw new Error('Client not found');
@@ -118,6 +121,27 @@ export class InMemoryClientsRepository implements ClientsRepository {
 
   async remove(id: string): Promise<void> {
     this.clients = this.clients.filter((c) => c.id !== id);
+  }
+
+  async addDocument(clientId: string, doc: Omit<ClientDocument, 'id' | 'createdAt'>): Promise<ClientDocument> {
+    const existing = await this.getById(clientId);
+    if (!existing) throw new Error('Client not found');
+
+    const newDoc: ClientDocument = {
+      ...doc,
+      id: `doc_${Math.random().toString(16).slice(2)}`,
+      createdAt: nowIso(),
+    };
+
+    existing.documents = [...(existing.documents ?? []), newDoc];
+    return newDoc;
+  }
+
+  async removeDocument(documentId: string): Promise<void> {
+    this.clients = this.clients.map((c) => ({
+      ...c,
+      documents: (c.documents ?? []).filter((d) => d.id !== documentId),
+    }));
   }
 }
 

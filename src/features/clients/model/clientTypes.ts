@@ -13,6 +13,18 @@ export type ClientContactInput = {
   phone?: string;
 };
 
+export type ClientDocument = {
+  id: string;
+  clientId: string;
+  kind: 'general' | 'receipt' | 'invoice' | 'quote' | 'contract' | 'tax_invoice' | 'other';
+  title: string;
+  storagePath: string;
+  fileName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  createdAt: string;
+};
+
 export type Client = {
   id: string;
   name: string;
@@ -20,6 +32,7 @@ export type Client = {
   totalPrice?: number;
   remainingToPay?: number;
   contacts: ClientContact[];
+  documents?: ClientDocument[];
   createdAt: string;
   updatedAt: string;
 };

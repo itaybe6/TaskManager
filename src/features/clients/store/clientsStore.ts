@@ -3,7 +3,7 @@ import { getSupabaseConfig } from '../../../app/supabase/rest';
 import { ClientsRepository, ClientsQuery } from '../data/ClientsRepository';
 import { SupabaseClientsRepository } from '../data/SupabaseClientsRepository';
 import { InMemoryClientsRepository } from '../data/InMemoryClientsRepository';
-import { Client } from '../model/clientTypes';
+import { Client, ClientDocument } from '../model/clientTypes';
 
 type ClientsState = {
   repo: ClientsRepository;
@@ -14,12 +14,14 @@ type ClientsState = {
 
   load: () => Promise<void>;
   setQuery: (q: Partial<ClientsQuery>) => void;
-  createClient: (input: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Client>;
+  createClient: (input: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => Promise<Client>;
   updateClient: (
     id: string,
-    patch: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt'>>
+    patch: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'>>
   ) => Promise<Client>;
   deleteClient: (id: string) => Promise<void>;
+  addDocument: (clientId: string, doc: Omit<ClientDocument, 'id' | 'createdAt'>) => Promise<ClientDocument>;
+  removeDocument: (documentId: string) => Promise<void>;
 };
 
 export const useClientsStore = create<ClientsState>((set, get) => ({
@@ -58,6 +60,19 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
   deleteClient: async (id) => {
     const { repo } = get();
     await repo.remove(id);
+    await get().load();
+  },
+
+  addDocument: async (clientId, doc) => {
+    const { repo } = get();
+    const newDoc = await repo.addDocument(clientId, doc);
+    await get().load();
+    return newDoc;
+  },
+
+  removeDocument: async (documentId) => {
+    const { repo } = get();
+    await repo.removeDocument(documentId);
     await get().load();
   },
 }));

@@ -7,15 +7,25 @@
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icon.png",
     "android": {
+      "supportsRTL": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFFFFF"
       }
     },
+    "ios": {
+      "supportsRTL": true,
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIUserInterfaceStyle": "Automatic"
+      }
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       [
         "expo-contacts",
@@ -23,6 +33,9 @@
           "contactsPermission": "אפשר ל-$(PRODUCT_NAME) גישה לאנשי הקשר כדי לבחור מספר טלפון."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "supportsRTL": true
+    }
   }
 }

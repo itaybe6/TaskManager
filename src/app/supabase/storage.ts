@@ -62,3 +62,53 @@ export async function uploadAvatarFromUri(args: {
   return { bucket, objectPath, publicUrl };
 }
 
+export async function uploadFileFromUri(args: {
+  bucket: string;
+  objectPath: string;
+  uri: string;
+  contentType?: string;
+}): Promise<{ bucket: string; objectPath: string; publicUrl: string }> {
+  const cfg = getSupabaseConfig();
+  if (!cfg) {
+    throw new SupabaseRestError(
+      'Missing Supabase env (EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY)',
+      0
+    );
+  }
+
+  const { bucket, objectPath, uri, contentType } = args;
+
+  // Expo: fetch(file://...) returns a Blob (works on web + native).
+  const fileRes = await fetch(uri);
+  if (!fileRes.ok) {
+    throw new SupabaseRestError(`Failed to read selected file (${fileRes.status})`, fileRes.status);
+  }
+  const blob = await fileRes.blob();
+
+  const token = getSupabaseAccessToken();
+  const uploadUrl = new URL(`/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`, cfg.url);
+
+  const upRes = await fetch(uploadUrl.toString(), {
+    method: 'POST',
+    headers: {
+      apikey: cfg.anonKey,
+      Authorization: `Bearer ${token ?? cfg.anonKey}`,
+      'x-upsert': 'true',
+      'Content-Type': contentType ?? blob.type ?? 'application/octet-stream',
+      Accept: 'application/json',
+    },
+    body: blob,
+  });
+
+  if (!upRes.ok) {
+    const details = await upRes.text().catch(() => undefined);
+    throw new SupabaseRestError(`Supabase Storage upload error (${upRes.status})`, upRes.status, details);
+  }
+
+  const publicUrl = new URL(
+    `/storage/v1/object/public/${bucket}/${encodePathSegments(objectPath)}`,
+    cfg.url
+  ).toString();
+
+  return { bucket, objectPath, publicUrl };
+}

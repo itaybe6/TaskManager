@@ -12,19 +12,24 @@ import {
   FlatList,
   Alert,
   I18nManager,
+  Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts/src/Contacts';
+import * as DocumentPicker from 'expo-document-picker';
 import { useClientsStore } from '../store/clientsStore';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
-import { ClientContactInput } from '../model/clientTypes';
+import { ClientContactInput, ClientDocument } from '../model/clientTypes';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
+import { uploadFileFromUri } from '../../../app/supabase/storage';
+import { getSupabaseConfig } from '../../../app/supabase/rest';
 
 export function ClientUpsertScreen({ route, navigation }: any) {
   const { mode, id } = route.params as { mode: 'create' | 'edit'; id?: string };
-  const { repo, createClient, updateClient } = useClientsStore();
+  const { repo, createClient, updateClient, addDocument, removeDocument } = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
   const layout = useResponsiveLayout('form');
 
@@ -33,6 +38,9 @@ export function ClientUpsertScreen({ route, navigation }: any) {
   const [totalPrice, setTotalPrice] = useState('');
   const [remainingToPay, setRemainingToPay] = useState('');
   const [contacts, setContacts] = useState<ClientContactInput[]>([{ name: '', email: '', phone: '' }]);
+  const [documents, setDocuments] = useState<ClientDocument[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
   const [phonePicker, setPhonePicker] = useState<{
     isOpen: boolean;
     targetIdx: number | null;
@@ -40,6 +48,11 @@ export function ClientUpsertScreen({ route, navigation }: any) {
     email?: string;
     phones: string[];
   }>({ isOpen: false, targetIdx: null, contactName: '', phones: [] });
+
+  const [docTypePicker, setDocTypePicker] = useState<{
+    isOpen: boolean;
+    file?: DocumentPicker.DocumentPickerAsset;
+  }>({ isOpen: false });
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -55,6 +68,7 @@ export function ClientUpsertScreen({ route, navigation }: any) {
           ? c.contacts.map((cc) => ({ name: cc.name ?? '', email: cc.email ?? '', phone: cc.phone ?? '' }))
           : [{ name: '', email: '', phone: '' }]
       );
+      setDocuments(c.documents ?? []);
     })();
   }, [mode, id]);
 
@@ -147,6 +161,98 @@ export function ClientUpsertScreen({ route, navigation }: any) {
       phones: phones.map(normalizePhone),
     });
   }
+
+  async function pickDocument() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      });
+
+      if (res.canceled) return;
+
+      const file = res.assets[0];
+      setDocTypePicker({ isOpen: true, file });
+    } catch (e) {
+      Alert.alert('שגיאה', 'נכשל בבחירת קובץ');
+    }
+  }
+
+  async function handleUpload(kind: ClientDocument['kind']) {
+    if (!docTypePicker.file || !id) return;
+    const file = docTypePicker.file;
+    setDocTypePicker({ isOpen: false });
+    setIsUploading(true);
+
+    try {
+      const timestamp = Date.now();
+      const ext = file.name.split('.').pop();
+      const storagePath = `documents/${id}/${timestamp}.${ext}`;
+
+      const { publicUrl } = await uploadFileFromUri({
+        bucket: 'documents',
+        objectPath: storagePath,
+        uri: file.uri,
+        contentType: file.mimeType,
+      });
+
+      const newDoc = await addDocument(id, {
+        clientId: id,
+        kind,
+        title: file.name,
+        storagePath,
+        fileName: file.name,
+        mimeType: file.mimeType,
+        sizeBytes: file.size,
+      });
+
+      setDocuments((prev) => [newDoc, ...prev]);
+    } catch (e: any) {
+      Alert.alert('שגיאה בהעלאה', e.message ?? 'נכשל בהעלאת הקובץ');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function openDocument(doc: ClientDocument) {
+    const cfg = getSupabaseConfig();
+    if (!cfg) return;
+
+    const url = `${cfg.url}/storage/v1/object/public/documents/${doc.storagePath}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('שגיאה', 'לא ניתן לפתוח את הקובץ');
+    }
+  }
+
+  async function handleDeleteDoc(docId: string) {
+    Alert.alert('מחיקת מסמך', 'האם אתה בטוח שברצונך למחוק את המסמך?', [
+      { text: 'ביטול', style: 'cancel' },
+      {
+        text: 'מחק',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeDocument(docId);
+            setDocuments((prev) => prev.filter((d) => d.id !== docId));
+          } catch (e) {
+            Alert.alert('שגיאה', 'נכשל במחיקת המסמך');
+          }
+        },
+      },
+    ]);
+  }
+
+  const docTypeLabels: Record<ClientDocument['kind'], string> = {
+    quote: 'הצעת מחיר',
+    invoice: 'חשבונית',
+    tax_invoice: 'חשבונית מס',
+    receipt: 'קבלה',
+    contract: 'חוזה',
+    general: 'כללי',
+    other: 'אחר',
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -266,6 +372,69 @@ export function ClientUpsertScreen({ route, navigation }: any) {
             </View>
           ))}
 
+          {mode === 'edit' && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.label }]}>מסמכים</Text>
+                <Pressable
+                  onPress={pickDocument}
+                  disabled={isUploading}
+                  style={({ pressed }) => [{ opacity: pressed || isUploading ? 0.86 : 1, flexDirection: 'row', alignItems: 'center', gap: 4 }]}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                  ) : (
+                    <>
+                      <MaterialIcons name="upload-file" size={20} color={theme.colors.primary} />
+                      <Text style={{ color: theme.colors.primary, fontWeight: '900' }}>העלאת מסמך</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+
+              {documents.length === 0 && !isUploading ? (
+                <View style={[styles.emptyDocs, { backgroundColor: colors.inputBg }]}>
+                  <Text style={{ color: colors.placeholder, textAlign: 'center' }}>אין מסמכים עדיין</Text>
+                </View>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {documents.map((doc) => (
+                    <Pressable
+                      key={doc.id}
+                      onPress={() => openDocument(doc)}
+                      style={({ pressed }) => [
+                        styles.docCard,
+                        { backgroundColor: colors.inputBg, opacity: pressed ? 0.9 : 1 },
+                      ]}
+                    >
+                      <View style={styles.docIconWrap}>
+                        <MaterialIcons
+                          name={doc.mimeType?.includes('pdf') ? 'picture-as-pdf' : 'insert-drive-file'}
+                          size={24}
+                          color={theme.colors.primary}
+                        />
+                      </View>
+                      <View style={{ flex: 1, gap: 2, alignItems: 'flex-end' }}>
+                        <Text style={[styles.docTitle, { color: colors.inputText }]} numberOfLines={1}>
+                          {doc.title}
+                        </Text>
+                        <Text style={[styles.docSubtitle, { color: colors.placeholder }]}>
+                          {docTypeLabels[doc.kind]} • {new Date(doc.createdAt).toLocaleDateString('he-IL')}
+                        </Text>
+                      </View>
+                      <Pressable
+                        onPress={() => handleDeleteDoc(doc.id)}
+                        style={({ pressed }) => [{ padding: 8, opacity: pressed ? 0.7 : 1 }]}
+                      >
+                        <MaterialIcons name="delete-outline" size={20} color={theme.colors.danger} />
+                      </Pressable>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+
           <FormField
             label="הערות"
             icon={null}
@@ -365,6 +534,41 @@ export function ClientUpsertScreen({ route, navigation }: any) {
               <Pressable onPress={closePhonePicker} style={({ pressed }) => [{ opacity: pressed ? 0.86 : 1 }]}>
                 <Text style={{ color: colors.cancel, fontWeight: '900', textAlign: 'center', paddingTop: 14 }}>
                   סגור
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal transparent visible={docTypePicker.isOpen} animationType="fade" onRequestClose={() => setDocTypePicker({ isOpen: false })}>
+          <Pressable style={styles.modalOverlay} onPress={() => setDocTypePicker({ isOpen: false })}>
+            <Pressable
+              onPress={() => {}}
+              style={[styles.modalCard, { backgroundColor: colors.inputBg, borderColor: colors.headerBorder }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.inputText, marginBottom: 12 }]}>
+                סוג המסמך
+              </Text>
+
+              <View style={{ gap: 10 }}>
+                {(['quote', 'invoice', 'tax_invoice', 'receipt', 'contract', 'general'] as const).map((kind) => (
+                  <Pressable
+                    key={kind}
+                    onPress={() => handleUpload(kind)}
+                    style={({ pressed }) => [
+                      styles.phoneOption,
+                      { backgroundColor: isDark ? '#0B1220' : '#FFFFFF', opacity: pressed ? 0.86 : 1 },
+                    ]}
+                  >
+                    <MaterialIcons name="description" size={18} color={theme.colors.primary} />
+                    <Text style={[styles.phoneOptionText, { color: colors.inputText }]}>{docTypeLabels[kind]}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Pressable onPress={() => setDocTypePicker({ isOpen: false })} style={({ pressed }) => [{ opacity: pressed ? 0.86 : 1 }]}>
+                <Text style={{ color: colors.cancel, fontWeight: '900', textAlign: 'center', paddingTop: 14 }}>
+                  ביטול
                 </Text>
               </Pressable>
             </Pressable>
@@ -557,5 +761,39 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   phoneOptionText: { fontSize: 16, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
+  emptyDocs: {
+    borderRadius: 18,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: 'rgba(156, 163, 175, 0.3)',
+  },
+  docCard: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 18,
+    gap: 12,
+  },
+  docIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(165, 148, 249, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  docSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
 });
 

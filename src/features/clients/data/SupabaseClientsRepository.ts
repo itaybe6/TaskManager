@@ -11,6 +11,19 @@ type DbClientRow = {
   created_at: string;
   updated_at: string;
   client_contacts?: DbClientContactRow[] | null;
+  documents?: DbClientDocumentRow[] | null;
+};
+
+type DbClientDocumentRow = {
+  id: string;
+  client_id: string;
+  kind: string;
+  title: string;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
 };
 
 type DbClientContactRow = {
@@ -40,6 +53,20 @@ function mapRowToClient(r: DbClientRow): Client {
           phone: cc.phone ?? undefined,
           createdAt: cc.created_at,
           updatedAt: cc.updated_at,
+        })) ?? [],
+    documents:
+      (r.documents ?? [])
+        ?.filter(Boolean)
+        .map((d) => ({
+          id: d.id,
+          clientId: d.client_id,
+          kind: d.kind as any,
+          title: d.title,
+          storagePath: d.storage_path,
+          fileName: d.file_name,
+          mimeType: d.mime_type ?? undefined,
+          sizeBytes: d.size_bytes ?? undefined,
+          createdAt: d.created_at,
         })) ?? [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -72,7 +99,7 @@ export class SupabaseClientsRepository implements ClientsRepository {
       path: '/rest/v1/clients',
       query: {
         select:
-          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
+          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at),documents(id,client_id,kind,title,storage_path,file_name,mime_type,size_bytes,created_at)',
         ...(q
           ? {
               or: `(name.ilike.*${escapeIlike(q)}*)`,
@@ -90,7 +117,7 @@ export class SupabaseClientsRepository implements ClientsRepository {
       path: '/rest/v1/clients',
       query: {
         select:
-          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
+          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at),documents(id,client_id,kind,title,storage_path,file_name,mime_type,size_bytes,created_at)',
         id: `eq.${id}`,
         limit: '1',
       },
@@ -138,6 +165,46 @@ export class SupabaseClientsRepository implements ClientsRepository {
 
   async remove(id: string): Promise<void> {
     await supabaseRest<void>({ method: 'DELETE', path: '/rest/v1/clients', query: { id: `eq.${id}` } });
+  }
+
+  async addDocument(clientId: string, doc: Omit<ClientDocument, 'id' | 'createdAt'>): Promise<ClientDocument> {
+    const res = await supabaseRest<DbClientDocumentRow[]>({
+      method: 'POST',
+      path: '/rest/v1/documents',
+      preferReturnRepresentation: true,
+      body: {
+        client_id: clientId,
+        kind: doc.kind,
+        title: doc.title,
+        storage_path: doc.storagePath,
+        file_name: doc.fileName,
+        mime_type: doc.mimeType ?? null,
+        size_bytes: doc.sizeBytes ?? null,
+        project_id: null, // Client documents don't necessarily have a project
+      },
+    });
+
+    if (!res[0]) throw new Error('Failed to create document record');
+    const d = res[0];
+    return {
+      id: d.id,
+      clientId: d.client_id,
+      kind: d.kind as any,
+      title: d.title,
+      storagePath: d.storage_path,
+      fileName: d.file_name,
+      mimeType: d.mime_type ?? undefined,
+      sizeBytes: d.size_bytes ?? undefined,
+      createdAt: d.created_at,
+    };
+  }
+
+  async removeDocument(documentId: string): Promise<void> {
+    await supabaseRest<void>({
+      method: 'DELETE',
+      path: '/rest/v1/documents',
+      query: { id: `eq.${documentId}` },
+    });
   }
 
   private async replaceContacts(
