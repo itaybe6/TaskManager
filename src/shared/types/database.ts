@@ -12,6 +12,7 @@ export type ProjectStatus = 'planned' | 'active' | 'on_hold' | 'completed' | 'ca
 export type DocKind = 'general' | 'receipt' | 'invoice' | 'quote' | 'contract' | 'other';
 export type TransactionType = 'income' | 'expense';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void';
+export type UserRole = 'admin' | 'client';
 
 export interface DbTaskCategory {
   id: string;
@@ -26,6 +27,7 @@ export interface DbUser {
   id: string;
   display_name: string;
   avatar_url?: string | null;
+  role: UserRole;
   created_at: string;
   updated_at: string;
 }
@@ -36,7 +38,6 @@ export interface DbTask {
   status: TaskStatus;
   assignee_id?: string | null;
   due_at?: string | null;
-  tags?: string[] | null;
   client_id?: string | null;
   project_id?: string | null;
   category_id?: string | null;
@@ -49,6 +50,7 @@ export interface DbTask {
 export interface DbClient {
   id: string;
   name: string;
+  client_user_id?: string | null;
   notes?: string | null;
   total_price?: number | null;
   remaining_to_pay?: number | null;
@@ -172,6 +174,7 @@ export interface DbNotification {
 export type DbUserInsert = {
   display_name: string;
   avatar_url?: string | null;
+  role?: UserRole;
 };
 
 export type DbUserUpdate = Partial<DbUserInsert>;
@@ -181,7 +184,6 @@ export type DbTaskInsert = {
   status?: TaskStatus; // default: 'todo'
   assignee_id?: string | null;
   due_at?: string | null;
-  tags?: string[] | null;
   client_id?: string | null;
   project_id?: string | null;
   category_id?: string | null;
@@ -200,6 +202,7 @@ export type DbTaskCategoryUpdate = Partial<DbTaskCategoryInsert>;
 
 export type DbClientInsert = {
   name: string;
+  client_user_id?: string | null;
   notes?: string | null;
   total_price?: number | null;
   remaining_to_pay?: number | null;

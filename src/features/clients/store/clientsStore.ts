@@ -1,9 +1,16 @@
 import { create } from 'zustand';
 import { getSupabaseConfig } from '../../../app/supabase/rest';
+import { createClientAuthUser } from '../../../app/supabase/functions';
+import { supabaseRest, SupabaseRestError } from '../../../app/supabase/rest';
 import { ClientsRepository, ClientsQuery } from '../data/ClientsRepository';
 import { SupabaseClientsRepository } from '../data/SupabaseClientsRepository';
 import { InMemoryClientsRepository } from '../data/InMemoryClientsRepository';
 import { Client, ClientDocument } from '../model/clientTypes';
+
+type CreateClientInput = Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'> & {
+  authEmail?: string;
+  authPassword?: string;
+};
 
 type ClientsState = {
   repo: ClientsRepository;
@@ -14,7 +21,7 @@ type ClientsState = {
 
   load: () => Promise<void>;
   setQuery: (q: Partial<ClientsQuery>) => void;
-  createClient: (input: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => Promise<Client>;
+  createClient: (input: CreateClientInput) => Promise<Client>;
   updateClient: (
     id: string,
     patch: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'documents'>>
@@ -37,7 +44,10 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
       const items = await repo.list(query);
       set({ items, isLoading: false });
     } catch (e: any) {
-      set({ error: e?.message ?? 'Unknown error', isLoading: false });
+      const msg = e instanceof SupabaseRestError
+        ? `${e.message}${e.details ? `\n${e.details}` : ''}`
+        : e?.message ?? 'Unknown error';
+      set({ error: msg, isLoading: false });
     }
   },
 
@@ -45,7 +55,34 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
 
   createClient: async (input) => {
     const { repo } = get();
-    const created = await repo.create(input);
+    const { authEmail, authPassword, ...clientInput } = input;
+    if ((authEmail && !authPassword) || (!authEmail && authPassword)) {
+      throw new Error('חסר אימייל או סיסמה ללקוח');
+    }
+    const created = await repo.create(clientInput);
+
+    if (authEmail && authPassword && getSupabaseConfig()) {
+      try {
+        const createdAuth = await createClientAuthUser({
+          email: authEmail.trim(),
+          password: authPassword,
+          displayName: clientInput.name.trim(),
+        });
+
+        await supabaseRest<void>({
+          method: 'PATCH',
+          path: '/rest/v1/clients',
+          query: { id: `eq.${created.id}` },
+          body: { client_user_id: createdAuth.user_id },
+        });
+      } catch (e) {
+        // Best-effort rollback: remove client if auth creation failed
+        try {
+          await repo.remove(created.id);
+        } catch {}
+        throw e;
+      }
+    }
     await get().load();
     return created;
   },

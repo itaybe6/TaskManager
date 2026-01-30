@@ -57,7 +57,7 @@ export function TasksListScreen({ navigation }: any) {
         const res = await supabaseRest<Array<{ id: string; display_name: string }>>({
           method: 'GET',
           path: '/rest/v1/users',
-          query: { select: 'id,display_name', order: 'display_name.asc' },
+          query: { select: 'id,display_name', role: 'eq.admin', order: 'display_name.asc' },
         });
         const mapped = res
           .map((u) => ({ id: u.id, displayName: u.display_name }))
@@ -340,7 +340,7 @@ export function TasksListScreen({ navigation }: any) {
                   },
                 ]}
               >
-                <MaterialIcons name="calendar-today" size={18} color={theme.colors.primary} />
+                <MaterialIcons name="calendar-today" size={18} color={theme.colors.primaryClassic} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontSize: 12, fontWeight: '800', textAlign: 'right' }}>
                     תאריך סינון
@@ -596,10 +596,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryNeon,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.primary,
+    shadowColor: theme.colors.primaryDeep,
     shadowOpacity: 0.35,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
@@ -652,7 +652,7 @@ function SegmentedTabs({
               style={{
                 fontSize: 13,
                 fontWeight: active ? '900' : '700',
-                color: active ? theme.colors.primary : isDark ? '#d1d5db' : '#6b7280',
+                color: active ? theme.colors.primaryNeon : isDark ? '#d1d5db' : '#6b7280',
               }}
             >
               {it.label}
@@ -702,15 +702,15 @@ function ChipPill({
         {
           backgroundColor: active
             ? isDark
-              ? 'rgba(109, 68, 255, 0.22)'
-              : 'rgba(109, 68, 255, 0.10)'
+              ? theme.colors.primarySoftDark
+              : theme.colors.primarySoft2
             : isDark
               ? '#1E1E1E'
               : '#ffffff',
           borderColor: active
             ? isDark
-              ? 'rgba(109, 68, 255, 0.25)'
-              : 'rgba(109, 68, 255, 0.18)'
+              ? theme.colors.primaryBorder
+              : theme.colors.primaryBorder
             : isDark
               ? '#2a2a2a'
               : '#f3f4f6',
@@ -729,7 +729,7 @@ function ChipPill({
         <View
           style={[
             chipStyles.avatar,
-            { backgroundColor: active ? theme.colors.primary : isDark ? '#374151' : '#e5e7eb' },
+            { backgroundColor: active ? theme.colors.primaryClassic : isDark ? '#374151' : '#e5e7eb' },
           ]}
         >
           <Text style={{ color: active ? '#fff' : isDark ? '#e5e7eb' : '#111827', fontWeight: '900', fontSize: 10 }}>
@@ -741,7 +741,7 @@ function ChipPill({
         style={{
           fontSize: 12,
           fontWeight: active ? '900' : '700',
-          color: active ? theme.colors.primary : isDark ? '#d1d5db' : '#4b5563',
+          color: active ? theme.colors.primaryNeon : isDark ? '#d1d5db' : '#4b5563',
         }}
         numberOfLines={1}
       >
@@ -858,7 +858,14 @@ function SectionHeader({ title, count, isDark, paddingX }: { title: string; coun
 
 function TaskCard({ item, isDark, onPress }: { item: Task; isDark: boolean; onPress: () => void }) {
   const urgent = isUrgent(item.dueAt);
-  const strip = item.status === 'done' ? (isDark ? '#525252' : '#d1d5db') : urgent ? '#ef4444' : theme.colors.primary;
+  const strip =
+    item.status === 'done'
+      ? isDark
+        ? '#525252'
+        : '#d1d5db'
+      : urgent
+        ? '#ef4444'
+        : theme.colors.primaryClassic;
   const surface = isDark ? '#1E1E1E' : '#ffffff';
   const dateLabel = item.dueAt ? formatDueLabel(item.dueAt) : 'ללא תאריך';
 
@@ -877,7 +884,6 @@ function TaskCard({ item, isDark, onPress }: { item: Task; isDark: boolean; onPr
 
       <View style={cardStyles.topRow}>
         <View style={cardStyles.tagsRow}>
-          {urgent ? <Badge label="דחוף" tone="danger" isDark={isDark} /> : null}
           {item.status === 'done' ? <Badge label="בוצע" tone="done" isDark={isDark} /> : <Badge label="לביצוע" tone="todo" isDark={isDark} />}
           {item.categoryName ? <Badge label={item.categoryName} tone="category" isDark={isDark} /> : null}
         </View>
@@ -969,7 +975,7 @@ function badgeColors(tone: 'danger' | 'todo' | 'done' | 'category', isDark: bool
     case 'danger':
       return { bg: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fef2f2', fg: isDark ? '#fecaca' : '#ef4444' };
     case 'todo':
-      return { bg: isDark ? 'rgba(109, 68, 255, 0.22)' : '#eef2ff', fg: isDark ? '#ddd6fe' : theme.colors.primary };
+      return { bg: isDark ? theme.colors.primarySoftDark : theme.colors.primarySoft2, fg: isDark ? '#ffffff' : theme.colors.primaryDeep };
     case 'done':
       return { bg: isDark ? 'rgba(16, 185, 129, 0.16)' : '#ecfdf5', fg: isDark ? '#a7f3d0' : '#059669' };
     case 'category':

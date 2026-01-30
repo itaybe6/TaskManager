@@ -1,32 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { DevSettings, I18nManager, Platform } from 'react-native';
+import { SHOULD_RTL } from './src/app/rtl';
 import { RootNavigator } from './src/app/navigation/RootNavigator';
 import { theme } from './src/shared/ui/theme';
-
-const SHOULD_RTL = true;
-
-// Enable RTL globally (Hebrew app).
-I18nManager.allowRTL(SHOULD_RTL);
-I18nManager.forceRTL(SHOULD_RTL);
-// Allow the system to swap left/right automatically if it's in RTL mode.
-I18nManager.swapLeftAndRightInRTL(true);
-
-if (Platform.OS === 'web' && typeof document !== 'undefined') {
-  document.documentElement.dir = 'rtl';
-  document.documentElement.lang = 'he';
-}
+import { useAuthStore } from './src/features/auth/store/authStore';
 
 const navTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: theme.colors.primary,
+    primary: theme.colors.primaryNeon,
     background: theme.colors.background,
     card: theme.colors.surface,
     text: theme.colors.text,
     border: theme.colors.border,
-    notification: theme.colors.primary,
+    notification: theme.colors.primaryNeon,
   },
 };
 
@@ -43,6 +32,11 @@ export default function App() {
     if (typeof DevSettings?.reload === 'function') {
       DevSettings.reload();
     }
+  }, []);
+
+  useEffect(() => {
+    // Restore persisted auth session on app start.
+    useAuthStore.getState().bootstrapAuth();
   }, []);
 
   return (

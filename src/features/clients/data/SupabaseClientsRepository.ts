@@ -2,6 +2,8 @@ import { supabaseRest } from '../../../app/supabase/rest';
 import { ClientsQuery, ClientsRepository } from './ClientsRepository';
 import { Client } from '../model/clientTypes';
 
+type FetchMode = 'full' | 'noDocs' | 'noEmbeds';
+
 type DbClientRow = {
   id: string;
   name: string;
@@ -91,38 +93,97 @@ function mapClientToPatch(patch: Partial<Omit<Client, 'id' | 'createdAt' | 'upda
   };
 }
 
+function selectForMode(mode: FetchMode) {
+  const base = 'id,name,notes,total_price,remaining_to_pay,created_at,updated_at';
+  if (mode === 'noEmbeds') return base;
+  if (mode === 'noDocs') return `${base},client_contacts(id,client_id,name,email,phone,created_at,updated_at)`;
+  return `${base},client_contacts(id,client_id,name,email,phone,created_at,updated_at),documents(id,client_id,kind,title,storage_path,file_name,mime_type,size_bytes,created_at)`;
+}
+
+function looksLikeMissingRelation(details?: string) {
+  const d = (details ?? '').toLowerCase();
+  // PostgREST tends to return 400 with details like:
+  // - "Could not find a relationship between 'clients' and 'documents' in the schema cache"
+  // - "relation \"public.documents\" does not exist"
+  // - "column public.clients.total_price does not exist"
+  return (
+    d.includes('could not find') ||
+    d.includes('relationship') ||
+    d.includes('schema cache') ||
+    d.includes('does not exist') ||
+    d.includes('unknown field') ||
+    d.includes('column') ||
+    d.includes('relation')
+  );
+}
+
 export class SupabaseClientsRepository implements ClientsRepository {
   async list(query?: ClientsQuery): Promise<Client[]> {
     const q = (query?.searchText ?? '').trim();
-    const res = await supabaseRest<DbClientRow[]>({
-      method: 'GET',
-      path: '/rest/v1/clients',
-      query: {
-        select:
-          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at),documents(id,client_id,kind,title,storage_path,file_name,mime_type,size_bytes,created_at)',
-        ...(q
-          ? {
-              or: `(name.ilike.*${escapeIlike(q)}*)`,
-            }
-          : {}),
-        order: 'updated_at.desc',
-      },
-    });
-    return res.map(mapRowToClient);
+    const run = async (mode: FetchMode) => {
+      return await supabaseRest<DbClientRow[]>({
+        method: 'GET',
+        path: '/rest/v1/clients',
+        query: {
+          select: selectForMode(mode),
+          ...(q
+            ? {
+                or: `(name.ilike.*${escapeIlike(q)}*)`,
+              }
+            : {}),
+          order: 'updated_at.desc',
+        },
+      });
+    };
+
+    try {
+      const res = await run('full');
+      return res.map(mapRowToClient);
+    } catch (e: any) {
+      const details = e?.details ?? e?.message;
+      // If business schema / relations weren't applied yet, fall back to a minimal list query.
+      if (looksLikeMissingRelation(details)) {
+        try {
+          const res = await run('noDocs');
+          return res.map(mapRowToClient);
+        } catch {
+          const res = await run('noEmbeds');
+          return res.map(mapRowToClient);
+        }
+      }
+      throw e;
+    }
   }
 
   async getById(id: string): Promise<Client | null> {
-    const res = await supabaseRest<DbClientRow[]>({
-      method: 'GET',
-      path: '/rest/v1/clients',
-      query: {
-        select:
-          'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at),documents(id,client_id,kind,title,storage_path,file_name,mime_type,size_bytes,created_at)',
-        id: `eq.${id}`,
-        limit: '1',
-      },
-    });
-    return res[0] ? mapRowToClient(res[0]) : null;
+    const run = async (mode: FetchMode) => {
+      return await supabaseRest<DbClientRow[]>({
+        method: 'GET',
+        path: '/rest/v1/clients',
+        query: {
+          select: selectForMode(mode),
+          id: `eq.${id}`,
+          limit: '1',
+        },
+      });
+    };
+
+    try {
+      const res = await run('full');
+      return res[0] ? mapRowToClient(res[0]) : null;
+    } catch (e: any) {
+      const details = e?.details ?? e?.message;
+      if (looksLikeMissingRelation(details)) {
+        try {
+          const res = await run('noDocs');
+          return res[0] ? mapRowToClient(res[0]) : null;
+        } catch {
+          const res = await run('noEmbeds');
+          return res[0] ? mapRowToClient(res[0]) : null;
+        }
+      }
+      throw e;
+    }
   }
 
   async create(input: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Promise<Client> {
@@ -235,6 +296,7 @@ export class SupabaseClientsRepository implements ClientsRepository {
       body: normalized,
     });
   }
+
 }
 
 function escapeIlike(s: string) {

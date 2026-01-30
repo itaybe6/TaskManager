@@ -126,7 +126,7 @@ function NotificationRow({
         styles.card,
         {
           backgroundColor: isDark ? '#242424' : theme.colors.surface,
-          borderColor: pressed ? 'rgba(77, 127, 255, 0.18)' : 'transparent',
+          borderColor: pressed ? theme.colors.primaryBorder : 'transparent',
           opacity: pressed ? 0.92 : 1,
         },
       ]}
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 999,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryNeon,
   },
   cardTitle: {
     flex: 1,

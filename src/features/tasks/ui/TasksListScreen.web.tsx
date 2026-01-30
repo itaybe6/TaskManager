@@ -6,6 +6,7 @@ import {
   Pressable,
   TextInput,
   FlatList,
+  ScrollView,
   useWindowDimensions,
   I18nManager,
 } from 'react-native';
@@ -17,7 +18,7 @@ import { supabaseRest } from '../../../app/supabase/rest';
 import type { Task, TaskStatus } from '../model/taskTypes';
 import { theme } from '../../../shared/ui/theme';
 import { useAuthStore } from '../../auth/store/authStore';
-import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { WebSidebarLayout } from '../../../shared/ui/WebSidebarLayout';
 
 type UserLite = { id: string; displayName: string };
 
@@ -53,7 +54,7 @@ export function TasksListScreen({ navigation }: any) {
         const res = await supabaseRest<Array<{ id: string; display_name: string }>>({
           method: 'GET',
           path: '/rest/v1/users',
-          query: { select: 'id,display_name', order: 'display_name.asc' },
+          query: { select: 'id,display_name', role: 'eq.admin', order: 'display_name.asc' },
         });
         const mapped = res.map((u) => ({ id: u.id, displayName: u.display_name })).filter((u) => u.displayName);
         if (mapped.length) setUsers(mapped);
@@ -74,12 +75,15 @@ export function TasksListScreen({ navigation }: any) {
 
   const chrome = useMemo(() => {
     return {
-      bg: '#F6F7FB',
+      bg: '#F7F8FA',
       surface: '#FFFFFF',
-      surface2: '#FFFFFF',
+      surface2: '#F7F8FA',
       border: 'rgba(15, 23, 42, 0.08)',
-      muted: '#64748B',
-      text: '#0F172A',
+      muted: '#718096',
+      text: '#1A202C',
+      shadow: 'rgba(0,0,0,0.06)',
+      primaryLight: theme.colors.primarySoft2,
+      navItem: '#F7F8FA',
     } as const;
   }, []);
 
@@ -91,203 +95,123 @@ export function TasksListScreen({ navigation }: any) {
   const cols = isDesktop ? clamp(Math.floor(contentW / 360), 2, 4) : 1;
   const pageLeft = Math.max(12, (width - maxWidth) / 2 + padX);
 
+  const kanban = useMemo(() => {
+    const todo: Task[] = [];
+    const done: Task[] = [];
+
+    for (const t of items) {
+      if (t.status === 'done') {
+        done.push(t);
+        continue;
+      }
+      todo.push(t);
+    }
+
+    return { todo, done } as const;
+  }, [items]);
+
+  const showKanban = isDesktop;
+
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: chrome.bg }]}>
-      <View style={[styles.page, { maxWidth, paddingHorizontal: padX }]}>
-        <View style={styles.topBar}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[styles.greeting, { color: chrome.muted }]}>
-              {greetingName ? `שלום, ${greetingName}` : 'שלום'}
-            </Text>
-            <Text style={[styles.h1, { color: chrome.text }]}>משימות</Text>
-          </View>
-
-          <View style={styles.topActions}>
+    <WebSidebarLayout navigation={navigation} active="tasks">
+      <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: chrome.bg }]}>
+        <View style={styles.body}>
+          {/* Main */}
+          <View style={styles.main}>
             {isDesktop ? (
-              <Pressable
-                onPress={() => navigation.navigate('TaskUpsert', { mode: 'create' })}
-                style={({ pressed }) => [
-                  styles.primaryCta,
-                  {
-                    backgroundColor: theme.colors.primary,
-                    opacity: pressed ? 0.92 : 1,
-                  },
-                ]}
-              >
-                <MaterialIcons name="add" size={20} color="#fff" />
-                <Text style={styles.primaryCtaTxt}>משימה חדשה</Text>
-              </Pressable>
+              <TasksFiltersBar
+                chrome={chrome}
+                query={query}
+                setQuery={setQuery}
+                users={users}
+                categories={cats.items}
+              />
             ) : null}
-            <Pressable
-              onPress={() => navigation.navigate('Notifications')}
-              style={({ pressed }) => [
-                styles.iconBtn,
-                { backgroundColor: chrome.surface, borderColor: chrome.border, opacity: pressed ? 0.9 : 1 },
-              ]}
-            >
-              <MaterialIcons name="notifications" size={20} color={chrome.muted} />
-            </Pressable>
-            <View style={{ paddingRight: 2 }}>
-              <UserAvatarButton size={42} backgroundColor={theme.colors.primary} />
-            </View>
-          </View>
-        </View>
 
-        <View style={[styles.mainRow, { gap }]}>
-          {/* Sidebar (right in RTL) */}
-          {isDesktop ? (
-            <View style={[styles.sidebar, { width: sidebarW, backgroundColor: chrome.surface, borderColor: chrome.border }]}>
-              <Text style={[styles.sideTitle, { color: chrome.text }]}>סינון</Text>
-
-              <View style={{ gap: 10 }}>
-                <Text style={[styles.sideLabel, { color: chrome.muted }]}>חיפוש</Text>
-                <View style={{ position: 'relative' }}>
-                  <View pointerEvents="none" style={styles.searchIcon}>
-                    <MaterialIcons name="search" size={18} color={chrome.muted} />
-                  </View>
-                  <TextInput
-                    value={query.searchText ?? ''}
-                    onChangeText={(t) => setQuery({ searchText: t })}
-                    placeholder="חפש משימה…"
-                    placeholderTextColor={chrome.muted}
-                    style={[styles.search, { backgroundColor: chrome.surface2, borderColor: chrome.border, color: chrome.text }]}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.sideDivider} />
-
-              <View style={{ gap: 10 }}>
-                <Text style={[styles.sideLabel, { color: chrome.muted }]}>סטטוס</Text>
-                <Segmented
-                  value={query.status}
-                  onChange={(next) => setQuery({ status: next })}
-                />
-              </View>
-
-              <View style={styles.sideDivider} />
-
-              <View style={{ gap: 10 }}>
-                <Text style={[styles.sideLabel, { color: chrome.muted }]}>אחראי</Text>
-                <View style={styles.pillsWrap}>
-                  <Pill
-                    label="הכל"
-                    active={!query.assigneeId}
-                    onPress={() => setQuery({ assigneeId: undefined })}
-                  />
-                  {users.map((u) => (
-                    <Pill
-                      key={u.id}
-                      label={u.displayName}
-                      active={query.assigneeId === u.id}
-                      onPress={() => setQuery({ assigneeId: u.id })}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              {cats.items.length ? (
-                <>
-                  <View style={styles.sideDivider} />
-                  <View style={{ gap: 10 }}>
-                    <Text style={[styles.sideLabel, { color: chrome.muted }]}>קטגוריה</Text>
-                    <View style={styles.pillsWrap}>
-                      <Pill
-                        label="כל הקטגוריות"
-                        active={!query.categoryId}
-                        onPress={() => setQuery({ categoryId: undefined })}
+            <View style={{ flex: 1, minHeight: 0 }}>
+              {!showKanban ? (
+                <FlatList
+                  key={`cols-${cols}`}
+                  data={items}
+                  keyExtractor={(t) => t.id}
+                  numColumns={cols}
+                  columnWrapperStyle={cols > 1 ? { gap: 16, justifyContent: 'flex-end' } : undefined}
+                  contentContainerStyle={{ paddingBottom: 140, gap: 16, paddingHorizontal: padX, paddingTop: 10 }}
+                  refreshing={isLoading}
+                  onRefresh={load}
+                  showsVerticalScrollIndicator={false}
+                  renderItem={({ item }) => (
+                    <View style={cols > 1 ? { flex: 1, maxWidth: `${100 / cols}%` } : undefined}>
+                      <KanbanTaskCard
+                        item={item}
+                        lane={item.status === 'done' ? 'done' : 'todo'}
+                        onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
                       />
-                      {cats.items.map((c) => (
-                        <Pill
-                          key={c.id}
-                          label={c.name}
-                          active={query.categoryId === c.id}
-                          onPress={() => setQuery({ categoryId: c.id })}
-                        />
-                      ))}
                     </View>
-                  </View>
-                </>
-              ) : null}
-            </View>
-          ) : null}
-
-          {/* Content */}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            {!isDesktop ? (
-              <View style={{ marginBottom: 12 }}>
-                <View style={{ position: 'relative' }}>
-                  <View pointerEvents="none" style={styles.searchIconMobile}>
-                    <MaterialIcons name="search" size={18} color={chrome.muted} />
-                  </View>
-                  <TextInput
-                    value={query.searchText ?? ''}
-                    onChangeText={(t) => setQuery({ searchText: t })}
-                    placeholder="חפש משימה…"
-                    placeholderTextColor={chrome.muted}
-                    style={[
-                      styles.search,
-                      { backgroundColor: chrome.surface, borderColor: chrome.border, color: chrome.text, paddingRight: 40 },
-                    ]}
-                  />
-                </View>
-                <View style={{ marginTop: 10 }}>
-                  <Segmented value={query.status} onChange={(next) => setQuery({ status: next })} />
-                </View>
-              </View>
-            ) : null}
-
-            <FlatList
-              key={`cols-${cols}`}
-              data={items}
-              keyExtractor={(t) => t.id}
-              numColumns={cols}
-              columnWrapperStyle={cols > 1 ? { gap: 16, justifyContent: 'flex-end' } : undefined}
-              contentContainerStyle={{ paddingBottom: 140, gap: 16 }}
-              refreshing={isLoading}
-              onRefresh={load}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View style={cols > 1 ? { flex: 1, maxWidth: `${100 / cols}%` } : undefined}>
-                  <TaskCard
-                    item={item}
-                    onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
-                  />
+                  )}
+                  ListEmptyComponent={
+                    !isLoading ? (
+                      <View style={[styles.empty, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
+                        <Text style={{ color: chrome.text, fontWeight: '900', textAlign: 'right' }}>אין משימות</Text>
+                        <Text style={{ color: chrome.muted, fontWeight: '700', textAlign: 'right' }}>
+                          צור משימה חדשה או שנה פילטרים.
+                        </Text>
+                      </View>
+                    ) : null
+                  }
+                />
+              ) : (
+                <View style={{ flex: 1, minHeight: 0, padding: 16, paddingRight: 16 }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.kanbanRow}
+                    style={styles.kanbanScroll}
+                  >
+                    <KanbanColumn
+                      title="לביצוע"
+                      dotColor={theme.colors.danger}
+                      count={kanban.todo.length}
+                      lane="todo"
+                      items={kanban.todo}
+                      onAdd={() => navigation.navigate('TaskUpsert', { mode: 'create' })}
+                      onOpen={(id) => navigation.navigate('TaskDetails', { id })}
+                    />
+                    <KanbanColumn
+                      title="בוצע"
+                      dotColor={theme.colors.success}
+                      count={kanban.done.length}
+                      lane="done"
+                      items={kanban.done}
+                      onAdd={undefined}
+                      onOpen={(id) => navigation.navigate('TaskDetails', { id })}
+                    />
+                  </ScrollView>
                 </View>
               )}
-              ListEmptyComponent={
-                !isLoading ? (
-                  <View style={[styles.empty, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
-                    <Text style={{ color: chrome.text, fontWeight: '900', textAlign: 'right' }}>אין משימות</Text>
-                    <Text style={{ color: chrome.muted, fontWeight: '700', textAlign: 'right' }}>
-                      צור משימה חדשה או שנה פילטרים.
-                    </Text>
-                  </View>
-                ) : null
-              }
-            />
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Floating create button (mobile/tablet only) */}
-      {!isDesktop ? (
-        <Pressable
-          onPress={() => navigation.navigate('TaskUpsert', { mode: 'create' })}
-          style={({ pressed }) => [
-            styles.fabMini,
-            {
-              opacity: pressed ? 0.92 : 1,
-              backgroundColor: theme.colors.primary,
-              left: pageLeft,
-              bottom: 98,
-            },
-          ]}
-        >
-          <MaterialIcons name="add" size={22} color="#fff" />
-        </Pressable>
-      ) : null}
-    </SafeAreaView>
+        {/* Floating create button (mobile/tablet only) */}
+        {!isDesktop ? (
+          <Pressable
+            onPress={() => navigation.navigate('TaskUpsert', { mode: 'create' })}
+            style={({ pressed }) => [
+              styles.fabMini,
+              {
+                opacity: pressed ? 0.92 : 1,
+                backgroundColor: theme.colors.primary,
+                left: pageLeft,
+                bottom: 98,
+              },
+            ]}
+          >
+            <MaterialIcons name="add" size={22} color="#fff" />
+          </Pressable>
+        ) : null}
+      </SafeAreaView>
+    </WebSidebarLayout>
   );
 }
 
@@ -314,7 +238,7 @@ function Segmented(props: { value?: TaskStatus; onChange: (next: TaskStatus | un
               },
             ]}
           >
-            <Text style={{ fontWeight: active ? '900' : '700', color: active ? theme.colors.primary : '#64748B' }}>
+            <Text style={{ fontWeight: active ? '900' : '700', color: active ? theme.colors.primaryNeon : '#64748B' }}>
               {it.label}
             </Text>
           </Pressable>
@@ -331,8 +255,8 @@ function Pill(props: { label: string; active: boolean; onPress: () => void }) {
       style={({ pressed }) => [
         pillStyles.wrap,
         {
-          backgroundColor: props.active ? 'rgba(109, 68, 255, 0.12)' : '#fff',
-          borderColor: props.active ? 'rgba(109, 68, 255, 0.22)' : 'rgba(15, 23, 42, 0.08)',
+          backgroundColor: props.active ? theme.colors.primarySoft2 : '#fff',
+          borderColor: props.active ? theme.colors.primaryBorder : 'rgba(15, 23, 42, 0.08)',
           opacity: pressed ? 0.9 : 1,
         },
       ]}
@@ -340,7 +264,7 @@ function Pill(props: { label: string; active: boolean; onPress: () => void }) {
       <Text
         style={{
           fontWeight: props.active ? '900' : '700',
-          color: props.active ? theme.colors.primary : '#334155',
+          color: props.active ? theme.colors.primaryNeon : '#334155',
           textAlign: 'right',
         }}
         numberOfLines={1}
@@ -351,20 +275,32 @@ function Pill(props: { label: string; active: boolean; onPress: () => void }) {
   );
 }
 
-function TaskCard(props: { item: Task; onPress: () => void }) {
+type KanbanLane = 'todo' | 'done';
+
+function KanbanTaskCard(props: { item: Task; lane: KanbanLane; onPress: () => void; showStatusBadge?: boolean }) {
   const urgent = isUrgent(props.item.dueAt);
-  const strip = props.item.status === 'done' ? '#CBD5E1' : urgent ? '#EF4444' : theme.colors.primary;
+  const strip = laneStripColor(props.lane, urgent);
+  const showStatus = props.showStatusBadge ?? true;
+  const statusLabel = props.item.status === 'done' ? 'נעשה' : 'לא נעשה';
   return (
-    <Pressable onPress={props.onPress} style={({ pressed }) => [cardStyles.card, { opacity: pressed ? 0.96 : 1 }]}>
+    <Pressable
+      onPress={props.onPress}
+      style={({ pressed }) => [
+        cardStyles.card,
+        {
+          borderColor: 'rgba(15, 23, 42, 0.08)',
+          opacity: pressed ? 0.96 : props.lane === 'done' ? 0.86 : 1,
+        },
+      ]}
+    >
       <View style={[cardStyles.strip, { backgroundColor: strip }]} />
       <View style={cardStyles.topRow}>
         <View style={cardStyles.badges}>
-          {urgent ? <Badge label="דחוף" tone="danger" /> : null}
-          {props.item.status === 'done' ? <Badge label="נעשה" tone="done" /> : <Badge label="לא נעשה" tone="todo" />}
+          {showStatus ? <Badge label={statusLabel} tone={props.item.status === 'done' ? 'done' : 'todo'} /> : null}
           {props.item.categoryName ? <Badge label={props.item.categoryName} tone="category" /> : null}
         </View>
         <Pressable onPress={() => {}} hitSlop={10} style={cardStyles.moreBtn}>
-          <MaterialIcons name="more-horiz" size={20} color="#94A3B8" />
+          <MaterialIcons name="more-horiz" size={20} color="#A0AEC0" />
         </Pressable>
       </View>
 
@@ -374,12 +310,73 @@ function TaskCard(props: { item: Task; onPress: () => void }) {
 
       <View style={cardStyles.bottomRow}>
         <View style={cardStyles.meta}>
-          <MaterialIcons name="schedule" size={14} color="#94A3B8" />
+          <MaterialIcons name="schedule" size={14} color="#A0AEC0" />
           <Text style={cardStyles.metaTxt}>{formatTimeLabel(props.item.dueAt ?? props.item.updatedAt)}</Text>
         </View>
         <AssigneeAvatar name={props.item.assignee} />
       </View>
     </Pressable>
+  );
+}
+
+function KanbanColumn(props: {
+  title: string;
+  count: number;
+  dotColor: string;
+  lane: KanbanLane;
+  items: Task[];
+  onAdd?: () => void;
+  onOpen: (id: string) => void;
+  emptyHint?: string;
+}) {
+  return (
+    <View style={kanbanStyles.col}>
+      <View style={kanbanStyles.colHeader}>
+        <View style={kanbanStyles.colHeaderLeft}>
+          <View style={[kanbanStyles.dot, { backgroundColor: props.dotColor }]} />
+          <Text style={kanbanStyles.colTitle}>{props.title}</Text>
+          <View style={kanbanStyles.countPill}>
+            <Text style={kanbanStyles.countTxt}>{props.count}</Text>
+          </View>
+        </View>
+        <Pressable style={({ pressed }) => [{ padding: 6, opacity: pressed ? 0.75 : 1 }]}>
+          <MaterialIcons name="more-horiz" size={20} color="#A0AEC0" />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={kanbanStyles.colList}
+        style={[kanbanStyles.colScroll, PlatformWebScrollFix as any]}
+      >
+        {props.items.map((t) => (
+          <KanbanTaskCard
+            key={t.id}
+            item={t}
+            lane={props.lane}
+            showStatusBadge={false}
+            onPress={() => props.onOpen(t.id)}
+          />
+        ))}
+
+        {!props.items.length ? (
+          <View style={kanbanStyles.emptyCol}>
+            <Text style={kanbanStyles.emptyTitle}>אין משימות</Text>
+            {props.emptyHint ? <Text style={kanbanStyles.emptyHint}>{props.emptyHint}</Text> : null}
+          </View>
+        ) : null}
+
+        {props.onAdd ? (
+          <Pressable
+            onPress={props.onAdd}
+            style={({ pressed }) => [kanbanStyles.addBtn, { opacity: pressed ? 0.9 : 1 }]}
+          >
+            <MaterialIcons name="add" size={18} color="#A0AEC0" />
+            <Text style={kanbanStyles.addTxt}>הוסף משימה</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -407,42 +404,27 @@ function AssigneeAvatar(props: { name?: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   page: { flex: 1, width: '100%', alignSelf: 'center' },
-  topBar: {
-    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  greeting: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
-  h1: { fontSize: 26, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  primaryCta: {
-    height: 42,
-    paddingHorizontal: 16,
-    borderRadius: 14,
+  body: {
+    flex: 1,
+    // In RTL we want the sidebar on the right.
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    overflow: 'hidden',
+  },
+  sidebar: {
+    borderLeftWidth: 1,
+    padding: 16,
+    gap: 14,
+    overflow: 'hidden',
+  },
+  sideHeaderRow: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
-    shadowColor: theme.colors.primary,
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
   },
-  primaryCtaTxt: { color: '#fff', fontSize: 14, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  iconBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainRow: { flex: 1, flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'stretch' },
-  sidebar: { borderRadius: 18, borderWidth: 1, padding: 14, gap: 14, alignSelf: 'flex-start' },
+  main: { flex: 1, minWidth: 0, overflow: 'hidden' },
   sideTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  sideLabel: { fontSize: 12, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
+  sideLabel: { fontSize: 13, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   sideDivider: { height: 1, backgroundColor: 'rgba(15, 23, 42, 0.08)' },
   pillsWrap: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' },
   searchIcon: { position: 'absolute', right: 12, top: 12, opacity: 0.85 },
@@ -471,6 +453,15 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
+  },
+  kanbanRow: {
+    gap: 18,
+    paddingBottom: 120,
+    minWidth: 1000,
+    alignItems: 'stretch',
+  },
+  kanbanScroll: {
+    flex: 1,
   },
 });
 
@@ -550,6 +541,68 @@ const assigneeStyles = StyleSheet.create({
   txt: { color: '#fff', fontWeight: '900', fontSize: 11 },
 });
 
+const kanbanStyles = StyleSheet.create({
+  col: {
+    width: 340,
+    minWidth: 320,
+    minHeight: 0,
+    flexShrink: 0,
+    alignSelf: 'stretch',
+  },
+  colHeader: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 6,
+  },
+  colHeaderLeft: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dot: { width: 8, height: 8, borderRadius: 999 },
+  colTitle: { fontSize: 15, fontWeight: '900', color: '#1A202C', textAlign: 'right', writingDirection: 'rtl' },
+  countPill: {
+    backgroundColor: 'rgba(148, 163, 184, 0.35)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  countTxt: { fontSize: 11, fontWeight: '900', color: '#4B5563' },
+  colScroll: {
+    flex: 1,
+    minHeight: 0,
+    paddingRight: 6,
+  },
+  colList: {
+    gap: 12,
+    paddingBottom: 24,
+  },
+  addBtn: {
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(148, 163, 184, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    gap: 8,
+    backgroundColor: theme.colors.primarySoft2,
+  },
+  addTxt: { fontSize: 13, fontWeight: '900', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
+  emptyCol: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  emptyTitle: { fontSize: 13, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
+  emptyHint: { marginTop: 6, fontSize: 12, fontWeight: '700', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
+});
+
 function badgeColors(tone: 'danger' | 'todo' | 'done' | 'category') {
   switch (tone) {
     case 'danger':
@@ -611,3 +664,14 @@ function stringToColor(s: string) {
   return `hsl(${hue}, 70%, 45%)`;
 }
 
+function laneStripColor(lane: KanbanLane, urgent: boolean) {
+  if (lane === 'done') return theme.colors.success;
+  if (urgent) return theme.colors.danger;
+  return theme.colors.danger;
+}
+
+// react-native-web scroll niceties (no-scrollbar-ish)
+const PlatformWebScrollFix = {
+  scrollbarWidth: 'none',
+  msOverflowStyle: 'none',
+};

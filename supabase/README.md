@@ -26,7 +26,6 @@
   - `status` enum עם הערכים: `todo`, `done` (ברירת מחדל `todo`)
   - `assignee_id uuid references public.users(id) on delete set null`
   - `due_at timestamptz`
-  - `tags text[] default '{}'`
   - `created_at timestamptz default now()`
   - `updated_at timestamptz default now()`
 - טריגר שמעדכן `updated_at` בכל `UPDATE` לשתי הטבלאות.

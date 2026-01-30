@@ -47,6 +47,37 @@ export async function signInWithPassword(args: {
   return (await res.json()) as SupabaseAuthSession;
 }
 
+export async function refreshSession(refreshToken: string): Promise<SupabaseAuthSession> {
+  const cfg = getSupabaseConfig();
+  if (!cfg) {
+    throw new SupabaseRestError(
+      'Missing Supabase env (EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY)',
+      0
+    );
+  }
+
+  const url = new URL('/auth/v1/token', cfg.url);
+  url.searchParams.set('grant_type', 'refresh_token');
+
+  const res = await fetch(url.toString(), {
+    method: 'POST',
+    headers: {
+      apikey: cfg.anonKey,
+      Authorization: `Bearer ${cfg.anonKey}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+
+  if (!res.ok) {
+    const details = await res.text().catch(() => undefined);
+    throw new SupabaseRestError(`Supabase refresh error (${res.status})`, res.status, details);
+  }
+
+  return (await res.json()) as SupabaseAuthSession;
+}
+
 export async function signOut(accessToken: string): Promise<void> {
   const cfg = getSupabaseConfig();
   if (!cfg) return;

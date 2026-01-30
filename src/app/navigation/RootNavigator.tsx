@@ -9,16 +9,52 @@ import { ProjectDetailsScreen } from '../../features/projects/ui/ProjectDetailsS
 import { ProjectUpsertScreen } from '../../features/projects/ui/ProjectUpsertScreen';
 import { LoginScreen } from '../../features/auth/ui/LoginScreen';
 import { useAuthStore } from '../../features/auth/store/authStore';
+import { ClientPortalScreen } from '../../features/clients/ui/ClientPortalScreen';
+import { View, ActivityIndicator } from 'react-native';
+import { theme } from '../../shared/ui/theme';
 
 const Stack = createNativeStackNavigator();
 
 export function RootNavigator() {
   const session = useAuthStore((s) => s.session);
+  const profile = useAuthStore((s) => s.profile);
+  const isProfileLoading = useAuthStore((s) => s.isProfileLoading);
+  const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
+  const loadProfile = useAuthStore((s) => s.loadProfile);
+
+  React.useEffect(() => {
+    if (session && !profile && !isProfileLoading) {
+      loadProfile();
+    }
+  }, [session, profile, isProfileLoading]);
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!session ? (
+      {isBootstrapping ? (
+        <Stack.Screen
+          name="Bootstrapping"
+          component={() => (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background }}>
+              <ActivityIndicator color={theme.colors.primary} />
+            </View>
+          )}
+        />
+      ) : !session ? (
         <Stack.Screen name="Login" component={LoginScreen} />
+      ) : isProfileLoading ? (
+        <Stack.Screen
+          name="Loading"
+          component={() => (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background }}>
+              <ActivityIndicator color={theme.colors.primary} />
+            </View>
+          )}
+        />
+      ) : profile?.role === 'client' ? (
+        <>
+          <Stack.Screen name="ClientPortal" component={ClientPortalScreen} />
+          <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
+        </>
       ) : (
         <>
           <Stack.Screen name="HomeTabs" component={TabsNavigator} />

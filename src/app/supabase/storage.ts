@@ -86,9 +86,7 @@ export async function uploadFileFromUri(args: {
   const blob = await fileRes.blob();
 
   const token = getSupabaseAccessToken();
-  const uploadUrl = new URL(`/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`, cfg.url);
-
-  const upRes = await fetch(uploadUrl.toString(), {
+  const uploadUrl = new URL(`/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`, cfg.url);  const upRes = await fetch(uploadUrl.toString(), {
     method: 'POST',
     headers: {
       apikey: cfg.anonKey,

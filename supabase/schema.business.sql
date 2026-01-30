@@ -31,6 +31,7 @@ end $$;
 create table if not exists public.clients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  client_user_id uuid null,
   notes text null,
   total_price numeric(12,2) null,
   remaining_to_pay numeric(12,2) null,
@@ -38,9 +39,16 @@ create table if not exists public.clients (
   updated_at timestamptz not null default now()
 );
 
--- Add pricing columns if table already exists
+-- Add columns/constraints if table already exists
 do $$
 begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='clients' and column_name='client_user_id'
+  ) then
+    alter table public.clients add column client_user_id uuid null;
+  end if;
+
   if not exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='clients' and column_name='total_price'
@@ -53,6 +61,23 @@ begin
     where table_schema='public' and table_name='clients' and column_name='remaining_to_pay'
   ) then
     alter table public.clients add column remaining_to_pay numeric(12,2) null;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname='clients_client_user_id_fkey'
+  ) then
+    alter table public.clients
+      add constraint clients_client_user_id_fkey
+      foreign key (client_user_id) references public.users(id) on delete set null;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname='clients_client_user_id_key'
+  ) then
+    alter table public.clients
+      add constraint clients_client_user_id_key unique (client_user_id);
   end if;
 end $$;
 
@@ -111,6 +136,9 @@ for each row execute function public.set_updated_at();
 
 create index if not exists client_contacts_client_idx
 on public.client_contacts(client_id, updated_at desc);
+
+create index if not exists clients_client_user_idx
+on public.clients(client_user_id);
 
 -- Projects
 create table if not exists public.projects (

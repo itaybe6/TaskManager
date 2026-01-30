@@ -15,10 +15,12 @@ import type { Task } from '../model/taskTypes';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
+import { useAuthStore } from '../../auth/store/authStore';
 
 export function TaskDetailsScreen({ route, navigation }: any) {
   const { id } = route.params;
   const { repo, deleteTask } = useTasksStore();
+  const role = useAuthStore((s) => s.profile?.role);
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
   const layout = useResponsiveLayout('detail');
@@ -164,35 +166,6 @@ export function TaskDetailsScreen({ route, navigation }: any) {
                   />
                 </View>
 
-                <MetaCard
-                  full
-                  title="תגיות"
-                  icon="label"
-                  isDark={isDark}
-                  body={
-                    <View style={styles.tagsWrap}>
-                      {(task?.tags ?? []).length ? (
-                        task!.tags!.map((t) => (
-                          <View
-                            key={t}
-                            style={[
-                              styles.tag,
-                              { backgroundColor: isDark ? '#1f2937' : '#f1f5f9' },
-                            ]}
-                          >
-                            <Text style={[styles.tagTxt, { color: isDark ? '#d1d5db' : '#475569' }]}>
-                              # {t}
-                            </Text>
-                          </View>
-                        ))
-                      ) : (
-                        <Text style={[styles.metaSub, { color: isDark ? '#a3a3a3' : '#64748b' }]}>
-                          אין תגיות
-                        </Text>
-                      )}
-                    </View>
-                  }
-                />
               </View>
 
               <View style={styles.timestamps}>
@@ -215,43 +188,44 @@ export function TaskDetailsScreen({ route, navigation }: any) {
               },
             ]}
           >
-            <View style={styles.bottomRow}>
-              <Pressable
-                onPress={() => navigation.navigate('TaskUpsert', { mode: 'edit', id })}
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
-                ]}
-              >
-                <MaterialIcons name="edit" size={18} color="#fff" />
-                <Text style={styles.primaryBtnTxt}>ערוך משימה</Text>
-              </Pressable>
+            {role === 'client' ? null : (
+              <>
+                <View style={styles.bottomRow}>
+                  <Pressable
+                    onPress={() => navigation.navigate('TaskUpsert', { mode: 'edit', id })}
+                    style={({ pressed }) => [
+                      styles.primaryBtn,
+                      { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
+                    ]}
+                  >
+                    <MaterialIcons name="edit" size={18} color="#fff" />
+                    <Text style={styles.primaryBtnTxt}>ערוך משימה</Text>
+                  </Pressable>
 
-              <Pressable
-                onPress={() =>
-                  Alert.alert('מחיקת משימה', 'בטוח למחוק?', [
-                    { text: 'ביטול', style: 'cancel' },
-                    {
-                      text: 'מחק',
-                      style: 'destructive',
-                      onPress: async () => {
-                        await deleteTask(id);
-                        navigation.goBack();
-                      },
-                    },
-                  ])
-                }
-                style={({ pressed }) => [
-                  styles.deleteBtn,
-                  { opacity: pressed ? 0.92 : 1 },
-                ]}
-              >
-                <MaterialIcons name="delete" size={18} color="#ef4444" />
-                <Text style={styles.deleteTxt}>מחק</Text>
-              </Pressable>
-            </View>
+                  <Pressable
+                    onPress={() =>
+                      Alert.alert('מחיקת משימה', 'בטוח למחוק?', [
+                        { text: 'ביטול', style: 'cancel' },
+                        {
+                          text: 'מחק',
+                          style: 'destructive',
+                          onPress: async () => {
+                            await deleteTask(id);
+                            navigation.goBack();
+                          },
+                        },
+                      ])
+                    }
+                    style={({ pressed }) => [styles.deleteBtn, { opacity: pressed ? 0.92 : 1 }]}
+                  >
+                    <MaterialIcons name="delete" size={18} color="#ef4444" />
+                    <Text style={styles.deleteTxt}>מחק</Text>
+                  </Pressable>
+                </View>
 
-            <View style={{ height: 4 }} />
+                <View style={{ height: 4 }} />
+              </>
+            )}
           </View>
         </View>
       </View>
@@ -340,9 +314,6 @@ const styles = StyleSheet.create({
   metaMain: { fontSize: 14, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   metaSub: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
   metaWarn: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
-  tagsWrap: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 8 },
-  tag: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12 },
-  tagTxt: { fontSize: 12, fontWeight: '800' },
   timestamps: { paddingVertical: 10, alignItems: 'center', gap: 6 },
   tsText: { fontSize: 11, fontWeight: '700' },
   bottomBar: {

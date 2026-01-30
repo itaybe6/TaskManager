@@ -17,7 +17,6 @@ export class InMemoryTaskRepository implements TaskRepository {
       categoryName: 'פרויקטים',
       createdAt: nowIso(),
       updatedAt: nowIso(),
-      tags: ['mvp'],
     },
     {
       id: 't2',

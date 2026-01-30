@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   I18nManager,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -15,12 +16,11 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
-import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 
 export function ClientsListScreen({ navigation, route }: any) {
   const { items, load, isLoading, query, setQuery, error } = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
-  const layout = useResponsiveLayout('list');
+  const isWeb = Platform.OS === 'web';
   const isTabRoot = route?.name === 'Clients';
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export function ClientsListScreen({ navigation, route }: any) {
 
         <View style={styles.searchWrap}>
           <View pointerEvents="none" style={styles.searchIcon}>
-            <MaterialIcons name="search" size={22} color={PRIMARY} />
+            <MaterialIcons name="search" size={22} color={theme.colors.primaryStrong} />
           </View>
           <TextInput
             value={query.searchText ?? ''}
@@ -89,7 +89,7 @@ export function ClientsListScreen({ navigation, route }: any) {
               styles.sectionCount,
               {
                 color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight,
-                backgroundColor: isDark ? 'rgba(108,77,246,0.14)' : 'rgba(108,77,246,0.08)',
+                backgroundColor: isDark ? theme.colors.primaryDeepSoft : theme.colors.primarySoft2,
               },
             ]}
           >
@@ -111,10 +111,10 @@ export function ClientsListScreen({ navigation, route }: any) {
               <View
                 style={[
                   styles.summaryIcon,
-                  { backgroundColor: isDark ? 'rgba(108,77,246,0.18)' : 'rgba(108,77,246,0.10)' },
+                  { backgroundColor: isDark ? theme.colors.primaryDeepSoft : theme.colors.primarySoft2 },
                 ]}
               >
-                <MaterialIcons name="account-balance-wallet" size={18} color={PRIMARY} />
+                <MaterialIcons name="account-balance-wallet" size={18} color={theme.colors.primaryStrong} />
               </View>
               <View style={{ gap: 2 }}>
                 <Text style={{ color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight, fontWeight: '800', fontSize: 12 }}>
@@ -159,7 +159,7 @@ export function ClientsListScreen({ navigation, route }: any) {
               styles.card,
               {
                 backgroundColor: isDark ? colors.cardDark : colors.cardLight,
-                borderColor: pressed ? 'rgba(108,77,246,0.20)' : 'transparent',
+                borderColor: pressed ? theme.colors.primaryBorder : 'transparent',
                 opacity: pressed ? 0.96 : 1,
               },
             ]}
@@ -256,8 +256,13 @@ export function ClientsListScreen({ navigation, route }: any) {
           </Pressable>
         )}
         contentContainerStyle={[
-          { paddingHorizontal: 24, paddingBottom: 160, gap: 16, alignItems: 'stretch' },
-          layout.contentContainerStyle,
+          {
+            paddingHorizontal: 24,
+            paddingBottom: isWeb ? 120 : 160,
+            gap: 16,
+            alignItems: 'stretch',
+            width: '100%',
+          },
         ]}
       />
 
@@ -275,11 +280,10 @@ export function ClientsListScreen({ navigation, route }: any) {
   );
 }
 
-const PRIMARY = '#6C4DF6';
 const colors = {
-  backgroundLight: '#F3F4F8',
+  backgroundLight: theme.colors.background,
   backgroundDark: '#121214',
-  cardLight: '#FFFFFF',
+  cardLight: theme.colors.surface,
   cardDark: '#1E1E22',
   textPrimaryLight: '#1A1A1A',
   textPrimaryDark: '#EDEDED',
@@ -392,12 +396,12 @@ const styles = StyleSheet.create({
     bottom: 92,
     height: 56,
     borderRadius: 999,
-    backgroundColor: PRIMARY,
+    backgroundColor: theme.colors.primaryStrong,
     paddingHorizontal: 22,
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 8,
-    shadowColor: PRIMARY,
+    shadowColor: theme.colors.primaryStrong,
     shadowOpacity: 0.4,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 12 },
@@ -440,15 +444,15 @@ function remainingTone(remaining?: number) {
     };
   }
   return {
-    bg: (isDark: boolean) => (isDark ? 'rgba(244,114,182,0.14)' : 'rgba(244,114,182,0.12)'),
-    border: (isDark: boolean) => (isDark ? 'rgba(244,114,182,0.20)' : 'rgba(244,114,182,0.18)'),
-    fg: (_: boolean) => '#F472B6',
-    icon: (_: boolean) => '#F472B6',
+    bg: (isDark: boolean) => (isDark ? 'rgba(239,68,68,0.14)' : 'rgba(239,68,68,0.10)'),
+    border: (isDark: boolean) => (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(239,68,68,0.18)'),
+    fg: (_: boolean) => theme.colors.danger,
+    icon: (_: boolean) => theme.colors.danger,
   };
 }
 
 function accentColor(seed: string) {
-  const palette = [PRIMARY, '#2DD4BF', '#A78BFA', '#F472B6'];
+  const palette = [theme.colors.primaryLight, theme.colors.primary, theme.colors.primaryStrong];
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return palette[h % palette.length];

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { TasksListScreen } from '../../features/tasks/ui/TasksListScreen';
 import { PersonalTasksScreen } from '../../features/tasks/ui/PersonalTasksScreen';
@@ -30,16 +30,17 @@ export function TabsNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: isDark ? '#737373' : theme.colors.textMuted,
+        tabBarActiveTintColor: theme.colors.primaryStrong,
+        tabBarInactiveTintColor: isDark ? '#a3a3a3' : theme.colors.primaryLight,
         tabBarStyle: [
           styles.tabBar,
           {
-            backgroundColor: theme.colors.background,
-            borderTopColor: theme.colors.border,
+            backgroundColor: isDark ? '#1f1f1f' : theme.colors.surface,
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : theme.colors.border,
           },
         ],
         tabBarLabelStyle: styles.tabBarLabel,
+        tabBarItemStyle: styles.tabBarItem,
       }}
     >
       <Tab.Screen
@@ -86,7 +87,7 @@ export function TabsNavigator() {
           tabBarBadge:
             unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: theme.colors.primary,
+            backgroundColor: theme.colors.primaryStrong,
             color: '#fff',
             fontWeight: '900',
           },
@@ -110,7 +111,7 @@ function TabIcon({
 }) {
   return (
     <View style={styles.iconWrap}>
-      {focused ? <View style={styles.activeDot} /> : null}
+      {focused ? <View style={styles.activePill} /> : null}
       {children}
     </View>
   );
@@ -118,31 +119,42 @@ function TabIcon({
 
 const styles = StyleSheet.create({
   tabBar: {
-    borderTopWidth: 1,
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 12,
+    borderWidth: 1,
+    borderRadius: 24,
     paddingTop: 10,
-    paddingBottom: 22,
-    height: 76,
+    paddingBottom: 10,
+    height: 68,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.10,
+    shadowRadius: 24,
+    elevation: 14,
   },
   tabBarLabel: {
     fontSize: 10,
     fontWeight: '700',
+    marginTop: 4,
+  },
+  tabBarItem: {
+    borderRadius: 18,
+    paddingVertical: 4,
   },
   iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 64,
+    height: 34,
   },
-  activeDot: {
+  activePill: {
     position: 'absolute',
-    top: -10,
-    width: 4,
-    height: 4,
+    inset: 0,
     borderRadius: 999,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primarySoft2,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryBorder,
   },
 });

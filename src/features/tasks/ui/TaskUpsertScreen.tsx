@@ -30,6 +30,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     id?: string;
     projectId?: string;
     defaultVisibility?: 'shared' | 'personal';
+    defaultDueAt?: string;
   };
   const { repo, createTask, updateTask } = useTasksStore();
   const cats = useTaskCategoriesStore();
@@ -77,7 +78,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
         const res = await supabaseRest<Array<{ id: string; display_name: string }>>({
           method: 'GET',
           path: '/rest/v1/users',
-          query: { select: 'id,display_name', order: 'display_name.asc' },
+          query: { select: 'id,display_name', role: 'eq.admin', order: 'display_name.asc' },
         });
         const mapped = res
           .map((u) => ({ id: u.id, displayName: u.display_name }))
@@ -106,6 +107,20 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       setClientId(undefined);
     }
   }, [mode, defaultVisibility, session?.user?.id]);
+
+  useEffect(() => {
+    if (mode !== 'create') return;
+    const defaultDueAt = (route.params as any)?.defaultDueAt as string | undefined;
+    if (!defaultDueAt) return;
+    const d = new Date(defaultDueAt);
+    if (Number.isNaN(d.getTime())) return;
+    setDueAt((prev) => prev ?? d.toISOString());
+    setDueDraft((prev) => {
+      // keep previous draft if user already opened picker; otherwise seed it
+      if (prev && !Number.isNaN(prev.getTime())) return prev;
+      return d;
+    });
+  }, [mode, route.params]);
 
   const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
   const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר') ?? users[1], [users]);
@@ -369,8 +384,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                             style={({ pressed }) => [
                               styles.dropdownItem,
                               {
-                                borderColor: active ? theme.colors.primary : '#e2e8f0',
-                                backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                                borderColor: active ? theme.colors.primaryNeon : '#e2e8f0',
+                                backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
                                 opacity: pressed ? 0.92 : 1,
                               },
                             ]}
@@ -522,8 +537,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                           style={({ pressed }) => [
                             styles.dropdownItem,
                             {
-                              borderColor: active ? theme.colors.primary : '#e2e8f0',
-                              backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                              borderColor: active ? theme.colors.primaryNeon : '#e2e8f0',
+                              backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
                               opacity: pressed ? 0.92 : 1,
                             },
                           ]}
@@ -649,8 +664,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       styles.dropdownItem,
                       {
                         marginTop: 10,
-                        borderColor: !categoryId ? theme.colors.primary : '#e2e8f0',
-                        backgroundColor: !categoryId ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                        borderColor: !categoryId ? theme.colors.primaryNeon : '#e2e8f0',
+                        backgroundColor: !categoryId ? theme.colors.primarySoft2 : '#ffffff',
                         opacity: pressed ? 0.92 : 1,
                       },
                     ]}
@@ -679,8 +694,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                           style={({ pressed }) => [
                             styles.dropdownItem,
                             {
-                              borderColor: active ? theme.colors.primary : '#e2e8f0',
-                              backgroundColor: active ? 'rgba(109, 68, 255, 0.08)' : '#ffffff',
+                              borderColor: active ? theme.colors.primaryNeon : '#e2e8f0',
+                              backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
                               opacity: pressed ? 0.92 : 1,
                             },
                           ]}

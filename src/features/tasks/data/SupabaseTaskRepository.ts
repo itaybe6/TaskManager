@@ -10,7 +10,6 @@ type DbTaskRow = {
   status: TaskStatus;
   assignee_id: string | null;
   due_at: string | null;
-  tags: string[] | null;
   client_id: string | null;
   project_id: string | null;
   category_id: string | null;
@@ -35,7 +34,6 @@ function mapRowToTask(r: DbTaskRow): Task {
     categoryId: r.category_id ?? undefined,
     categoryName: r.category?.name ?? undefined,
     dueAt: r.due_at ?? undefined,
-    tags: r.tags ?? undefined,
     isPersonal: r.is_personal ?? undefined,
     ownerUserId: r.owner_user_id ?? undefined,
     createdAt: r.created_at,
@@ -49,7 +47,6 @@ function mapTaskToInsert(input: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) {
     status: input.status,
     assignee_id: input.assigneeId ?? null,
     due_at: input.dueAt ?? null,
-    tags: input.tags ?? null,
     client_id: input.clientId ?? null,
     project_id: input.projectId ?? null,
     category_id: input.categoryId ?? null,
@@ -65,7 +62,6 @@ function mapTaskToPatch(patch: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedA
     // Use `"assigneeId" in patch` so callers can explicitly clear with `assigneeId: undefined`
     ...('assigneeId' in patch ? { assignee_id: patch.assigneeId ?? null } : {}),
     ...(patch.dueAt !== undefined ? { due_at: patch.dueAt ?? null } : {}),
-    ...(patch.tags !== undefined ? { tags: patch.tags ?? null } : {}),
     // Use `"clientId" in patch` so callers can explicitly clear with `clientId: undefined`
     ...('clientId' in patch ? { client_id: patch.clientId ?? null } : {}),
     ...(patch.projectId !== undefined ? { project_id: patch.projectId ?? null } : {}),
@@ -76,7 +72,7 @@ function mapTaskToPatch(patch: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedA
 }
 
 function selectForMode(mode: FetchMode) {
-  const base = 'id,description,status,assignee_id,due_at,tags,client_id,project_id,category_id,is_personal,owner_user_id,created_at,updated_at';
+  const base = 'id,description,status,assignee_id,due_at,client_id,project_id,category_id,is_personal,owner_user_id,created_at,updated_at';
   if (mode === 'full') return `${base},assignee:users(display_name),category:task_categories(name,color)`;
   if (mode === 'noCategory') return `${base},assignee:users(display_name)`;
   return base;

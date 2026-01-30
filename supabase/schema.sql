@@ -10,6 +10,9 @@ begin
   if not exists (select 1 from pg_type where typname = 'task_status') then
     create type public.task_status as enum ('todo', 'done');
   end if;
+  if not exists (select 1 from pg_type where typname = 'user_role') then
+    create type public.user_role as enum ('admin', 'client');
+  end if;
 end $$;
 
 -- updated_at helper
@@ -27,9 +30,26 @@ create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
   display_name text not null,
   avatar_url text null,
+  role public.user_role not null default 'client',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Add role column if table already exists
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='users' and column_name='role'
+  ) then
+    alter table public.users add column role public.user_role not null default 'client';
+  end if;
+end $$;
+
+-- Make existing admins explicit
+update public.users
+set role = 'admin'
+where display_name in ('איתי', 'אדיר');
 
 drop trigger if exists users_set_updated_at on public.users;
 create trigger users_set_updated_at
@@ -44,7 +64,6 @@ create table if not exists public.tasks (
 
   assignee_id uuid null references public.users(id) on delete set null,
   due_at timestamptz null,
-  tags text[] null default '{}',
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

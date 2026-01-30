@@ -40,6 +40,7 @@ export function ClientUpsertScreen({ route, navigation }: any) {
   const [contacts, setContacts] = useState<ClientContactInput[]>([{ name: '', email: '', phone: '' }]);
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
 
   const [phonePicker, setPhonePicker] = useState<{
     isOpen: boolean;
@@ -72,7 +73,15 @@ export function ClientUpsertScreen({ route, navigation }: any) {
     })();
   }, [mode, id]);
 
-  const canSave = name.trim().length >= 2;
+  const primaryEmail = useMemo(() => {
+    const emails = contacts
+      .map((c) => (c.email ?? '').trim())
+      .filter((e) => e.length > 0);
+    return emails[0];
+  }, [contacts]);
+  const emailOk = primaryEmail.length >= 5 && primaryEmail.includes('@');
+  const passwordOk = loginPassword.trim().length >= 6;
+  const canSave = name.trim().length >= 2 && (mode !== 'create' || (emailOk && passwordOk));
   const title = mode === 'create' ? 'לקוח חדש' : 'עריכת לקוח';
 
   const colors = useMemo(() => {
@@ -81,13 +90,13 @@ export function ClientUpsertScreen({ route, navigation }: any) {
       headerBg: isDark ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.92)',
       headerBorder: isDark ? '#1F2937' : theme.colors.border,
       label: isDark ? '#F3F4F6' : '#1F2937',
-      inputBg: isDark ? '#1F2937' : '#F8F7FF',
+      inputBg: isDark ? '#1F2937' : theme.colors.primarySoft2,
       inputText: isDark ? '#F9FAFB' : '#111827',
       placeholder: isDark ? '#6B7280' : '#9CA3AF',
       cancel: isDark ? '#9CA3AF' : '#6B7280',
       footerFade: isDark ? 'rgba(17,24,39,0.96)' : 'rgba(255,255,255,0.96)',
-      saveBg: '#A594F9',
-      saveShadow: 'rgba(165, 148, 249, 0.35)',
+      saveBg: theme.colors.primary,
+      saveShadow: theme.colors.primaryGlow,
     };
   }, [isDark]);
 
@@ -284,6 +293,29 @@ export function ClientUpsertScreen({ route, navigation }: any) {
             textContentType="organizationName"
           />
 
+          {mode === 'create' && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.label }]}>גישה ללקוח</Text>
+              </View>
+
+              <FormField
+                label="סיסמה"
+                icon="lock"
+                value={loginPassword}
+                onChangeText={setLoginPassword}
+                colors={colors}
+                placeholder="בחר סיסמה"
+                autoCapitalize="none"
+                textContentType="password"
+                secureTextEntry
+              />
+              <Text style={{ color: colors.placeholder, fontWeight: '700', textAlign: 'right' }}>
+                האימייל להתחברות נלקח מאימייל איש קשר (הראשון שמוזן).
+              </Text>
+            </>
+          )}
+
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.label }]}>תמחור</Text>
           </View>
@@ -465,7 +497,12 @@ export function ClientUpsertScreen({ route, navigation }: any) {
                 remainingToPay: parseMoney(remainingToPay),
                 contacts: normalizedContacts,
               };
-              if (mode === 'create') await createClient(payload);
+              if (mode === 'create')
+                await createClient({
+                  ...payload,
+                  authEmail: primaryEmail,
+                  authPassword: loginPassword,
+                });
               else if (id) await updateClient(id, payload);
               navigation.goBack();
             }}
@@ -599,6 +636,7 @@ function FormField(props: {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   textContentType?: any;
   autoFocus?: boolean;
+  secureTextEntry?: boolean;
 }) {
   return (
     <View style={styles.fieldWrap}>
@@ -613,6 +651,7 @@ function FormField(props: {
           keyboardType={props.keyboardType}
           autoCapitalize={props.autoCapitalize}
           textContentType={props.textContentType}
+          secureTextEntry={props.secureTextEntry}
           autoCorrect={false}
           autoFocus={props.autoFocus}
           style={[
@@ -696,7 +735,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
     borderWidth: 1,
-    borderColor: 'rgba(109, 68, 255, 0)',
+    borderColor: 'transparent',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -781,7 +820,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(165, 148, 249, 0.1)',
+    backgroundColor: theme.colors.primarySoft2,
     alignItems: 'center',
     justifyContent: 'center',
   },

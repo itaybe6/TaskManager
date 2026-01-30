@@ -21,7 +21,6 @@ export type Task = {
   categoryId?: string;
   categoryName?: string;
   dueAt?: string; // ISO
-  tags?: string[];
   isPersonal?: boolean;
   ownerUserId?: string;
 

@@ -22,9 +22,9 @@ export function LoginScreen() {
   const palette = useMemo(() => {
     // design-inspired colors (keep brand primary from theme)
     return {
-      bg1: isDark ? '#0f172a' : '#eef2ff',
-      bg2: isDark ? '#2e1065' : '#f3e8ff',
-      bg3: isDark ? '#0b1220' : '#dbeafe',
+      bg1: isDark ? theme.colors.primaryDarkest : theme.colors.primarySoft2,
+      bg2: isDark ? theme.colors.primaryDeep : theme.colors.primarySoft,
+      bg3: isDark ? theme.colors.primaryDarkest : theme.colors.surface,
       text: isDark ? '#ffffff' : '#0f172a',
       sub: isDark ? '#94a3b8' : '#64748b',
       glass: isDark ? 'rgba(17, 24, 39, 0.70)' : 'rgba(255, 255, 255, 0.72)',
@@ -46,9 +46,9 @@ export function LoginScreen() {
           },
         ]}
       >
-        <View style={[styles.blob, styles.blobA, { backgroundColor: '#a78bfa', opacity: isDark ? 0.16 : 0.26 }]} />
-        <View style={[styles.blob, styles.blobB, { backgroundColor: '#60a5fa', opacity: isDark ? 0.16 : 0.24 }]} />
-        <View style={[styles.blob, styles.blobC, { backgroundColor: '#818cf8', opacity: isDark ? 0.14 : 0.22 }]} />
+        <View style={[styles.blob, styles.blobA, { backgroundColor: theme.colors.primaryNeon, opacity: isDark ? 0.16 : 0.18 }]} />
+        <View style={[styles.blob, styles.blobB, { backgroundColor: theme.colors.primaryClassic, opacity: isDark ? 0.16 : 0.18 }]} />
+        <View style={[styles.blob, styles.blobC, { backgroundColor: theme.colors.primaryDeep, opacity: isDark ? 0.14 : 0.16 }]} />
         <View style={[styles.bgFade, { backgroundColor: palette.bg2, opacity: isDark ? 0.18 : 0.30 }]} />
         <View style={[styles.bgFade2, { backgroundColor: palette.bg3, opacity: isDark ? 0.18 : 0.26 }]} />
       </View>
@@ -125,7 +125,7 @@ export function LoginScreen() {
 
               <View style={styles.forgotRow}>
                 <Pressable onPress={() => {}} hitSlop={8} style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
-                  <Text style={[styles.forgot, { color: theme.colors.primary }]}>שכחת סיסמה?</Text>
+                  <Text style={[styles.forgot, { color: theme.colors.primaryNeon }]}>שכחת סיסמה?</Text>
                 </Pressable>
               </View>
 
@@ -164,7 +164,7 @@ export function LoginScreen() {
               אין לך עדיין חשבון?{' '}
             </Text>
             <Pressable onPress={() => {}} hitSlop={8} style={({ pressed }) => [pressed && { opacity: 0.75 }]}>
-              <Text style={[styles.bottomLink, { color: theme.colors.primary }]}>הרשם עכשיו</Text>
+              <Text style={[styles.bottomLink, { color: theme.colors.primaryNeon }]}>הרשם עכשיו</Text>
             </Pressable>
           </View>
         </View>
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: theme.colors.primary,
+    shadowColor: theme.colors.primaryDeep,
     shadowOpacity: 0.30,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
