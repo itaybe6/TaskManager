@@ -1,12 +1,23 @@
 import { getSupabaseConfig, SupabaseRestError } from './rest';
 import { getSupabaseAccessToken } from './session';
 
-function encodePathSegments(path: string) {
+export function encodePathSegments(path: string) {
   return path
     .split('/')
     .filter(Boolean)
-    .map((s) => encodeURIComponent(s))
+    .map((s) => {
+      // Expanded cleaning: remove ALL invisible Unicode control characters, 
+      // bidi markers, and other non-printable characters that upset S3/Supabase.
+      const cleaned = s.replace(/[\u2000-\u206F\uFEFF\u202A-\u202E\u2066-\u2069]/g, '').trim();
+      return encodeURIComponent(cleaned);
+    })
     .join('/');
+}
+
+export function getPublicUrl(bucket: string, objectPath: string): string {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return '';
+  return `${cfg.url}/storage/v1/object/public/${bucket}/${encodePathSegments(objectPath)}`;
 }
 
 export async function uploadAvatarFromUri(args: {
@@ -35,9 +46,9 @@ export async function uploadAvatarFromUri(args: {
   const blob = await fileRes.blob();
 
   const token = getSupabaseAccessToken();
-  const uploadUrl = new URL(`/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`, cfg.url);
+  const uploadUrl = `${cfg.url}/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`;
 
-  const upRes = await fetch(uploadUrl.toString(), {
+  const upRes = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
       apikey: cfg.anonKey,
@@ -51,6 +62,7 @@ export async function uploadAvatarFromUri(args: {
 
   if (!upRes.ok) {
     const details = await upRes.text().catch(() => undefined);
+    console.error('Supabase Storage 400 details:', details);
     throw new SupabaseRestError(`Supabase Storage upload error (${upRes.status})`, upRes.status, details);
   }
 
@@ -86,7 +98,8 @@ export async function uploadFileFromUri(args: {
   const blob = await fileRes.blob();
 
   const token = getSupabaseAccessToken();
-  const uploadUrl = new URL(`/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`, cfg.url);  const upRes = await fetch(uploadUrl.toString(), {
+  const uploadUrl = `${cfg.url}/storage/v1/object/${bucket}/${encodePathSegments(objectPath)}`;
+  const upRes = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
       apikey: cfg.anonKey,
@@ -100,6 +113,7 @@ export async function uploadFileFromUri(args: {
 
   if (!upRes.ok) {
     const details = await upRes.text().catch(() => undefined);
+    console.error('Supabase Storage 400 details:', details);
     throw new SupabaseRestError(`Supabase Storage upload error (${upRes.status})`, upRes.status, details);
   }
 

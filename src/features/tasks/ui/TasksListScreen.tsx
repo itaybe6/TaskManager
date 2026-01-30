@@ -3,13 +3,14 @@ import {
   View,
   Text,
   FlatList,
-  SectionList,
   Modal,
   ScrollView,
   Pressable,
+  Alert,
   StyleSheet,
   TextInput,
   I18nManager,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -128,29 +129,40 @@ export function TasksListScreen({ navigation }: any) {
           </View>
         </View>
 
-        <View style={styles.searchWrap}>
-          <View pointerEvents="none" style={[styles.searchIcon, { opacity: isDark ? 0.95 : 0.7 }]}>
-            <MaterialIcons name="search" size={20} color={isDark ? '#9ca3af' : '#9ca3af'} />
+        <View style={styles.searchRow}>
+          <View style={styles.searchWrap}>
+            <View pointerEvents="none" style={[styles.searchIcon, { opacity: isDark ? 0.95 : 0.7 }]}>
+              <MaterialIcons name="search" size={20} color={isDark ? '#9ca3af' : '#9ca3af'} />
+            </View>
+            <TextInput
+              value={query.searchText ?? ''}
+              onChangeText={(t) => setQuery({ searchText: t })}
+              placeholder="חפש משימה, פרויקט או תגית..."
+              placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
+                  color: isDark ? '#ffffff' : '#111827',
+                },
+              ]}
+            />
           </View>
-          <TextInput
-            value={query.searchText ?? ''}
-            onChangeText={(t) => setQuery({ searchText: t })}
-            placeholder="חפש משימה, פרויקט או תגית..."
-            placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
-            style={[
-              styles.searchInput,
-              {
-                backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
-                color: isDark ? '#ffffff' : '#111827',
-              },
-            ]}
-          />
+
           <Pressable
             accessibilityLabel="Filters"
             onPress={() => setFiltersOpen(true)}
-            style={({ pressed }) => [styles.tuneBtn, { opacity: pressed ? 0.85 : 1 }]}
+            style={({ pressed }) => [
+              styles.filtersBtn,
+              {
+                backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.10)',
+                opacity: pressed ? 0.9 : 1,
+              },
+            ]}
           >
-            <MaterialIcons name="tune" size={20} color={isDark ? '#9ca3af' : '#9ca3af'} />
+            <MaterialIcons name="tune" size={18} color={isDark ? '#e5e7eb' : '#475569'} />
+            <Text style={[styles.filtersBtnText, { color: isDark ? '#e5e7eb' : '#0f172a' }]}>סינון</Text>
           </Pressable>
         </View>
 
@@ -170,42 +182,6 @@ export function TasksListScreen({ navigation }: any) {
     cats.items,
   ]);
 
-  const mobileSections = useMemo(() => {
-    const now = new Date();
-    const startToday = startOfDay(now);
-    const startTomorrow = new Date(startToday);
-    startTomorrow.setDate(startTomorrow.getDate() + 1);
-    const startDayAfter = new Date(startTomorrow);
-    startDayAfter.setDate(startDayAfter.getDate() + 1);
-
-    const today: Task[] = [];
-    const tomorrow: Task[] = [];
-    const later: Task[] = [];
-    const noDate: Task[] = [];
-
-    for (const t of items) {
-      if (!t.dueAt) {
-        noDate.push(t);
-        continue;
-      }
-      const d = new Date(t.dueAt);
-      if (Number.isNaN(d.getTime())) {
-        noDate.push(t);
-        continue;
-      }
-      if (d >= startToday && d < startTomorrow) today.push(t);
-      else if (d >= startTomorrow && d < startDayAfter) tomorrow.push(t);
-      else later.push(t);
-    }
-
-    const sections: Array<{ key: string; title: string; data: Task[] }> = [];
-    if (today.length) sections.push({ key: 'today', title: 'היום', data: today });
-    if (tomorrow.length) sections.push({ key: 'tomorrow', title: 'מחר', data: tomorrow });
-    if (later.length) sections.push({ key: 'later', title: 'אחר כך', data: later });
-    if (noDate.length) sections.push({ key: 'nodate', title: 'ללא תאריך', data: noDate });
-    return sections;
-  }, [items]);
-
   const filteredItems = useMemo(() => {
     if (!filterDateKey) return items;
     return items.filter((t) => {
@@ -215,24 +191,28 @@ export function TasksListScreen({ navigation }: any) {
     });
   }, [items, filterDateKey]);
 
-  const mobileSectionsFiltered = useMemo(() => {
-    if (!filterDateKey) return mobileSections;
-    const label = formatHebDateKey(filterDateKey);
-    return [
-      {
-        key: `date-${filterDateKey}`,
-        title: `תאריך: ${label}`,
-        data: filteredItems,
-      },
-    ];
-  }, [filterDateKey, filteredItems, mobileSections]);
+  const sortedItems = useMemo(() => {
+    const arr = [...filteredItems];
+    arr.sort((a, b) => {
+      const aTime = a.dueAt ? new Date(a.dueAt).getTime() : Number.POSITIVE_INFINITY;
+      const bTime = b.dueAt ? new Date(b.dueAt).getTime() : Number.POSITIVE_INFINITY;
+      const aValid = Number.isFinite(aTime);
+      const bValid = Number.isFinite(bTime);
+      if (!aValid && !bValid) return b.updatedAt.localeCompare(a.updatedAt);
+      if (!aValid) return 1;
+      if (!bValid) return -1;
+      if (aTime !== bTime) return aTime - bTime;
+      return b.updatedAt.localeCompare(a.updatedAt);
+    });
+    return arr;
+  }, [filteredItems]);
 
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
       style={[
         styles.container,
-        { backgroundColor: isDark ? '#121212' : theme.colors.surfaceMuted },
+        { backgroundColor: isDark ? '#121212' : '#F6F7FB' },
       ]}
     >
       {desktopColumns > 1 ? (
@@ -257,35 +237,35 @@ export function TasksListScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
         />
       ) : (
-        <SectionList
-          sections={mobileSectionsFiltered}
+        <FlatList
+          key="mobile-1col"
+          data={sortedItems}
           keyExtractor={(t) => t.id}
           ListHeaderComponent={header}
           stickyHeaderIndices={[0]}
           refreshing={isLoading}
           onRefresh={load}
-          renderSectionHeader={({ section }) => (
-            <SectionHeader title={section.title} count={section.data.length} isDark={isDark} paddingX={layout.paddingX} />
-          )}
           renderItem={({ item }) => (
             <View style={{ paddingHorizontal: layout.paddingX }}>
-              <TaskCard
-                item={item}
-                isDark={isDark}
-                onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
-              />
+              <TaskCard item={item} isDark={isDark} onPress={() => navigation.navigate('TaskDetails', { id: item.id })} />
             </View>
           )}
-          // Mobile should be full-width (no centered maxWidth container).
           contentContainerStyle={styles.listContentMobile}
-          stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={{ paddingHorizontal: layout.paddingX, paddingTop: 24 }}>
               <Text style={{ color: isDark ? '#e5e7eb' : '#111827', fontSize: 16, fontWeight: '900', textAlign: 'right' }}>
                 אין משימות לתצוגה
               </Text>
-              <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontSize: 13, fontWeight: '700', marginTop: 6, textAlign: 'right' }}>
+              <Text
+                style={{
+                  color: isDark ? '#a3a3a3' : '#6b7280',
+                  fontSize: 13,
+                  fontWeight: '700',
+                  marginTop: 6,
+                  textAlign: 'right',
+                }}
+              >
                 נסה לשנות סינון או לחפש טקסט אחר.
               </Text>
             </View>
@@ -525,12 +505,32 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
   },
 
-  searchWrap: { position: 'relative', marginBottom: 14 },
+  searchRow: {
+    marginBottom: 14,
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchWrap: { position: 'relative', flex: 1, minWidth: 0 },
   searchIcon: { position: 'absolute', right: 14, top: 14 },
-  tuneBtn: { position: 'absolute', left: 10, top: 10, padding: 6, borderRadius: 12 },
+  filtersBtn: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  filtersBtnText: { fontWeight: '900', fontSize: 13, textAlign: 'right', writingDirection: 'rtl' },
   searchInput: {
     paddingRight: 48,
-    paddingLeft: 46,
+    paddingLeft: 14,
     paddingVertical: 12,
     borderRadius: 18,
     fontSize: 14,
@@ -857,6 +857,10 @@ function SectionHeader({ title, count, isDark, paddingX }: { title: string; coun
 }
 
 function TaskCard({ item, isDark, onPress }: { item: Task; isDark: boolean; onPress: () => void }) {
+  const updateTask = useTasksStore((s) => s.updateTask);
+  const deleteTask = useTasksStore((s) => s.deleteTask);
+  const [isMarkingDone, setIsMarkingDone] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const urgent = isUrgent(item.dueAt);
   const strip =
     item.status === 'done'
@@ -888,9 +892,87 @@ function TaskCard({ item, isDark, onPress }: { item: Task; isDark: boolean; onPr
           {item.categoryName ? <Badge label={item.categoryName} tone="category" isDark={isDark} /> : null}
         </View>
 
-        <Pressable onPress={() => {}} hitSlop={10} style={cardStyles.moreBtn}>
-          <MaterialIcons name="more-horiz" size={20} color={isDark ? '#9ca3af' : '#d1d5db'} />
-        </Pressable>
+        <View style={cardStyles.actionsWrap}>
+          {item.status !== 'done' ? (
+            <Pressable
+              onPress={async (e: any) => {
+                // Prevent card navigation when clicking the CTA
+                try {
+                  e?.stopPropagation?.();
+                } catch {}
+                if (isMarkingDone || isDeleting) return;
+                setIsMarkingDone(true);
+                try {
+                  await updateTask(item.id, { status: 'done' });
+                } finally {
+                  setIsMarkingDone(false);
+                }
+              }}
+              hitSlop={10}
+              style={({ pressed }) => [
+                cardStyles.iconBtn,
+                {
+                  backgroundColor: pressed
+                    ? isDark
+                      ? theme.colors.primaryDeepSoft
+                      : theme.colors.primarySoft
+                    : 'transparent',
+                  borderColor: theme.colors.primaryClassic,
+                  opacity: isMarkingDone || isDeleting ? 0.6 : pressed ? 0.9 : 1,
+                },
+              ]}
+            >
+              {isMarkingDone ? (
+                <ActivityIndicator size="small" color={theme.colors.primaryClassic} />
+              ) : (
+                <MaterialIcons name="check" size={18} color={theme.colors.primaryClassic} />
+              )}
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            onPress={(e: any) => {
+              try {
+                e?.stopPropagation?.();
+              } catch {}
+              if (isDeleting || isMarkingDone) return;
+              Alert.alert('מחיקת משימה', 'האם אתה בטוח שברצונך למחוק את המשימה?', [
+                { text: 'ביטול', style: 'cancel' },
+                {
+                  text: 'מחק',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setIsDeleting(true);
+                    try {
+                      await deleteTask(item.id);
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  },
+                },
+              ]);
+            }}
+            hitSlop={10}
+            style={({ pressed }) => [
+              cardStyles.iconBtn,
+              {
+                backgroundColor: pressed
+                  ? isDark
+                    ? 'rgba(239, 68, 68, 0.14)'
+                    : 'rgba(239, 68, 68, 0.10)'
+                  : 'transparent',
+                borderColor: 'rgba(239, 68, 68, 0.55)',
+                opacity: isDeleting || isMarkingDone ? 0.6 : pressed ? 0.9 : 1,
+              },
+            ]}
+          >
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={theme.colors.danger} />
+            ) : (
+              <MaterialIcons name="delete-outline" size={18} color={theme.colors.danger} />
+            )}
+          </Pressable>
+        </View>
       </View>
 
       <Text
@@ -898,7 +980,7 @@ function TaskCard({ item, isDark, onPress }: { item: Task; isDark: boolean; onPr
           cardStyles.title,
           {
             color: item.status === 'done' ? (isDark ? '#9ca3af' : '#6b7280') : isDark ? '#ffffff' : '#111827',
-            textDecorationLine: item.status === 'done' ? 'line-through' : 'none',
+            textDecorationLine: 'none',
           },
         ]}
         numberOfLines={2}
@@ -942,6 +1024,20 @@ const cardStyles = StyleSheet.create({
   },
   tagsRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 8, flexWrap: 'wrap', flex: 1 },
   moreBtn: { padding: 2, marginLeft: 2 },
+  actionsWrap: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 8, alignItems: 'center' },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
   title: { fontSize: 16, fontWeight: '900', lineHeight: 22, textAlign: 'right', writingDirection: 'rtl', marginBottom: 12, paddingRight: 8 },
   bottomRow: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',

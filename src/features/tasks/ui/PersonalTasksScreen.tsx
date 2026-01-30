@@ -120,82 +120,75 @@ export function PersonalTasksScreen({ navigation }: any) {
     const active = (status ?? 'all') as 'all' | 'todo' | 'done';
 
     return (
-      <View style={styles.headerWrap}>
+      <View style={[styles.headerWrap, { backgroundColor: isDark ? UI.surfaceDark : UI.bgLight }]}>
         <View style={styles.topHeader}>
           <View style={styles.brandRow}>
-            <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>משימות אישיות</Text>
+            <Text style={[styles.title, { color: isDark ? UI.textDark : UI.textLight }]}>משימות אישיות</Text>
           </View>
 
           <View style={styles.headerActions}>
             <UserAvatarButton />
-            <View style={styles.lockBadge}>
-              <MaterialIcons name="lock" size={18} color={isDark ? '#e5e7eb' : '#111827'} />
+            <View style={[styles.lockBadge, { backgroundColor: isDark ? UI.surfaceDark2 : '#ffffff' }]}>
+              <MaterialIcons name="lock" size={18} color={isDark ? UI.textDark : UI.primary} />
             </View>
           </View>
         </View>
 
         <View style={styles.agendaHeader}>
-          <View style={styles.agendaHeaderTop}>
-            <View style={styles.agendaNavRow}>
-              <IconChip
-                icon={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'}
-                label="יום קודם"
-                isDark={isDark}
-                onPress={() => setSelectedDate((d) => addDays(d, -1))}
-              />
-              <Pressable
-                onPress={() => {
-                  const d = new Date();
-                  d.setHours(0, 0, 0, 0);
-                  setSelectedDate(d);
-                }}
-                style={({ pressed }) => [
-                  styles.todayBtn,
-                  {
-                    backgroundColor: isDark ? '#242424' : theme.colors.surface,
-                    opacity: pressed ? 0.92 : 1,
-                  },
-                ]}
-              >
-                <Text style={{ color: isDark ? '#e5e7eb' : '#111827', fontWeight: '900', fontSize: 13 }}>היום</Text>
-              </Pressable>
-              <IconChip
-                icon={I18nManager.isRTL ? 'chevron-left' : 'chevron-right'}
-                label="יום הבא"
-                isDark={isDark}
-                onPress={() => setSelectedDate((d) => addDays(d, +1))}
-              />
-            </View>
+          <View
+            style={[
+              styles.agendaNavWrap,
+              {
+                backgroundColor: isDark ? UI.surfaceDark : UI.surfaceLight,
+                borderColor: isDark ? '#232323' : '#eef2f7',
+              },
+            ]}
+          >
+            <NavButton
+              label="יום קודם"
+              icon={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'}
+              isDark={isDark}
+              onPress={() => setSelectedDate((d) => addDays(d, -1))}
+            />
+            <Text style={{ color: isDark ? UI.textDark : UI.primary, fontWeight: '900', fontSize: 13 }}>
+              היום
+            </Text>
+            <NavButton
+              label="יום הבא"
+              icon={I18nManager.isRTL ? 'chevron-left' : 'chevron-right'}
+              iconOnRight
+              isDark={isDark}
+              onPress={() => setSelectedDate((d) => addDays(d, +1))}
+            />
+          </View>
 
-            <View style={styles.monthRow}>
-              <Text style={[styles.monthText, { color: isDark ? '#e5e7eb' : '#111827' }]}>
-                {formatHebMonthYear(selectedDate)}
-              </Text>
-              <Pressable
-                onPress={() => setShowUnscheduled((v) => !v)}
-                style={({ pressed }) => [
-                  styles.unscheduledPill,
+          <View style={styles.monthRow}>
+            <Pressable
+              onPress={() => setShowUnscheduled((v) => !v)}
+              style={({ pressed }) => [
+                styles.unscheduledBtn,
+                { opacity: pressed ? 0.88 : 1 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.checkbox,
                   {
-                    backgroundColor: showUnscheduled
-                      ? theme.colors.primarySoft2
-                      : isDark
-                        ? '#242424'
-                        : theme.colors.surface,
-                    opacity: pressed ? 0.92 : 1,
+                    borderColor: isDark ? '#525252' : '#d1d5db',
+                    backgroundColor: showUnscheduled ? UI.primary : 'transparent',
                   },
                 ]}
               >
-                <MaterialIcons
-                  name={showUnscheduled ? 'check-circle' : 'radio-button-unchecked'}
-                  size={16}
-                  color={showUnscheduled ? theme.colors.primary : isDark ? '#a3a3a3' : '#9ca3af'}
-                  style={{ marginLeft: 6 }}
-                />
-                <Text style={{ color: isDark ? '#e5e7eb' : '#111827', fontWeight: '800', fontSize: 12 }}>
-                  הצג ללא תאריך
-                </Text>
-              </Pressable>
-            </View>
+                {showUnscheduled ? <MaterialIcons name="check" size={14} color="#fff" /> : null}
+              </View>
+              <Text style={[styles.unscheduledTxt, { color: isDark ? UI.textMutedDark : UI.textMutedLight }]}>
+                הצג ללא תאריך
+              </Text>
+            </Pressable>
+
+            <Text style={[styles.monthText, { color: isDark ? UI.textDark : UI.textLight }]}>
+              {formatHebMonthYear(selectedDate)}
+            </Text>
           </View>
 
           <FlatList
@@ -213,17 +206,23 @@ export function PersonalTasksScreen({ navigation }: any) {
                   style={({ pressed }) => [
                     styles.dayChip,
                     {
-                      backgroundColor: isSelected ? theme.colors.primary : isDark ? '#242424' : theme.colors.surface,
-                      borderColor: isSelected ? 'transparent' : isDark ? '#262626' : 'rgba(226,232,240,0.8)',
+                      height: isSelected ? 80 : 75,
+                      backgroundColor: isSelected ? UI.primary : isDark ? UI.surfaceDark : UI.surfaceLight,
+                      borderColor: isSelected ? 'transparent' : isDark ? '#232323' : '#eef2f7',
+                      shadowColor: isSelected ? UI.primary : '#000',
+                      shadowOpacity: isSelected ? 0.22 : 0.06,
+                      shadowRadius: isSelected ? 14 : 10,
+                      elevation: isSelected ? 6 : 2,
+                      transform: [{ scale: isSelected ? 1.05 : pressed ? 0.98 : 1 }],
                       opacity: pressed ? 0.92 : 1,
                     },
                   ]}
                 >
-                  <Text style={{ color: isSelected ? '#fff' : isDark ? '#e5e7eb' : '#111827', fontWeight: '900', fontSize: 12 }}>
+                  <Text style={{ color: isSelected ? '#fff' : isDark ? UI.textMutedDark : '#9ca3af', fontWeight: '700', fontSize: 12 }}>
                     {hebDowShort(d)}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ color: isSelected ? '#fff' : isDark ? '#e5e7eb' : '#111827', fontWeight: '900', fontSize: 16 }}>
+                    <Text style={{ color: isSelected ? '#fff' : isDark ? UI.textDark : UI.textLight, fontWeight: '900', fontSize: 20 }}>
                       {d.getDate()}
                     </Text>
                     {isToday ? (
@@ -246,61 +245,53 @@ export function PersonalTasksScreen({ navigation }: any) {
 
         <View style={styles.searchWrap}>
           <View pointerEvents="none" style={[styles.searchIcon, { opacity: isDark ? 0.9 : 0.7 }]}>
-            <MaterialIcons name="search" size={22} color={theme.colors.primaryClassic} />
+            <MaterialIcons name="search" size={20} color={UI.primary} />
           </View>
           <TextInput
             value={searchText}
             onChangeText={setSearchText}
             placeholder="חפש משימה אישית..."
-            placeholderTextColor={isDark ? '#525252' : '#9ca3af'}
+            placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
             style={[
               styles.searchInput,
               {
-                backgroundColor: isDark ? '#242424' : theme.colors.surface,
-                color: isDark ? '#ffffff' : theme.colors.text,
+                backgroundColor: isDark ? UI.surfaceDark : UI.surfaceLight,
+                color: isDark ? UI.textDark : UI.textLight,
               },
             ]}
           />
         </View>
 
-        <View style={styles.pillsScroller}>
-          <FlatList
-            horizontal
-            data={(['all', 'todo', 'done'] as const).map((k) => k)}
-            keyExtractor={(k) => k}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillsRow}
-            renderItem={({ item: s }) => (
-              <FilterPill
-                label={
-                  s === 'all'
-                    ? 'הכל'
-                    : s === 'todo'
-                      ? 'לא נעשה'
-                      : 'נעשה'
-                }
-                active={active === s}
-                isDark={isDark}
-                onPress={() => setStatus(s === 'all' ? undefined : (s as any))}
-              />
-            )}
-          />
+        <View
+          style={[
+            styles.segmentWrap,
+            {
+              backgroundColor: isDark ? UI.surfaceDark : UI.surfaceLight,
+              borderColor: isDark ? '#232323' : '#eef2f7',
+            },
+          ]}
+        >
+          <SegmentButton label="הכל" active={active === 'all'} onPress={() => setStatus(undefined)} isDark={isDark} />
+          <SegmentButton label="לא נעשה" active={active === 'todo'} onPress={() => setStatus('todo')} isDark={isDark} />
+          <SegmentButton label="נעשה" active={active === 'done'} onPress={() => setStatus('done')} isDark={isDark} />
         </View>
 
         <View style={styles.sectionRow}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#e5e7eb' : '#1f2937' }]}>
-            {formatHebDayLabel(selectedDate)}
-          </Text>
           <Text
             style={[
-              styles.sectionCount,
               {
-                color: isDark ? '#a3a3a3' : '#9ca3af',
-                backgroundColor: isDark ? '#1f2937' : theme.colors.surfaceMuted,
+                color: isDark ? UI.textMutedDark : '#9ca3af',
+                fontSize: 13,
+                fontWeight: '700',
+                textAlign: 'right',
+                writingDirection: 'rtl',
               },
             ]}
           >
             {countLabel}
+          </Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? UI.textDark : UI.textLight }]}>
+            {formatHebDayLabel(selectedDate)}
           </Text>
         </View>
       </View>
@@ -327,7 +318,7 @@ export function PersonalTasksScreen({ navigation }: any) {
       edges={['top', 'left', 'right']}
       style={[
         styles.container,
-        { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background },
+        { backgroundColor: isDark ? UI.bgDark : UI.bgLight },
       ]}
     >
       <FlatList
@@ -417,14 +408,7 @@ export function PersonalTasksScreen({ navigation }: any) {
         }}
         ListEmptyComponent={
           !isLoading ? (
-            <View style={styles.emptyBox}>
-              <Text style={{ color: isDark ? '#fff' : '#111827', fontSize: 18, fontWeight: '900', textAlign: 'right' }}>
-                אין משימות ליום הזה
-              </Text>
-              <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontSize: 13, fontWeight: '700', textAlign: 'right' }}>
-                נסה לבחור יום אחר למעלה, או הוסף משימה חדשה.
-              </Text>
-            </View>
+            <EmptyState isDark={isDark} />
           ) : null
         }
         contentContainerStyle={[styles.listContent, layout.contentContainerStyle]}
@@ -435,12 +419,12 @@ export function PersonalTasksScreen({ navigation }: any) {
           navigation.navigate('TaskUpsert', {
             mode: 'create',
             defaultVisibility: 'personal',
-            defaultDueAt: toIsoAtHour(selectedDate, 18, 0),
+            defaultDueAt: toIsoAtHour(selectedDate, 0, 0),
           })
         }
         style={({ pressed }) => [
           styles.fab,
-          { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+          { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 1.02 : 1 }] },
         ]}
       >
         <MaterialIcons name="add" size={26} color="#fff" />
@@ -452,14 +436,14 @@ export function PersonalTasksScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  listContent: { paddingHorizontal: 24, paddingBottom: 160, gap: 20 },
+  listContent: { paddingHorizontal: 20, paddingBottom: 160, gap: 14 },
 
-  headerWrap: { paddingTop: 6, paddingBottom: 10 },
+  headerWrap: { paddingTop: 18, paddingBottom: 14, paddingHorizontal: 20 },
   topHeader: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   headerActions: {
     flexDirection: 'row',
@@ -475,85 +459,103 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   lockBadge: {
-    padding: 10,
+    width: 40,
+    height: 40,
     borderRadius: 999,
-    backgroundColor: 'rgba(148, 163, 184, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(91, 80, 140, 0.10)',
   },
 
-  agendaHeader: { marginBottom: 14, gap: 12 },
-  agendaHeaderTop: { gap: 10 },
-  agendaNavRow: {
+  agendaHeader: { marginTop: 10, marginBottom: 14, gap: 12 },
+  agendaNavWrap: {
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 1,
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
   },
-  todayBtn: { height: 38, paddingHorizontal: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  navBtn: {
+    height: 40,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  navBtnTxt: { fontSize: 12, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
   monthRow: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
   },
-  monthText: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  unscheduledPill: {
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  weekStrip: { gap: 10, paddingBottom: 4 },
+  monthText: { fontSize: 18, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  unscheduledBtn: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
+  unscheduledTxt: { fontSize: 13, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  checkbox: { width: 20, height: 20, borderRadius: 999, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+
+  weekStrip: { gap: 10, paddingBottom: 4, paddingTop: 2 },
   dayChip: {
     width: 62,
-    height: 64,
     borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
   },
 
   searchWrap: { position: 'relative', marginBottom: 16 },
-  searchIcon: { position: 'absolute', right: 14, top: 16 },
+  searchIcon: { position: 'absolute', right: 14, top: 14 },
   searchInput: {
     paddingRight: 48,
     paddingLeft: 16,
-    paddingVertical: 14,
-    borderRadius: 18,
-    fontSize: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    fontSize: 14,
+    fontWeight: '700',
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 2,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
 
-  pillsScroller: { marginBottom: 18 },
-  pillsRow: { gap: 12, paddingBottom: 6 },
+  segmentWrap: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 18,
+    gap: 6,
+  },
+  segmentBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: UI.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  segmentTxt: { fontSize: 13, textAlign: 'right', writingDirection: 'rtl' },
 
   sectionRow: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '800', textAlign: 'right' },
-  sectionCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
+  sectionTitle: { fontSize: 20, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
 
   sectionHeaderRow: {
     paddingTop: 6,
@@ -606,14 +608,14 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 13, fontWeight: '600' },
 
   agendaRow: {
-    padding: 16,
-    borderRadius: 22,
+    padding: 14,
+    borderRadius: 20,
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   agendaRowTop: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
@@ -626,70 +628,67 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: 'rgba(148, 163, 184, 0.16)',
+    backgroundColor: 'rgba(91, 80, 140, 0.10)',
   },
-
-  emptyBox: { paddingVertical: 22, gap: 8 },
 
   fab: {
     position: 'absolute',
-    right: 24,
+    left: 24,
     bottom: 98,
     height: 56,
-    borderRadius: 22,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: UI.primary,
+    paddingLeft: 20,
+    paddingRight: 16,
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     gap: 10,
-    shadowColor: theme.colors.primary,
+    shadowColor: UI.primary,
     shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 12,
   },
-  fabText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  fabText: { color: '#fff', fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+
+  emptyWrap: { paddingVertical: 30, alignItems: 'center', gap: 10 },
+  emptyIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  emptyIconInner: { width: 72, height: 72, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  emptyDot: { position: 'absolute', top: 18, right: 20, width: 12, height: 12, borderRadius: 999, backgroundColor: UI.accent },
+  emptyTitle: { fontSize: 20, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  emptySub: { fontSize: 13, fontWeight: '700', textAlign: 'center', maxWidth: 320, lineHeight: 20 },
 });
 
-function IconChip({
-  icon,
+function NavButton({
   label,
+  icon,
+  iconOnRight,
   isDark,
   onPress,
 }: {
-  icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  iconOnRight?: boolean;
   isDark: boolean;
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        {
-          height: 38,
-          paddingHorizontal: 12,
-          borderRadius: 14,
-          flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          backgroundColor: isDark ? '#242424' : theme.colors.surface,
-          borderWidth: 1,
-          borderColor: isDark ? '#262626' : 'rgba(226,232,240,0.9)',
-          opacity: pressed ? 0.92 : 1,
-        },
-      ]}
-    >
-      <MaterialIcons name={icon} size={20} color={isDark ? '#e5e7eb' : '#111827'} />
-      <Text style={{ color: isDark ? '#e5e7eb' : '#111827', fontWeight: '900', fontSize: 12 }}>
-        {label}
-      </Text>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.86 : 1 }]}>
+      {iconOnRight ? null : <MaterialIcons name={icon} size={18} color={isDark ? UI.textMutedDark : UI.textMutedLight} />}
+      <Text style={[styles.navBtnTxt, { color: isDark ? UI.textMutedDark : UI.textMutedLight }]}>{label}</Text>
+      {iconOnRight ? <MaterialIcons name={icon} size={18} color={isDark ? UI.textMutedDark : UI.textMutedLight} /> : null}
     </Pressable>
   );
 }
 
-function FilterPill({
+function SegmentButton({
   label,
   active,
   isDark,
@@ -704,30 +703,18 @@ function FilterPill({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
+        styles.segmentBtn,
         {
-          height: 40,
-          paddingHorizontal: 22,
-          borderRadius: 14,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: active ? theme.colors.primary : isDark ? '#242424' : theme.colors.surface,
-          borderWidth: 1,
-          borderColor: active ? 'transparent' : 'transparent',
-          shadowColor: '#000',
-          shadowOpacity: active ? 0.12 : 0.06,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
+          backgroundColor: active ? UI.primary : 'transparent',
           opacity: pressed ? 0.92 : 1,
         },
       ]}
     >
       <Text
-        style={{
-          fontSize: 13,
-          fontWeight: active ? '800' : '700',
-          color: active ? '#ffffff' : isDark ? '#d1d5db' : '#4b5563',
-        }}
+        style={[
+          styles.segmentTxt,
+          { color: active ? '#fff' : isDark ? UI.textMutedDark : UI.textMutedLight, fontWeight: active ? '900' : '700' },
+        ]}
       >
         {label}
       </Text>
@@ -781,6 +768,38 @@ function formatHebDateTime(iso: string) {
   const hasTime = !(hh === '00' && mm === '00');
   return hasTime ? `${hh}:${mm}, ${day} ${mon}` : `${day} ${mon}`;
 }
+
+function EmptyState({ isDark }: { isDark: boolean }) {
+  return (
+    <View style={styles.emptyWrap}>
+      <View style={[styles.emptyIconWrap, { backgroundColor: isDark ? 'rgba(91,80,140,0.18)' : 'rgba(91,80,140,0.10)' }]}>
+        <View style={[styles.emptyIconInner, { backgroundColor: isDark ? 'rgba(124,113,176,0.14)' : 'rgba(124,113,176,0.12)' }]}>
+          <MaterialIcons name="event-available" size={34} color={UI.primary} />
+        </View>
+        <View style={styles.emptyDot} />
+      </View>
+      <Text style={[styles.emptyTitle, { color: isDark ? UI.textDark : UI.textLight }]}>אין משימות ליום הזה</Text>
+      <Text style={[styles.emptySub, { color: isDark ? UI.textMutedDark : UI.textMutedLight }]}>
+        נסה לבחור יום אחר למעלה, או הוסף משימה חדשה כדי להתחיל את היום ברגל ימין.
+      </Text>
+    </View>
+  );
+}
+
+const UI = {
+  primary: '#5B508C',
+  secondary: '#7C71B0',
+  accent: '#FF6B6B',
+  bgLight: '#F8F9FE',
+  bgDark: '#121212',
+  surfaceLight: '#FFFFFF',
+  surfaceDark: '#1E1E1E',
+  surfaceDark2: '#242424',
+  textLight: '#1F2937',
+  textDark: '#F3F4F6',
+  textMutedLight: '#6B7280',
+  textMutedDark: '#9CA3AF',
+} as const;
 
 function startOfDay(d: Date) {
   const x = new Date(d);

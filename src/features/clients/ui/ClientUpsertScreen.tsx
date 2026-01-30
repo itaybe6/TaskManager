@@ -64,9 +64,10 @@ export function ClientUpsertScreen({ route, navigation }: any) {
       setNotes(c.notes ?? '');
       setTotalPrice(c.totalPrice !== undefined ? String(c.totalPrice) : '');
       setRemainingToPay(c.remainingToPay !== undefined ? String(c.remainingToPay) : '');
+      const safeContacts = Array.isArray((c as any).contacts) ? (c as any).contacts : [];
       setContacts(
-        c.contacts.length
-          ? c.contacts.map((cc) => ({ name: cc.name ?? '', email: cc.email ?? '', phone: cc.phone ?? '' }))
+        safeContacts.length
+          ? safeContacts.map((cc: any) => ({ name: cc?.name ?? '', email: cc?.email ?? '', phone: cc?.phone ?? '' }))
           : [{ name: '', email: '', phone: '' }]
       );
       setDocuments(c.documents ?? []);
@@ -74,10 +75,10 @@ export function ClientUpsertScreen({ route, navigation }: any) {
   }, [mode, id]);
 
   const primaryEmail = useMemo(() => {
-    const emails = contacts
-      .map((c) => (c.email ?? '').trim())
+    const emails = (contacts ?? [])
+      .map((c) => (c?.email ?? '').trim())
       .filter((e) => e.length > 0);
-    return emails[0];
+    return emails[0] ?? '';
   }, [contacts]);
   const emailOk = primaryEmail.length >= 5 && primaryEmail.includes('@');
   const passwordOk = loginPassword.trim().length >= 6;

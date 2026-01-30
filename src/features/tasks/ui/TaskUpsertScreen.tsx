@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   TextInput,
-  FlatList,
   Platform,
   I18nManager,
 } from 'react-native';
@@ -65,10 +64,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
   type DropdownKey = 'client' | 'assignee' | 'category';
   const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
-  const [clientQ, setClientQ] = useState('');
   const [assigneeQ, setAssigneeQ] = useState('');
-  const [categoryQ, setCategoryQ] = useState('');
-  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
     cats.load();
@@ -122,6 +118,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     });
   }, [mode, route.params]);
 
+  const isPersonalQuickCreate = mode === 'create' && defaultVisibility === 'personal';
+
   const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
   const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר') ?? users[1], [users]);
 
@@ -167,8 +165,10 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
     const existing = dueAt ? new Date(dueAt) : null;
     const d = existing && !Number.isNaN(existing.getTime()) ? new Date(existing) : new Date();
-    // Default to 18:00 when no date picked yet
-    if (!existing || Number.isNaN(existing.getTime())) d.setHours(18, 0, 0, 0);
+    // Default to all-day (00:00) for personal; otherwise 18:00
+    if (!existing || Number.isNaN(existing.getTime())) {
+      d.setHours(isPersonalQuickCreate ? 0 : 18, 0, 0, 0);
+    }
     setDueDraft(d);
     setDuePickerOpen(true);
   }
@@ -176,6 +176,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   function saveDueDraft() {
     const d = new Date(dueDraft);
     if (Number.isNaN(d.getTime())) return;
+    // keep due date as "all-day" for personal quick create
+    if (isPersonalQuickCreate) d.setHours(0, 0, 0, 0);
     setDueAt(d.toISOString());
     setDuePickerOpen(false);
   }
@@ -223,9 +225,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       const next = prev === key ? null : key;
       // reset searches when toggling
       if (next !== prev) {
-        if (key === 'client') setClientQ('');
         if (key === 'assignee') setAssigneeQ('');
-        if (key === 'category') setCategoryQ('');
       }
       // close date picker when opening another dropdown
       setDuePickerOpen(false);
@@ -233,23 +233,23 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     });
   }
 
-  const filteredClients = useMemo(() => {
-    const s = clientQ.trim().toLowerCase();
-    if (!s) return clients.items;
-    return clients.items.filter((c) => c.name.toLowerCase().includes(s));
-  }, [clientQ, clients.items]);
-
   const filteredUsers = useMemo(() => {
     const s = assigneeQ.trim().toLowerCase();
     if (!s) return users;
     return users.filter((u) => u.displayName.toLowerCase().includes(s));
   }, [assigneeQ, users]);
 
-  const filteredCategories = useMemo(() => {
-    const s = categoryQ.trim().toLowerCase();
-    if (!s) return cats.items;
-    return cats.items.filter((c) => c.name.toLowerCase().includes(s));
-  }, [categoryQ, cats.items]);
+  const clientItems = useMemo(
+    () => [
+      { id: '__none__', name: 'משימה כללית', sub: 'ללא לקוח' } as any,
+      ...clients.items.map((c) => ({ id: c.id, name: c.name })),
+    ],
+    [clients.items]
+  );
+  const categoryItems = useMemo(
+    () => [{ id: '__none__', name: 'ללא קטגוריה', sub: 'ברירת מחדל' } as any, ...cats.items.map((c) => ({ id: c.id, name: c.name }))],
+    [cats.items]
+  );
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: '#ffffff' }]}>
@@ -270,7 +270,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
           contentContainerStyle={[styles.content, layout.contentContainerStyle]}
           showsVerticalScrollIndicator={false}
         >
-            {!isProjectTask && (
+            {!isPersonalQuickCreate && !isProjectTask && (
               <View style={{ marginBottom: 18 }}>
                 <Text style={[styles.label, { color: '#64748b' }]}>שייכות</Text>
 
@@ -290,7 +290,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     isDark={isDark}
                     onPress={() => {
                       setTaskScope('client');
-                      if (!clientId) setClientModalOpen(true);
+                      if (!clientId) toggleDropdown('client');
                     }}
                   />
                 </View>
@@ -316,61 +316,36 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                           { backgroundColor: '#ecfdf5' },
                         ]}
                       >
-                        <MaterialIcons name="person" size={20} color="#059669" />
+                        <MaterialIcons name="person" size={18} color="#059669" />
                       </View>
-                      <View style={{ gap: 2, flexShrink: 1 }}>
-                        <Text
-                          style={{
-                            color: '#64748b',
-                            fontSize: 13,
-                            fontWeight: '600',
-                            textAlign: 'right',
-                          }}
-                        >
+                      <View style={styles.pickerMainTight}>
+                        <Text style={styles.pickerLabel}>
                           לקוח
                         </Text>
-                        <Text
-                          style={{
-                            color: '#0f172a',
-                            fontSize: 15,
-                            fontWeight: '900',
-                            textAlign: 'right',
-                          }}
-                        >
+                        <Text style={styles.pickerValue}>
                           {clientId ? clients.items.find((c) => c.id === clientId)?.name ?? 'נבחר' : 'בחר לקוח'}
                         </Text>
                       </View>
                     </View>
-                    <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
+                    <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
                   </Pressable>
                 )}
 
                 {taskScope === 'client' && openDropdown === 'client' ? (
                   <View style={styles.dropdownCard}>
-                    <View style={{ position: 'relative' }}>
-                      <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
-                        <MaterialIcons name="search" size={20} color={theme.colors.primary} />
-                      </View>
-                      <TextInput
-                        value={clientQ}
-                        onChangeText={setClientQ}
-                        placeholder="חיפוש לקוח..."
-                        placeholderTextColor="#94a3b8"
-                        style={styles.dropdownSearch}
-                      />
-                    </View>
-
-                    <FlatList
-                      data={[{ id: '__none__', name: 'משימה כללית' } as any, ...filteredClients]}
-                      keyExtractor={(item: any) => item.id}
-                      keyboardShouldPersistTaps="handled"
-                      style={{ marginTop: 10, maxHeight: 280 }}
-                      contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
-                      renderItem={({ item }: any) => {
+                    <ScrollView
+                      style={styles.dropdownList}
+                      contentContainerStyle={styles.dropdownListContent}
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled
+                    >
+                      {clientItems.map((item: any, index: number) => {
                         const isNone = item.id === '__none__';
                         const active = isNone ? !clientId : clientId === item.id;
+                        const isLast = index === clientItems.length - 1;
                         return (
                           <Pressable
+                            key={item.id}
                             onPress={() => {
                               if (isNone) {
                                 setClientId(undefined);
@@ -384,7 +359,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                             style={({ pressed }) => [
                               styles.dropdownItem,
                               {
-                                borderColor: active ? theme.colors.primaryNeon : '#e2e8f0',
+                                borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+                                borderBottomColor: '#e5e7eb',
                                 backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
                                 opacity: pressed ? 0.92 : 1,
                               },
@@ -394,166 +370,173 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                               <Text style={styles.dropdownItemTitle} numberOfLines={1}>
                                 {isNone ? 'משימה כללית' : item.name}
                               </Text>
-                              {isNone ? (
+                              {item.sub ? (
                                 <Text style={styles.dropdownItemSub} numberOfLines={1}>
-                                  ללא לקוח
+                                  {item.sub}
                                 </Text>
                               ) : null}
                             </View>
                             {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
                           </Pressable>
                         );
-                      }}
-                    />
+                      })}
+                    </ScrollView>
                   </View>
                 ) : null}
               </View>
             )}
 
-            <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: '#64748b' }]}>סוג</Text>
-              <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
-                <SegmentOption
-                  label="משותפת"
-                  active={visibility === 'shared'}
-                  isDark={isDark}
-                  onPress={() => setVisibility('shared')}
-                />
-                <SegmentOption
-                  label="אישית"
-                  active={visibility === 'personal'}
-                  isDark={isDark}
-                  onPress={() => {
-                    setVisibility('personal');
-                    // personal task belongs to the logged-in user only
-                    const me = session?.user?.id;
-                    if (me) {
-                      setAssigneeId(me);
-                      setAssigneeChoice('iti'); // UI value not relevant in personal mode
-                      setTaskScope('general');
-                      setClientId(undefined);
-                    }
-                  }}
-                />
-              </View>
-            </View>
-
-            <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: '#64748b' }]}>אחראי</Text>
-              {users.length <= 2 && visibility === 'shared' ? (
+            {!isPersonalQuickCreate ? (
+              <View style={{ marginBottom: 22 }}>
+                <Text style={[styles.label, { color: '#64748b' }]}>סוג</Text>
                 <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                   <SegmentOption
-                    label="איתי"
-                    active={assigneeChoice === 'iti'}
+                    label="משותפת"
+                    active={visibility === 'shared'}
                     isDark={isDark}
-                    onPress={() => {
-                      setAssigneeChoice('iti');
-                      setAssigneeId(itiUser?.id);
-                    }}
+                    onPress={() => setVisibility('shared')}
                   />
                   <SegmentOption
-                    label="אדיר"
-                    active={assigneeChoice === 'adir'}
+                    label="אישית"
+                    active={visibility === 'personal'}
                     isDark={isDark}
                     onPress={() => {
-                      setAssigneeChoice('adir');
-                      setAssigneeId(adirUser?.id);
+                      setVisibility('personal');
+                      // personal task belongs to the logged-in user only
+                      const me = session?.user?.id;
+                      if (me) {
+                        setAssigneeId(me);
+                        setAssigneeChoice('iti'); // UI value not relevant in personal mode
+                        setTaskScope('general');
+                        setClientId(undefined);
+                      }
                     }}
                   />
-                  {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
+                </View>
+              </View>
+            ) : null}
+
+            {!isPersonalQuickCreate ? (
+              <View style={{ marginBottom: 22 }}>
+                <Text style={[styles.label, { color: '#64748b' }]}>אחראי</Text>
+                {users.length <= 2 && visibility === 'shared' ? (
+                  <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                     <SegmentOption
-                      label="שניהם"
-                      active={assigneeChoice === 'both'}
+                      label="איתי"
+                      active={assigneeChoice === 'iti'}
                       isDark={isDark}
                       onPress={() => {
-                        setAssigneeChoice('both');
-                        // assigneeId stays as-is; create path will fan-out
+                        setAssigneeChoice('iti');
+                        setAssigneeId(itiUser?.id);
                       }}
                     />
-                  ) : null}
-                </View>
-              ) : (
-                <Pressable
-                  onPress={() => {
-                    toggleDropdown('assignee');
-                  }}
-                  style={({ pressed }) => [
-                    styles.pickerBtn,
-                    {
-                      backgroundColor: '#ffffff',
-                      borderColor: '#e2e8f0',
-                      opacity: pressed ? 0.92 : 1,
-                      transform: [{ scale: pressed ? 0.99 : 1 }],
-                    },
-                  ]}
-                >
-                  <View style={styles.pickerMain}>
-                    <View style={[styles.pickerIconCircle, { backgroundColor: '#eef2ff' }]}>
-                      <MaterialIcons name="person-outline" size={20} color={theme.colors.primary} />
-                    </View>
-                    <View style={{ gap: 2, flexShrink: 1 }}>
-                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
-                        אחראי
-                      </Text>
-                      <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '900', textAlign: 'right' }}>
-                        {users.find((u) => u.id === assigneeId)?.displayName ?? 'בחר אחראי'}
-                      </Text>
-                    </View>
-                  </View>
-                  <MaterialIcons name="expand-more" size={22} color="#94a3b8" />
-                </Pressable>
-              )}
-
-              {!(users.length <= 2 && visibility === 'shared') && openDropdown === 'assignee' ? (
-                <View style={[styles.dropdownCard, { marginTop: 10 }]}>
-                  <View style={{ position: 'relative' }}>
-                    <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
-                      <MaterialIcons name="search" size={20} color={theme.colors.primary} />
-                    </View>
-                    <TextInput
-                      value={assigneeQ}
-                      onChangeText={setAssigneeQ}
-                      placeholder="חיפוש אחראי..."
-                      placeholderTextColor="#94a3b8"
-                      style={styles.dropdownSearch}
+                    <SegmentOption
+                      label="אדיר"
+                      active={assigneeChoice === 'adir'}
+                      isDark={isDark}
+                      onPress={() => {
+                        setAssigneeChoice('adir');
+                        setAssigneeId(adirUser?.id);
+                      }}
                     />
+                    {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
+                      <SegmentOption
+                        label="שניהם"
+                        active={assigneeChoice === 'both'}
+                        isDark={isDark}
+                        onPress={() => {
+                          setAssigneeChoice('both');
+                          // assigneeId stays as-is; create path will fan-out
+                        }}
+                      />
+                    ) : null}
                   </View>
-
-                  <FlatList
-                    data={filteredUsers}
-                    keyExtractor={(i) => i.id}
-                    keyboardShouldPersistTaps="handled"
-                    style={{ marginTop: 10, maxHeight: 280 }}
-                    contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
-                    renderItem={({ item }) => {
-                      const active = assigneeId === item.id;
-                      return (
-                        <Pressable
-                          onPress={() => {
-                            setAssigneeId(item.id);
-                            setAssigneeChoice('iti');
-                            setOpenDropdown(null);
-                          }}
-                          style={({ pressed }) => [
-                            styles.dropdownItem,
-                            {
-                              borderColor: active ? theme.colors.primaryNeon : '#e2e8f0',
-                              backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
-                              opacity: pressed ? 0.92 : 1,
-                            },
-                          ]}
-                        >
-                          <Text style={styles.dropdownItemTitle} numberOfLines={1}>
-                            {item.displayName}
-                          </Text>
-                          {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
-                        </Pressable>
-                      );
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      toggleDropdown('assignee');
                     }}
-                  />
-                </View>
-              ) : null}
-            </View>
+                    style={({ pressed }) => [
+                      styles.pickerBtn,
+                      {
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e2e8f0',
+                        opacity: pressed ? 0.92 : 1,
+                        transform: [{ scale: pressed ? 0.99 : 1 }],
+                      },
+                    ]}
+                  >
+                    <View style={styles.pickerMain}>
+                      <View style={[styles.pickerIconCircle, { backgroundColor: '#eef2ff' }]}>
+                        <MaterialIcons name="person-outline" size={18} color={theme.colors.primary} />
+                      </View>
+                      <View style={styles.pickerMainTight}>
+                        <Text style={styles.pickerLabel}>
+                          אחראי
+                        </Text>
+                        <Text style={styles.pickerValue}>
+                          {users.find((u) => u.id === assigneeId)?.displayName ?? 'בחר אחראי'}
+                        </Text>
+                      </View>
+                    </View>
+                    <MaterialIcons name="expand-more" size={20} color="#94a3b8" />
+                  </Pressable>
+                )}
+
+                {!(users.length <= 2 && visibility === 'shared') && openDropdown === 'assignee' ? (
+                  <View style={[styles.dropdownCard, { marginTop: 10 }]}>
+                    <View style={{ position: 'relative' }}>
+                      <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
+                        <MaterialIcons name="search" size={20} color={theme.colors.primary} />
+                      </View>
+                      <TextInput
+                        value={assigneeQ}
+                        onChangeText={setAssigneeQ}
+                        placeholder="חיפוש אחראי..."
+                        placeholderTextColor="#94a3b8"
+                        style={styles.dropdownSearch}
+                      />
+                    </View>
+
+                    <ScrollView
+                      style={[styles.dropdownList, { marginTop: 10 }]}
+                      contentContainerStyle={styles.dropdownListContent}
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled
+                    >
+                    {filteredUsers.map((item, index: number) => {
+                        const active = assigneeId === item.id;
+                      const isLast = index === filteredUsers.length - 1;
+                        return (
+                          <Pressable
+                            key={item.id}
+                            onPress={() => {
+                              setAssigneeId(item.id);
+                              setAssigneeChoice('iti');
+                              setOpenDropdown(null);
+                            }}
+                            style={({ pressed }) => [
+                              styles.dropdownItem,
+                              {
+                              borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+                              borderBottomColor: '#e5e7eb',
+                                backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
+                                opacity: pressed ? 0.92 : 1,
+                              },
+                            ]}
+                          >
+                            <Text style={styles.dropdownItemTitle} numberOfLines={1}>
+                              {item.displayName}
+                            </Text>
+                            {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={{ marginBottom: 22 }}>
               <Text style={[styles.label, { color: '#64748b' }]}>תיאור</Text>
@@ -574,186 +557,110 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               />
             </View>
 
-            <View style={{ marginBottom: 22 }}>
-              <Text style={[styles.label, { color: '#64748b' }]}>סטטוס</Text>
-              <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
-                <SegmentOption
-                  label="לא נעשה"
-                  active={status === 'todo'}
-                  isDark={isDark}
-                  onPress={() => setStatus('todo')}
-                />
-                <SegmentOption
-                  label="נעשה"
-                  active={status === 'done'}
-                  isDark={isDark}
-                  onPress={() => setStatus('done')}
-                />
+            {!isPersonalQuickCreate ? (
+              <View style={{ marginBottom: 22 }}>
+                <Text style={[styles.label, { color: '#64748b' }]}>סטטוס</Text>
+                <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
+                  <SegmentOption
+                    label="לא נעשה"
+                    active={status === 'todo'}
+                    isDark={isDark}
+                    onPress={() => setStatus('todo')}
+                  />
+                  <SegmentOption
+                    label="נעשה"
+                    active={status === 'done'}
+                    isDark={isDark}
+                    onPress={() => setStatus('done')}
+                  />
+                </View>
               </View>
-            </View>
+            ) : null}
 
             <View style={{ gap: 12 }}>
-              <Pressable
-                onPress={() => toggleDropdown('category')}
-                style={({ pressed }) => [
-                  styles.pickerBtn,
-                  {
-                    backgroundColor: '#ffffff',
-                    borderColor: '#e2e8f0',
-                    opacity: pressed ? 0.92 : 1,
-                    transform: [{ scale: pressed ? 0.99 : 1 }],
-                  },
-                ]}
-              >
-                <View style={styles.pickerMain}>
-                  <View
-                    style={[
-                      styles.pickerIconCircle,
-                      { backgroundColor: '#eff6ff' },
-                    ]}
-                  >
-                    <MaterialIcons name="category" size={20} color={theme.colors.primary} />
-                  </View>
-                  <View style={{ gap: 2, flexShrink: 1 }}>
-                    <Text
-                      style={{
-                        color: '#64748b',
-                        fontSize: 13,
-                        fontWeight: '600',
-                        textAlign: 'right',
-                      }}
-                    >
-                      קטגוריה
-                    </Text>
-                    <Text
-                      style={{
-                        color: '#0f172a',
-                        fontSize: 15,
-                        fontWeight: '900',
-                        textAlign: 'right',
-                      }}
-                    >
-                      {categoryId ? cats.items.find((c) => c.id === categoryId)?.name ?? 'נבחרה' : 'ללא קטגוריה'}
-                    </Text>
-                  </View>
-                </View>
-                <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
-              </Pressable>
-
-              {openDropdown === 'category' ? (
-                <View style={styles.dropdownCard}>
-                  <View style={{ position: 'relative' }}>
-                    <View pointerEvents="none" style={{ position: 'absolute', right: 12, top: 12, opacity: 0.85 }}>
-                      <MaterialIcons name="search" size={20} color={theme.colors.primary} />
-                    </View>
-                    <TextInput
-                      value={categoryQ}
-                      onChangeText={setCategoryQ}
-                      placeholder="חיפוש קטגוריה..."
-                      placeholderTextColor="#94a3b8"
-                      style={styles.dropdownSearch}
-                    />
-                  </View>
-
+              {!isPersonalQuickCreate ? (
+                <>
                   <Pressable
-                    onPress={() => {
-                      setCategoryId(undefined);
-                      setOpenDropdown(null);
-                    }}
+                    onPress={() => toggleDropdown('category')}
                     style={({ pressed }) => [
-                      styles.dropdownItem,
+                      styles.pickerBtn,
                       {
-                        marginTop: 10,
-                        borderColor: !categoryId ? theme.colors.primaryNeon : '#e2e8f0',
-                        backgroundColor: !categoryId ? theme.colors.primarySoft2 : '#ffffff',
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e2e8f0',
                         opacity: pressed ? 0.92 : 1,
+                        transform: [{ scale: pressed ? 0.99 : 1 }],
                       },
                     ]}
                   >
-                    <View style={{ gap: 2, flex: 1 }}>
-                      <Text style={styles.dropdownItemTitle}>ללא קטגוריה</Text>
-                      <Text style={styles.dropdownItemSub}>ברירת מחדל</Text>
+                    <View style={styles.pickerMain}>
+                      <View
+                        style={[
+                          styles.pickerIconCircle,
+                          { backgroundColor: '#eff6ff' },
+                        ]}
+                      >
+                        <MaterialIcons name="category" size={18} color={theme.colors.primary} />
+                      </View>
+                      <View style={styles.pickerMainTight}>
+                        <Text style={styles.pickerLabel}>
+                          קטגוריה
+                        </Text>
+                        <Text style={styles.pickerValue}>
+                          {categoryId ? cats.items.find((c) => c.id === categoryId)?.name ?? 'נבחרה' : 'ללא קטגוריה'}
+                        </Text>
+                      </View>
                     </View>
-                    {!categoryId ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                    <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
                   </Pressable>
 
-                  <FlatList
-                    data={filteredCategories}
-                    keyExtractor={(i) => i.id}
-                    keyboardShouldPersistTaps="handled"
-                    style={{ marginTop: 10, maxHeight: 240 }}
-                    contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
-                    renderItem={({ item }) => {
-                      const active = categoryId === item.id;
-                      return (
-                        <Pressable
-                          onPress={() => {
-                            setCategoryId(item.id);
-                            setOpenDropdown(null);
-                          }}
-                          style={({ pressed }) => [
-                            styles.dropdownItem,
-                            {
-                              borderColor: active ? theme.colors.primaryNeon : '#e2e8f0',
-                              backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
-                              opacity: pressed ? 0.92 : 1,
-                            },
-                          ]}
-                        >
-                          <Text style={styles.dropdownItemTitle} numberOfLines={1}>
-                            {item.name}
-                          </Text>
-                          {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
-                        </Pressable>
-                      );
-                    }}
-                  />
-
-                  <View style={styles.sheetDivider} />
-
-                  <Text style={[styles.label, { color: '#64748b', marginBottom: 8 }]}>הוסף קטגוריה</Text>
-                  <View style={{ flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, alignItems: 'center' }}>
-                    <TextInput
-                      value={newCategoryName}
-                      onChangeText={setNewCategoryName}
-                      placeholder="לדוגמה: פיננסים"
-                      placeholderTextColor="#94a3b8"
-                      style={[styles.dropdownSearch, { flex: 1, marginTop: 0 }]}
-                      returnKeyType="done"
-                      onSubmitEditing={async () => {
-                        const name = newCategoryName.trim();
-                        if (!name) return;
-                        const slug = slugify(name);
-                        const created = await cats.createCategory({
-                          name,
-                          slug,
-                          color: theme.colors.primary,
-                        });
-                        setCategoryId(created.id);
-                        setNewCategoryName('');
-                        setOpenDropdown(null);
-                      }}
-                    />
-                    <Pressable
-                      onPress={async () => {
-                        const name = newCategoryName.trim();
-                        if (!name) return;
-                        const slug = slugify(name);
-                        const created = await cats.createCategory({
-                          name,
-                          slug,
-                          color: theme.colors.primary,
-                        });
-                        setCategoryId(created.id);
-                        setNewCategoryName('');
-                        setOpenDropdown(null);
-                      }}
-                      style={({ pressed }) => [styles.addTagBtn, { opacity: pressed ? 0.9 : 1 }]}
-                    >
-                      <MaterialIcons name="add" size={18} color="#fff" />
-                    </Pressable>
-                  </View>
-                </View>
+                  {openDropdown === 'category' ? (
+                    <View style={styles.dropdownCard}>
+                      <ScrollView
+                        style={styles.dropdownList}
+                        contentContainerStyle={styles.dropdownListContent}
+                        showsVerticalScrollIndicator={false}
+                        nestedScrollEnabled
+                      >
+                        {categoryItems.map((item: any, index: number) => {
+                          const isNone = item.id === '__none__';
+                          const active = isNone ? !categoryId : categoryId === item.id;
+                          const isLast = index === categoryItems.length - 1;
+                          return (
+                            <Pressable
+                              key={item.id}
+                              onPress={() => {
+                                if (isNone) setCategoryId(undefined);
+                                else setCategoryId(item.id);
+                                setOpenDropdown(null);
+                              }}
+                              style={({ pressed }) => [
+                                styles.dropdownItem,
+                                {
+                                  borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+                                  borderBottomColor: '#e5e7eb',
+                                  backgroundColor: active ? theme.colors.primarySoft2 : '#ffffff',
+                                  opacity: pressed ? 0.92 : 1,
+                                },
+                              ]}
+                            >
+                              <View style={{ gap: 2, flex: 1 }}>
+                                <Text style={styles.dropdownItemTitle} numberOfLines={1}>
+                                  {item.name}
+                                </Text>
+                                {item.sub ? (
+                                  <Text style={styles.dropdownItemSub} numberOfLines={1}>
+                                    {item.sub}
+                                  </Text>
+                                ) : null}
+                              </View>
+                              {active ? <MaterialIcons name="check" size={18} color={theme.colors.primary} /> : null}
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  ) : null}
+                </>
               ) : null}
 
               <Pressable
@@ -779,7 +686,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                         setDueAt(undefined);
                         return;
                       }
-                      const d = new Date(`${v}T18:00:00`);
+                      const d = new Date(`${v}T${isPersonalQuickCreate ? '00' : '18'}:00:00`);
                       if (!Number.isNaN(d.getTime())) setDueAt(d.toISOString());
                     }}
                     style={{
@@ -794,18 +701,18 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 ) : null}
                 <View style={styles.pickerMain}>
                   <View style={[styles.pickerIconCircle, { backgroundColor: '#eff6ff' }]}>
-                    <MaterialIcons name="calendar-today" size={20} color={theme.colors.primary} />
+                    <MaterialIcons name="calendar-today" size={18} color={theme.colors.primary} />
                   </View>
-                  <View style={{ gap: 2, flexShrink: 1 }}>
-                    <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '600', textAlign: 'right' }}>
+                  <View style={styles.pickerMainTight}>
+                    <Text style={styles.pickerLabel}>
                       תאריך יעד
                     </Text>
-                    <Text style={{ color: '#0f172a', fontSize: 15, fontWeight: '900', textAlign: 'right' }}>
+                    <Text style={styles.pickerValue}>
                       {dateLabel}
                     </Text>
                   </View>
                 </View>
-                <MaterialIcons name="chevron-right" size={22} color="#94a3b8" />
+                <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
               </Pressable>
 
               {duePickerOpen && Platform.OS !== 'web' ? (
@@ -819,7 +726,9 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       return;
                     }
                     setDueDraft(selected);
-                    setDueAt(new Date(selected).toISOString());
+                    const d = new Date(selected);
+                    if (isPersonalQuickCreate) d.setHours(0, 0, 0, 0);
+                    setDueAt(d.toISOString());
                     setDuePickerOpen(false);
                   }}
                 />
@@ -835,6 +744,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               if (!canSave) return;
 
               if (mode === 'create') {
+                const me = session?.user?.id;
+                const isPersonalCreate = isPersonalQuickCreate || visibility === 'personal';
                 const base = {
                   description: description.trim(),
                   status,
@@ -842,12 +753,11 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   projectId,
                   categoryId,
                   dueAt,
-                  isPersonal: visibility === 'personal',
-                  ownerUserId: visibility === 'personal' ? session?.user?.id : undefined,
+                  isPersonal: isPersonalCreate,
+                  ownerUserId: isPersonalCreate ? me : undefined,
                 };
 
-                if (visibility === 'personal') {
-                  const me = session?.user?.id;
+                if (isPersonalCreate) {
                   const created = await createTask({ ...base, assigneeId: me });
                   if (created.assigneeId) {
                     await createTaskAssignedNotification({
@@ -890,6 +800,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   }
                 }
               } else if (id) {
+                const me = session?.user?.id;
                 await updateTask(id, {
                   description: description.trim(),
                   status,
@@ -899,7 +810,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   categoryId,
                   dueAt,
                   ...(visibility === 'personal'
-                    ? { isPersonal: true, ownerUserId: session?.user?.id, assigneeId: session?.user?.id }
+                    ? { isPersonal: true, ownerUserId: me, assigneeId: me }
                     : { isPersonal: false, ownerUserId: undefined }),
                 });
               }
@@ -975,56 +886,62 @@ const styles = StyleSheet.create({
   },
   pickerBtn: {
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   pickerMain: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 12, flexShrink: 1 },
-  pickerIconCircle: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  pickerMainTight: { gap: 1, flexShrink: 1 },
+  pickerLabel: { color: '#64748b', fontSize: 11, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  pickerValue: { color: '#0f172a', fontSize: 13, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  pickerIconCircle: { width: 30, height: 30, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   dropdownCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: 12,
+    padding: 8,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
+  dropdownList: { maxHeight: 200 },
+  dropdownListContent: { gap: 6, paddingBottom: 2 },
   dropdownSearch: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     backgroundColor: '#f8fafc',
     paddingRight: 42,
     paddingLeft: 14,
-    paddingVertical: 12,
-    fontSize: 14,
+    paddingVertical: 8,
+    fontSize: 12,
     fontWeight: '700',
     textAlign: 'right',
     writingDirection: 'rtl',
   },
   dropdownItem: {
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
   },
-  dropdownItemTitle: { fontSize: 14, fontWeight: '900', color: '#0f172a', textAlign: 'right' },
-  dropdownItemSub: { fontSize: 12, fontWeight: '700', color: '#64748b', textAlign: 'right' },
+  dropdownItemTitle: { fontSize: 12, fontWeight: '900', color: '#0f172a', textAlign: 'right', writingDirection: 'rtl' },
+  dropdownItemSub: { fontSize: 10, fontWeight: '700', color: '#64748b', textAlign: 'right', writingDirection: 'rtl' },
   footer: {
     position: 'absolute',
     left: 0,
@@ -1049,7 +966,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 10,
   },
-  saveTxt: { color: '#fff', fontSize: 18, fontWeight: '900' },
+  saveTxt: { color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -1130,7 +1047,15 @@ function SegmentOption({
         },
       ]}
     >
-      <Text style={{ color: active ? theme.colors.primary : '#64748b', fontWeight: active ? '900' : '700', fontSize: 13 }}>
+      <Text
+        style={{
+          color: active ? theme.colors.primary : '#64748b',
+          fontWeight: active ? '900' : '700',
+          fontSize: 13,
+          textAlign: 'right',
+          writingDirection: 'rtl',
+        }}
+      >
         {label}
       </Text>
     </Pressable>
@@ -1157,12 +1082,3 @@ function formatDueForPicker(iso: string) {
   return `${d.getDate()} ${months[d.getMonth()]}, ${time}`;
 }
 
-function slugify(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[\u0590-\u05FF]+/g, '') // remove hebrew chars from slug
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48) || `cat-${Date.now()}`;
-}

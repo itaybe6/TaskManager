@@ -1,12 +1,38 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, I18nManager, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, I18nManager, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabaseRest } from '../../../app/supabase/rest';
 import { useAuthStore } from '../../auth/store/authStore';
 import { useTasksStore } from '../../tasks/store/tasksStore';
+import { useDocumentsStore } from '../../documents/store/documentsStore';
+import { getPublicUrl } from '../../../app/supabase/storage';
 import { theme } from '../../../shared/ui/theme';
 import type { Client } from '../model/clientTypes';
+import type { AppDocument, DocumentKind } from '../../documents/model/documentTypes';
+
+function getKindLabel(kind: DocumentKind): string {
+  switch (kind) {
+    case 'receipt': return 'קבלה';
+    case 'invoice': return 'חשבונית';
+    case 'quote': return 'הצעת מחיר';
+    case 'contract': return 'חוזה';
+    case 'tax_invoice': return 'חשבונית מס';
+    case 'general': return 'כללי';
+    default: return 'אחר';
+  }
+}
+
+function getKindIcon(kind: DocumentKind): keyof typeof MaterialIcons.glyphMap {
+  switch (kind) {
+    case 'receipt': return 'receipt';
+    case 'invoice': return 'description';
+    case 'quote': return 'request-quote';
+    case 'contract': return 'assignment';
+    case 'tax_invoice': return 'receipt-long';
+    default: return 'insert-drive-file';
+  }
+}
 
 type DbClientRow = {
   id: string;
@@ -62,7 +88,9 @@ export function ClientPortalScreen({ navigation }: any) {
   const userId = useAuthStore((s) => s.session?.user?.id);
   const signOut = useAuthStore((s) => s.signOut);
   const tasks = useTasksStore();
+  const documents = useDocumentsStore();
 
+  const [activeTab, setActiveTab] = useState<'tasks' | 'documents'>('tasks');
   const [client, setClient] = useState<Client | null>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
@@ -98,7 +126,15 @@ export function ClientPortalScreen({ navigation }: any) {
     if (!client?.id) return;
     tasks.setQuery({ clientId: client.id, searchText: undefined, assigneeId: undefined, projectId: undefined });
     tasks.load();
+    documents.setFilter({ clientId: client.id });
   }, [client?.id]);
+
+  const handleOpenDocument = async (doc: AppDocument) => {
+    const url = getPublicUrl('documents', doc.storagePath);
+    if (url) {
+      await Linking.openURL(url);
+    }
+  };
 
   const header = useMemo(() => {
     return (
@@ -172,39 +208,97 @@ export function ClientPortalScreen({ navigation }: any) {
           </View>
         </View>
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>משימות</Text>
-          {tasks.isLoading ? <ActivityIndicator size="small" color={theme.colors.primary} /> : null}
+        <View style={styles.tabs}>
+          <Pressable
+            onPress={() => setActiveTab('tasks')}
+            style={[styles.tab, activeTab === 'tasks' && styles.tabActive]}
+          >
+            <Text style={[styles.tabTxt, activeTab === 'tasks' && styles.tabTxtActive]}>משימות</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setActiveTab('documents')}
+            style={[styles.tab, activeTab === 'documents' && styles.tabActive]}
+          >
+            <Text style={[styles.tabTxt, activeTab === 'documents' && styles.tabTxtActive]}>מסמכים</Text>
+          </Pressable>
         </View>
 
-        <FlatList
-          data={tasks.items}
-          keyExtractor={(t) => t.id}
-          contentContainerStyle={{ paddingBottom: 40, gap: 10 }}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
-              style={({ pressed }) => [styles.taskCard, pressed && { opacity: 0.9 }]}
-            >
-              <View style={styles.taskTopRow}>
-                <Text style={styles.taskTitle} numberOfLines={2}>
-                  {item.description}
-                </Text>
-                <View style={[styles.badge, item.status === 'done' ? styles.badgeDone : styles.badgeTodo]}>
-                  <Text style={styles.badgeTxt}>{item.status === 'done' ? 'נעשה' : 'לא נעשה'}</Text>
-                </View>
-              </View>
-              <Text style={styles.taskMeta}>
-                {item.dueAt ? `יעד: ${new Date(item.dueAt).toLocaleDateString('he-IL')}` : 'ללא תאריך יעד'}
-              </Text>
-            </Pressable>
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <Text style={styles.muted}>אין משימות עדיין</Text>
+        {activeTab === 'tasks' ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>משימות</Text>
+              {tasks.isLoading ? <ActivityIndicator size="small" color={theme.colors.primary} /> : null}
             </View>
-          }
-        />
+
+            <FlatList
+              data={tasks.items}
+              keyExtractor={(t) => t.id}
+              contentContainerStyle={{ paddingBottom: 40, gap: 10 }}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
+                  style={({ pressed }) => [styles.taskCard, pressed && { opacity: 0.9 }]}
+                >
+                  <View style={styles.taskTopRow}>
+                    <Text style={styles.taskTitle} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                    <View style={[styles.badge, item.status === 'done' ? styles.badgeDone : styles.badgeTodo]}>
+                      <Text style={styles.badgeTxt}>{item.status === 'done' ? 'נעשה' : 'לא נעשה'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.taskMeta}>
+                    {item.dueAt ? `יעד: ${new Date(item.dueAt).toLocaleDateString('he-IL')}` : 'ללא תאריך יעד'}
+                  </Text>
+                </Pressable>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                  <Text style={styles.muted}>אין משימות עדיין</Text>
+                </View>
+              }
+            />
+          </>
+        ) : (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>מסמכים</Text>
+              {documents.isLoading ? <ActivityIndicator size="small" color={theme.colors.primary} /> : null}
+            </View>
+
+            <FlatList
+              data={documents.items}
+              keyExtractor={(d) => d.id}
+              contentContainerStyle={{ paddingBottom: 40, gap: 10 }}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => handleOpenDocument(item)}
+                  style={({ pressed }) => [styles.taskCard, pressed && { opacity: 0.9 }]}
+                >
+                  <View style={styles.taskTopRow}>
+                    <View style={styles.docIconBox}>
+                      <MaterialIcons name={getKindIcon(item.kind)} size={20} color={theme.colors.primary} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.taskTitle} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.docMeta}>
+                        {getKindLabel(item.kind)} • {new Date(item.createdAt).toLocaleDateString('he-IL')}
+                      </Text>
+                    </View>
+                    <MaterialIcons name="chevron-left" size={20} color={theme.colors.textMuted} />
+                  </View>
+                </Pressable>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                  <Text style={styles.muted}>אין מסמכים עדיין</Text>
+                </View>
+              }
+            />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -241,6 +335,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.18)',
   },
   content: { flex: 1, paddingHorizontal: 18, paddingTop: 16, gap: 14 },
+  tabs: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  tabTxt: {
+    fontWeight: '800',
+    fontSize: 14,
+    color: theme.colors.textMuted,
+  },
+  tabTxtActive: {
+    color: '#fff',
+  },
   clientCard: {
     borderRadius: 18,
     padding: 14,
@@ -283,6 +402,22 @@ const styles = StyleSheet.create({
   badgeTodo: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' },
   badgeDone: { backgroundColor: '#ecfdf5', borderColor: '#d1fae5' },
   badgeTxt: { fontWeight: '900', fontSize: 12, textAlign: 'right', writingDirection: 'rtl' },
+
+  docIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: theme.colors.primarySoft2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docMeta: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontWeight: '700',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
 
   emptyBox: { paddingVertical: 30, alignItems: 'center' },
   muted: { color: theme.colors.textMuted, fontWeight: '700', marginTop: 8, textAlign: 'center' },

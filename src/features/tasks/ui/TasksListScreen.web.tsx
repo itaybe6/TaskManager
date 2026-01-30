@@ -675,3 +675,324 @@ const PlatformWebScrollFix = {
   scrollbarWidth: 'none',
   msOverflowStyle: 'none',
 };
+
+function TasksFiltersBar(props: {
+  chrome: {
+    bg: string;
+    surface: string;
+    surface2: string;
+    border: string;
+    muted: string;
+    text: string;
+    shadow: string;
+    primaryLight: string;
+    navItem: string;
+  };
+  query: { status?: TaskStatus; searchText?: string; categoryId?: string; assigneeId?: string };
+  setQuery: (q: Partial<{ status?: TaskStatus; searchText?: string; categoryId?: string; assigneeId?: string }>) => void;
+  users: Array<{ id: string; displayName: string }>;
+  categories: Array<{ id: string; name: string }>;
+}) {
+  const [open, setOpen] = useState<null | 'status' | 'assignee' | 'category'>(null);
+  const [barHeight, setBarHeight] = useState(0);
+
+  const statusLabel = props.query.status === 'done' ? 'נעשה' : props.query.status === 'todo' ? 'לא נעשה' : 'הכל';
+  const assigneeLabel = props.users.find((u) => u.id === props.query.assigneeId)?.displayName ?? 'אחראי';
+  const categoryLabel = props.categories.find((c) => c.id === props.query.categoryId)?.name ?? 'קטגוריה';
+
+  return (
+    <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, position: 'relative', zIndex: 50 }}>
+      <View
+        onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
+        style={[filterStyles.bar, { backgroundColor: props.chrome.surface, borderColor: props.chrome.border }]}
+      >
+        <View style={filterStyles.leftIcons}>
+          <IconSquare icon="view-agenda" />
+          <IconSquare icon="tune" />
+        </View>
+
+        <View style={filterStyles.center}>
+          <DropPill
+            label={`סטטוס: ${statusLabel}`}
+            active={!!props.query.status}
+            onPress={() => setOpen(open === 'status' ? null : 'status')}
+          />
+          <DropPill
+            label={assigneeLabel}
+            active={!!props.query.assigneeId}
+            onPress={() => setOpen(open === 'assignee' ? null : 'assignee')}
+          />
+          <DropPill
+            label={categoryLabel}
+            active={!!props.query.categoryId}
+            onPress={() => setOpen(open === 'category' ? null : 'category')}
+          />
+        </View>
+
+        <View style={filterStyles.searchWrap}>
+          <View pointerEvents="none" style={filterStyles.searchIcon}>
+            <MaterialIcons name="search" size={18} color="#9ca3af" />
+          </View>
+          <TextInput
+            value={props.query.searchText ?? ''}
+            onChangeText={(t) => props.setQuery({ searchText: t.trim() ? t : undefined })}
+            placeholder="חיפוש מהיר..."
+            placeholderTextColor="#9ca3af"
+            style={filterStyles.search}
+          />
+        </View>
+
+        <Pressable
+          onPress={() => {
+            props.setQuery({ searchText: undefined, status: undefined, assigneeId: undefined, categoryId: undefined });
+            setOpen(null);
+          }}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, paddingHorizontal: 8, paddingVertical: 8 }]}
+        >
+          <Text style={{ color: theme.colors.primaryNeon, fontWeight: '900' }}>איפוס</Text>
+        </Pressable>
+      </View>
+
+      {open ? (
+        <View style={filterStyles.overlay} pointerEvents="box-none">
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setOpen(null)} />
+          <View
+            style={[
+              filterStyles.popover,
+              {
+                borderColor: props.chrome.border,
+                backgroundColor: props.chrome.surface,
+                top: (barHeight || 54) + 8,
+                right: 0,
+              },
+            ]}
+          >
+            {open === 'status' ? (
+              <>
+                <MenuItem
+                  label="הכל"
+                  active={!props.query.status}
+                  onPress={() => {
+                    props.setQuery({ status: undefined });
+                    setOpen(null);
+                  }}
+                />
+                <MenuItem
+                  label="לא נעשה"
+                  active={props.query.status === 'todo'}
+                  onPress={() => {
+                    props.setQuery({ status: 'todo' });
+                    setOpen(null);
+                  }}
+                />
+                <MenuItem
+                  label="נעשה"
+                  active={props.query.status === 'done'}
+                  onPress={() => {
+                    props.setQuery({ status: 'done' });
+                    setOpen(null);
+                  }}
+                />
+              </>
+            ) : null}
+
+            {open === 'assignee' ? (
+              <>
+                <MenuItem
+                  label="הכל"
+                  active={!props.query.assigneeId}
+                  onPress={() => {
+                    props.setQuery({ assigneeId: undefined });
+                    setOpen(null);
+                  }}
+                />
+                {props.users.map((u) => (
+                  <MenuItem
+                    key={u.id}
+                    label={u.displayName}
+                    active={props.query.assigneeId === u.id}
+                    onPress={() => {
+                      props.setQuery({ assigneeId: u.id });
+                      setOpen(null);
+                    }}
+                  />
+                ))}
+              </>
+            ) : null}
+
+            {open === 'category' ? (
+              <>
+                <MenuItem
+                  label="כל הקטגוריות"
+                  active={!props.query.categoryId}
+                  onPress={() => {
+                    props.setQuery({ categoryId: undefined });
+                    setOpen(null);
+                  }}
+                />
+                {props.categories.map((c) => (
+                  <MenuItem
+                    key={c.id}
+                    label={c.name}
+                    active={props.query.categoryId === c.id}
+                    onPress={() => {
+                      props.setQuery({ categoryId: c.id });
+                      setOpen(null);
+                    }}
+                  />
+                ))}
+              </>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function IconSquare({ icon }: { icon: keyof typeof MaterialIcons.glyphMap }) {
+  return (
+    <View style={filterStyles.iconSquare}>
+      <MaterialIcons name={icon} size={18} color={theme.colors.primaryNeon} />
+    </View>
+  );
+}
+
+function DropPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        filterStyles.dropPill,
+        {
+          borderColor: active ? theme.colors.primaryBorder : 'rgba(15, 23, 42, 0.10)',
+          backgroundColor: active ? theme.colors.primarySoft2 : '#fff',
+          opacity: pressed ? 0.9 : 1,
+        },
+      ]}
+    >
+      <Text
+        style={[filterStyles.dropPillTxt, { color: active ? theme.colors.primaryNeon : '#334155' }]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <MaterialIcons name="keyboard-arrow-down" size={18} color={active ? theme.colors.primaryNeon : '#94A3B8'} />
+    </Pressable>
+  );
+}
+
+function MenuItem({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        filterStyles.menuItem,
+        { backgroundColor: active ? 'rgba(127, 0, 255, 0.08)' : 'transparent', opacity: pressed ? 0.9 : 1 },
+      ]}
+    >
+      <Text style={{ fontWeight: active ? '900' : '800', color: active ? theme.colors.primaryNeon : '#334155' }} numberOfLines={1}>
+        {label}
+      </Text>
+      {active ? (
+        <MaterialIcons name="check" size={18} color={theme.colors.primaryNeon} />
+      ) : (
+        <View style={{ width: 18, height: 18 }} />
+      )}
+    </Pressable>
+  );
+}
+
+const filterStyles = StyleSheet.create({
+  bar: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
+  },
+  leftIcons: {
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconSquare: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primarySoft2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  center: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dropPill: {
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: 220,
+  },
+  dropPillTxt: { fontSize: 13, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', maxWidth: 180 },
+  searchWrap: {
+    width: 240,
+    position: 'relative',
+  },
+  searchIcon: { position: 'absolute', right: 12, top: 10 },
+  search: {
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.10)',
+    paddingRight: 38,
+    paddingLeft: 12,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    backgroundColor: '#fff',
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  popover: {
+    position: 'absolute',
+    width: 320,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
+  },
+  menuItem: {
+    height: 42,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+});

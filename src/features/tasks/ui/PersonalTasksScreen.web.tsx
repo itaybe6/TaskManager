@@ -131,127 +131,110 @@ export function PersonalTasksScreen({ navigation }: any) {
   return (
     <WebSidebarLayout navigation={navigation} active="personal">
       <SafeAreaView style={[styles.page, { backgroundColor: colors.bg }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.h1}>משימות אישיות</Text>
-          <View style={styles.headerActions}>
-            <Pressable style={({ pressed }) => [styles.headerIconBtn, { opacity: pressed ? 0.9 : 1 }]}>
-              <MaterialIcons name="search" size={20} color="#6b7280" />
-            </Pressable>
-          </View>
-        </View>
-
         <View style={styles.content}>
-          <View style={styles.agendaHeader}>
-            <View style={styles.agendaNavRow}>
-              <Pressable
-                onPress={() => setSelectedDate((d) => addDays(d, -1))}
-                style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.92 : 1 }]}
-              >
-                <MaterialIcons name={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'} size={20} color="#111827" />
-                <Text style={styles.navBtnTxt}>יום קודם</Text>
-              </Pressable>
+          <View style={styles.header}>
+            <View style={styles.headerTopRow}>
+              <View style={styles.headerIcons}>
+                <Pressable style={({ pressed }) => [styles.iconCircle, styles.iconPrimary, { opacity: pressed ? 0.92 : 1 }]}>
+                  <MaterialIcons name="person" size={20} color="#fff" />
+                </Pressable>
+                <Pressable style={({ pressed }) => [styles.iconCircle, styles.iconGhost, { opacity: pressed ? 0.92 : 1 }]}>
+                  <MaterialIcons name="lock" size={18} color={colors.primary} />
+                </Pressable>
+              </View>
+              <View />
+            </View>
 
-              <Pressable
-                onPress={() => {
-                  const d = new Date();
-                  d.setHours(0, 0, 0, 0);
-                  setSelectedDate(d);
+            <Text style={styles.h1}>משימות אישיות</Text>
+
+            <View style={styles.agendaHeader}>
+              <View style={styles.agendaNavWrap}>
+                <Pressable onPress={() => setSelectedDate((d) => addDays(d, -1))} style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.9 : 1 }]}>
+                  <MaterialIcons name={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'} size={18} color={colors.muted} />
+                  <Text style={styles.navBtnTxt}>יום קודם</Text>
+                </Pressable>
+
+                <Text style={styles.todayTxt}>היום</Text>
+
+                <Pressable onPress={() => setSelectedDate((d) => addDays(d, +1))} style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.9 : 1 }]}>
+                  <Text style={styles.navBtnTxt}>יום הבא</Text>
+                  <MaterialIcons name={I18nManager.isRTL ? 'chevron-left' : 'chevron-right'} size={18} color={colors.muted} />
+                </Pressable>
+              </View>
+
+              <View style={styles.monthRow}>
+                <Pressable onPress={() => setShowUnscheduled((v) => !v)} style={({ pressed }) => [styles.unscheduledBtn, { opacity: pressed ? 0.9 : 1 }]}>
+                  <View style={[styles.checkbox, { backgroundColor: showUnscheduled ? colors.primary : 'transparent' }]}>
+                    {showUnscheduled ? <MaterialIcons name="check" size={14} color="#fff" /> : null}
+                  </View>
+                  <Text style={styles.unscheduledTxt}>הצג ללא תאריך</Text>
+                </Pressable>
+                <Text style={styles.monthTxt}>{formatHebMonthYear(selectedDate)}</Text>
+              </View>
+
+              <FlatList
+                horizontal
+                data={weekDaysFor(selectedDate)}
+                keyExtractor={(d) => toYmdLocal(d)}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.weekStrip}
+                renderItem={({ item: d }) => {
+                  const isSelected = toYmdLocal(d) === selectedKey;
+                  const isToday = isSameDay(d, new Date());
+                  return (
+                    <Pressable
+                      onPress={() => setSelectedDate(startOfDay(d))}
+                      style={({ pressed }) => [
+                        styles.dayChip,
+                        {
+                          height: isSelected ? 80 : 75,
+                          backgroundColor: isSelected ? colors.primary : colors.surface,
+                          borderColor: isSelected ? 'transparent' : colors.border,
+                          shadowColor: isSelected ? colors.primary : '#000',
+                          shadowOpacity: isSelected ? 0.22 : 0.06,
+                          shadowRadius: isSelected ? 14 : 10,
+                          elevation: isSelected ? 6 : 2,
+                          transform: [{ scale: isSelected ? 1.05 : pressed ? 0.98 : 1 }],
+                          opacity: pressed ? 0.92 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.dayDow, { color: isSelected ? '#fff' : '#9ca3af' }]}>{hebDowShort(d)}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[styles.dayNum, { color: isSelected ? '#fff' : colors.text }]}>{d.getDate()}</Text>
+                        {isToday ? (
+                          <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: isSelected ? '#fff' : colors.primary, opacity: 0.9 }} />
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
                 }}
-                style={({ pressed }) => [styles.todayBtn, { opacity: pressed ? 0.92 : 1 }]}
-              >
-                <Text style={styles.todayBtnTxt}>היום</Text>
-              </Pressable>
+              />
 
-              <Pressable
-                onPress={() => setSelectedDate((d) => addDays(d, +1))}
-                style={({ pressed }) => [styles.navBtn, { opacity: pressed ? 0.92 : 1 }]}
-              >
-                <Text style={styles.navBtnTxt}>יום הבא</Text>
-                <MaterialIcons name={I18nManager.isRTL ? 'chevron-left' : 'chevron-right'} size={20} color="#111827" />
-              </Pressable>
-            </View>
-
-            <View style={styles.monthRow}>
-              <Text style={styles.monthTxt}>{formatHebMonthYear(selectedDate)}</Text>
-              <Pressable
-                onPress={() => setShowUnscheduled((v) => !v)}
-                style={({ pressed }) => [
-                  styles.unscheduledPill,
-                  { backgroundColor: showUnscheduled ? 'rgba(124, 58, 237, 0.12)' : '#FFFFFF', opacity: pressed ? 0.92 : 1 },
-                ]}
-              >
-                <MaterialIcons
-                  name={showUnscheduled ? 'check-circle' : 'radio-button-unchecked'}
-                  size={16}
-                  color={showUnscheduled ? colors.primary : '#9ca3af'}
-                  style={{ marginLeft: 6 }}
+              <View style={styles.searchWrap}>
+                <View pointerEvents="none" style={styles.searchIcon}>
+                  <MaterialIcons name="search" size={20} color={colors.primary} />
+                </View>
+                <TextInput
+                  value={searchText}
+                  onChangeText={(t) => setSearchText(t)}
+                  placeholder="חפש משימה אישית..."
+                  placeholderTextColor="#9ca3af"
+                  style={styles.searchInput}
                 />
-                <Text style={styles.unscheduledTxt}>הצג ללא תאריך</Text>
-              </Pressable>
+              </View>
+
+              <View style={styles.statusWrap}>
+                <StatusPill label="הכל" active={activeKey === 'all'} onPress={() => setStatus(undefined)} />
+                <StatusPill label="לא נעשה" active={activeKey === 'todo'} onPress={() => setStatus('todo')} />
+                <StatusPill label="נעשה" active={activeKey === 'done'} onPress={() => setStatus('done')} />
+              </View>
             </View>
-
-            <FlatList
-              horizontal
-              data={weekDaysFor(selectedDate)}
-              keyExtractor={(d) => toYmdLocal(d)}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.weekStrip}
-              renderItem={({ item: d }) => {
-                const isSelected = toYmdLocal(d) === selectedKey;
-                const isToday = isSameDay(d, new Date());
-                return (
-                  <Pressable
-                    onPress={() => setSelectedDate(startOfDay(d))}
-                    style={({ pressed }) => [
-                      styles.dayChip,
-                      {
-                        backgroundColor: isSelected ? colors.primary : '#FFFFFF',
-                        borderColor: isSelected ? 'transparent' : '#E5E7EB',
-                        opacity: pressed ? 0.92 : 1,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.dayDow, { color: isSelected ? '#fff' : '#111827' }]}>{hebDowShort(d)}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={[styles.dayNum, { color: isSelected ? '#fff' : '#111827' }]}>{d.getDate()}</Text>
-                      {isToday ? (
-                        <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: isSelected ? '#fff' : colors.primary, opacity: 0.9 }} />
-                      ) : null}
-                    </View>
-                  </Pressable>
-                );
-              }}
-            />
-          </View>
-
-          <View style={styles.searchWrap}>
-            <View pointerEvents="none" style={styles.searchIcon}>
-              <MaterialIcons name="search" size={22} color={colors.primary} />
-            </View>
-            <TextInput
-              value={searchText}
-              onChangeText={(t) => setSearchText(t)}
-              placeholder="חפש משימה אישית..."
-              placeholderTextColor="#9ca3af"
-              style={styles.searchInput}
-            />
-          </View>
-
-          <View style={styles.statusRow}>
-            <StatusPill label="הכל" active={activeKey === 'all'} onPress={() => setStatus(undefined)} />
-            <StatusPill label="לא נעשה" active={activeKey === 'todo'} onPress={() => setStatus('todo')} />
-            <StatusPill label="נעשה" active={activeKey === 'done'} onPress={() => setStatus('done')} />
           </View>
 
           <View style={styles.sectionRow}>
-            <View style={styles.sectionTitleRow}>
-              <Text style={styles.sectionTitle}>{formatHebDayLabel(selectedDate)}</Text>
-              <View style={styles.sectionDot} />
-            </View>
-            <View style={styles.sectionCountPill}>
-              <Text style={styles.sectionCountTxt}>{headerCountLabel}</Text>
-            </View>
+            <Text style={styles.sectionCountTxt}>{headerCountLabel}</Text>
+            <Text style={styles.sectionTitle}>{formatHebDayLabel(selectedDate)}</Text>
           </View>
 
           <FlatList
@@ -303,9 +286,15 @@ export function PersonalTasksScreen({ navigation }: any) {
             }}
             ListEmptyComponent={
               !isLoading ? (
-                <View style={styles.empty}>
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyIconWrap}>
+                    <View style={styles.emptyIconInner}>
+                      <MaterialIcons name="event-available" size={34} color={colors.primary} />
+                    </View>
+                    <View style={styles.emptyDot} />
+                  </View>
                   <Text style={styles.emptyTitle}>אין משימות ליום הזה</Text>
-                  <Text style={styles.emptySub}>בחר יום אחר למעלה או הוסף משימה חדשה.</Text>
+                  <Text style={styles.emptySub}>נסה לבחור יום אחר למעלה, או הוסף משימה חדשה כדי להתחיל את היום ברגל ימין.</Text>
                 </View>
               ) : null
             }
@@ -318,7 +307,7 @@ export function PersonalTasksScreen({ navigation }: any) {
             navigation.navigate('TaskUpsert', {
               mode: 'create',
               defaultVisibility: 'personal',
-              defaultDueAt: toIsoAtHour(selectedDate, 18, 0),
+              defaultDueAt: toIsoAtHour(selectedDate, 0, 0),
             })
           }
           style={({ pressed }) => [styles.fab, { opacity: pressed ? 0.92 : 1 }]}
@@ -338,13 +327,12 @@ function StatusPill({ label, active, onPress }: { label: string; active: boolean
       style={({ pressed }) => [
         styles.pill,
         {
-          backgroundColor: active ? colors.primary : '#FFFFFF',
-          borderColor: active ? 'transparent' : '#E5E7EB',
+          backgroundColor: active ? colors.primary : 'transparent',
           opacity: pressed ? 0.92 : 1,
         },
       ]}
     >
-      <Text style={[styles.pillTxt, { color: active ? '#fff' : '#4b5563' }]}>{label}</Text>
+      <Text style={[styles.pillTxt, { color: active ? '#fff' : colors.muted, fontWeight: active ? '900' : '700' }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -390,67 +378,40 @@ function formatHebDateTime(iso: string) {
 }
 
 const colors = {
-  primary: '#7C3AED',
-  bg: '#F3F4F6',
+  primary: '#5B508C',
+  secondary: '#7C71B0',
+  accent: '#FF6B6B',
+  bg: '#F8F9FE',
+  surface: '#FFFFFF',
+  text: '#1F2937',
+  muted: '#6B7280',
+  border: '#EEF2F7',
 } as const;
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
-  header: {
-    height: 76,
-    backgroundColor: 'rgba(255,255,255,0.86)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingHorizontal: 24,
-    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  h1: { fontSize: 22, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 18, maxWidth: 860, width: '100%', alignSelf: 'center' },
+  header: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 14, backgroundColor: colors.bg },
+  headerTopRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  headerIcons: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  iconCircle: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  iconPrimary: { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  iconGhost: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  h1: { fontSize: 30, fontWeight: '900', color: colors.text, textAlign: 'right', writingDirection: 'rtl', marginTop: 4, marginBottom: 14, letterSpacing: -0.3 },
+  content: { flex: 1, paddingHorizontal: 20, paddingTop: 0, maxWidth: 860, width: '100%', alignSelf: 'center' },
 
   agendaHeader: { gap: 12, marginBottom: 10 },
-  agendaNavRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  navBtn: {
-    height: 38,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  navBtnTxt: { fontSize: 12, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
-  todayBtn: { height: 38, paddingHorizontal: 16, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
-  todayBtnTxt: { fontSize: 13, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
-  monthRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  monthTxt: { fontSize: 16, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
-  unscheduledPill: {
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unscheduledTxt: { color: '#111827', fontSize: 12, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  weekStrip: { gap: 10, paddingBottom: 4 },
+  agendaNavWrap: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 6, borderRadius: 20, flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' },
+  navBtn: { height: 40, paddingHorizontal: 12, borderRadius: 16, flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 },
+  navBtnTxt: { fontSize: 12, fontWeight: '800', color: colors.muted, textAlign: 'right', writingDirection: 'rtl' },
+  todayTxt: { fontSize: 13, fontWeight: '900', color: colors.primary, textAlign: 'right', writingDirection: 'rtl' },
+  monthRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 4 },
+  monthTxt: { fontSize: 18, fontWeight: '900', color: colors.text, textAlign: 'right', writingDirection: 'rtl' },
+  unscheduledBtn: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 },
+  checkbox: { width: 20, height: 20, borderRadius: 999, borderWidth: 2, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
+  unscheduledTxt: { color: colors.muted, fontSize: 13, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  weekStrip: { gap: 10, paddingBottom: 4, paddingTop: 2 },
   dayChip: {
     width: 64,
-    height: 66,
     borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
@@ -462,38 +423,31 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
-  dayDow: { fontWeight: '900', fontSize: 12, textAlign: 'center' },
-  dayNum: { fontWeight: '900', fontSize: 16, textAlign: 'center' },
+  dayDow: { fontWeight: '700', fontSize: 12, textAlign: 'center' },
+  dayNum: { fontWeight: '900', fontSize: 20, textAlign: 'center' },
 
   searchWrap: { position: 'relative' },
   searchIcon: { position: 'absolute', right: 14, top: 14, opacity: 0.95 },
   searchInput: {
-    height: 54,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    paddingRight: 54,
+    height: 48,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    paddingRight: 48,
     paddingLeft: 16,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text,
     textAlign: 'right',
     writingDirection: 'rtl',
     shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.04,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
   },
-  statusRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', gap: 10, marginTop: 16 },
-  pill: {
-    height: 40,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillTxt: { fontSize: 13, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
+  statusWrap: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', padding: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, gap: 6, marginTop: 16 },
+  pill: { flex: 1, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  pillTxt: { fontSize: 13, textAlign: 'right', writingDirection: 'rtl' },
   sectionRow: {
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
@@ -501,16 +455,8 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginBottom: 10,
   },
-  sectionTitleRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
-  sectionDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: colors.primary },
-  sectionCountPill: {
-    backgroundColor: 'rgba(124, 58, 237, 0.12)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  sectionCountTxt: { color: colors.primary, fontSize: 12, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  sectionTitle: { fontSize: 20, fontWeight: '900', color: colors.text, textAlign: 'right', writingDirection: 'rtl' },
+  sectionCountTxt: { color: '#9CA3AF', fontSize: 13, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
@@ -550,9 +496,9 @@ const styles = StyleSheet.create({
   sectionHeaderSub: { fontSize: 12, fontWeight: '800', color: '#6b7280', textAlign: 'right', writingDirection: 'rtl' },
 
   agendaRow: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 14,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -565,16 +511,20 @@ const styles = StyleSheet.create({
   timePill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: '#F3F4F6' },
   timePillTxt: { color: '#111827', fontWeight: '900', fontSize: 12 },
 
-  empty: { paddingVertical: 24, gap: 6 },
-  emptyTitle: { fontSize: 16, fontWeight: '900', color: '#111827', textAlign: 'right' },
-  emptySub: { fontSize: 13, fontWeight: '700', color: '#6b7280', textAlign: 'right' },
+  emptyWrap: { paddingVertical: 30, alignItems: 'center', gap: 10 },
+  emptyIconWrap: { width: 96, height: 96, borderRadius: 999, alignItems: 'center', justifyContent: 'center', position: 'relative', backgroundColor: 'rgba(91,80,140,0.10)' },
+  emptyIconInner: { width: 72, height: 72, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(124,113,176,0.12)' },
+  emptyDot: { position: 'absolute', top: 18, right: 20, width: 12, height: 12, borderRadius: 999, backgroundColor: colors.accent },
+  emptyTitle: { fontSize: 20, fontWeight: '900', color: colors.text, textAlign: 'right', writingDirection: 'rtl' },
+  emptySub: { fontSize: 13, fontWeight: '700', color: colors.muted, textAlign: 'center', maxWidth: 320, lineHeight: 20 },
   fab: {
     position: 'absolute',
     left: 24,
     bottom: 24,
     backgroundColor: colors.primary,
-    borderRadius: 22,
-    paddingHorizontal: 18,
+    borderRadius: 999,
+    paddingLeft: 20,
+    paddingRight: 16,
     paddingVertical: 14,
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',

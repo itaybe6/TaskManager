@@ -5,6 +5,7 @@ import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
 import { TaskUpsertScreen } from '../../features/tasks/ui/TaskUpsertScreen';
 import { ClientsListScreen } from '../../features/clients/ui/ClientsListScreen';
 import { ClientUpsertScreen } from '../../features/clients/ui/ClientUpsertScreen';
+import { ClientDetailsScreen } from '../../features/clients/ui/ClientDetailsScreen';
 import { ProjectDetailsScreen } from '../../features/projects/ui/ProjectDetailsScreen';
 import { ProjectUpsertScreen } from '../../features/projects/ui/ProjectUpsertScreen';
 import { LoginScreen } from '../../features/auth/ui/LoginScreen';
@@ -59,6 +60,7 @@ export function RootNavigator() {
         <>
           <Stack.Screen name="HomeTabs" component={TabsNavigator} />
           <Stack.Screen name="ClientsList" component={ClientsListScreen} />
+          <Stack.Screen name="ClientDetails" component={ClientDetailsScreen} />
           <Stack.Screen name="ClientUpsert" component={ClientUpsertScreen} />
           <Stack.Screen name="ProjectDetails" component={ProjectDetailsScreen} />
           <Stack.Screen name="ProjectUpsert" component={ProjectUpsertScreen} />

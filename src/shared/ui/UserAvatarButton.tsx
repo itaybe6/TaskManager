@@ -12,10 +12,11 @@ type Props = {
   style?: ViewStyle;
 };
 
-export function UserAvatarButton({ size = 40, backgroundColor = theme.colors.primary, style }: Props) {
+export function UserAvatarButton({ size = 40, backgroundColor, style }: Props) {
   const userId = useAuthStore((s) => s.session?.user?.id);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const finalBg = backgroundColor ?? theme.colors.primary;
 
   useEffect(() => {
     if (!userId) return;
@@ -74,7 +75,7 @@ export function UserAvatarButton({ size = 40, backgroundColor = theme.colors.pri
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [pressed && { opacity: 0.9 }]}>
-      <View style={[styles.wrap, { width: size, height: size, borderRadius: size / 2, backgroundColor }, style]}>
+      <View style={[styles.wrap, { width: size, height: size, borderRadius: size / 2, backgroundColor: finalBg }, style]}>
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.img} resizeMode="cover" />
         ) : (

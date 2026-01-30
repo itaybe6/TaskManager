@@ -16,12 +16,17 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { ClientsListScreen as ClientsListScreenWeb } from './ClientsListScreen.web';
 
 export function ClientsListScreen({ navigation, route }: any) {
   const { items, load, isLoading, query, setQuery, error } = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
   const isWeb = Platform.OS === 'web';
   const isTabRoot = route?.name === 'Clients';
+
+  if (isWeb) {
+    return <ClientsListScreenWeb navigation={navigation} />;
+  }
 
   useEffect(() => {
     load();
@@ -257,7 +262,7 @@ export function ClientsListScreen({ navigation, route }: any) {
         )}
         contentContainerStyle={[
           {
-            paddingHorizontal: 24,
+            paddingHorizontal: 0,
             paddingBottom: isWeb ? 120 : 160,
             gap: 16,
             alignItems: 'stretch',
@@ -292,7 +297,7 @@ const colors = {
 };
 
 const styles = StyleSheet.create({
-  headerWrap: { width: '100%', alignSelf: 'stretch', paddingHorizontal: 24, paddingTop: 10, paddingBottom: 10, gap: 14 },
+  headerWrap: { width: '100%', alignSelf: 'stretch', paddingHorizontal: 0, paddingTop: 10, paddingBottom: 10, gap: 14 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -392,7 +397,7 @@ const styles = StyleSheet.create({
   errorTxt: { color: '#ef4444', fontWeight: '700', textAlign: 'right' },
   fab: {
     position: 'absolute',
-    right: 24,
+    right: 16,
     bottom: 92,
     height: 56,
     borderRadius: 999,
