@@ -111,7 +111,6 @@ export function SettingsScreen({ navigation }: any) {
         <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
           <MaterialIcons name={I18nManager.isRTL ? 'arrow-forward' : 'arrow-back'} size={22} color={palette.muted} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: palette.text }]}>הגדרות</Text>
         <View style={{ width: 22 }} />
       </View>
 

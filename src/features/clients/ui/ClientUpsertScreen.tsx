@@ -272,7 +272,6 @@ export function ClientUpsertScreen({ route, navigation }: any) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={layout.frameStyle}>
           <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.headerBorder }]}>
-            <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#111827' }]}>{title}</Text>
             <Pressable
               onPress={() => navigation.goBack()}
               style={({ pressed }) => [styles.headerCancel, { opacity: pressed ? 0.85 : 1 }]}

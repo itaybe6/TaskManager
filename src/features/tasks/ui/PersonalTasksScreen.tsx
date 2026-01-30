@@ -139,10 +139,20 @@ export function PersonalTasksScreen({ navigation }: any) {
     const active = (status ?? 'all') as 'all' | 'todo' | 'done';
 
     return (
-      <View style={[styles.headerWrap, { backgroundColor: isDark ? UI.surfaceDark : UI.bgLight }]}>
+      <View
+        style={[
+          styles.headerWrap,
+          {
+            paddingHorizontal: layout.paddingX,
+            backgroundColor: isDark ? 'rgba(18,18,18,0.96)' : 'rgba(246,247,251,0.96)',
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)',
+          },
+        ]}
+      >
         <View style={styles.topHeader}>
           <View style={styles.brandRow}>
-            <Text style={[styles.title, { color: isDark ? UI.textDark : UI.textLight }]}>משימות אישיות</Text>
+            <View />
           </View>
 
           <View style={styles.headerActions}>
@@ -458,7 +468,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   listContent: { paddingBottom: 160, gap: 14 },
 
-  headerWrap: { paddingTop: 18, paddingBottom: 14 },
+  headerWrap: { paddingTop: 12, paddingBottom: 16 },
   topHeader: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
@@ -472,7 +482,7 @@ const styles = StyleSheet.create({
   },
   brandRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '900',
     textAlign: 'right',
     writingDirection: 'rtl',

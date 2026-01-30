@@ -258,8 +258,6 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: '#ffffff' }]}>
       <View style={layout.frameStyle}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{screenTitle}</Text>
-
           <Pressable
             onPress={() => navigation.goBack()}
             style={({ pressed }) => [styles.cancelBtn, { opacity: pressed ? 0.75 : 1 }]}

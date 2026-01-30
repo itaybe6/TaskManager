@@ -40,9 +40,7 @@ export function ProjectDetailsScreen({ route, navigation }: any) {
     return (
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-          <Text style={[styles.h1, { color: isDark ? '#fff' : '#0f172a' }]} numberOfLines={1}>
-            {title}
-          </Text>
+          <View style={{ flex: 1 }} />
           <Pressable
             onPress={() => navigation.goBack()}
             style={({ pressed }) => [

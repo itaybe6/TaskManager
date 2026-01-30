@@ -57,7 +57,7 @@ export function ClientsListScreen({ navigation, route }: any) {
             ) : null}
           </View>
 
-          <Text style={[styles.title, { color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]}>לקוחות</Text>
+          <View />
 
           <View style={styles.brandRow}>
             <BrandLogo width={78} height={28} />

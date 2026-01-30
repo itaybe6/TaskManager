@@ -66,10 +66,6 @@ export function TaskDetailsScreen({ route, navigation }: any) {
             stickyHeaderIndices={[0]}
           >
             <View style={[styles.header, { backgroundColor: isDark ? 'rgba(26,26,26,0.90)' : 'rgba(248,249,252,0.90)' }]}>
-              <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#0f172a' }]}>
-                פרטי משימה
-              </Text>
-
               <Pressable
                 accessibilityLabel="Go back"
                 onPress={() => navigation.goBack()}

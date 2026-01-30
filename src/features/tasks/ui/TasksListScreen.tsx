@@ -102,9 +102,6 @@ export function TasksListScreen({ navigation }: any) {
               <Text style={[styles.greeting, { color: isDark ? '#9ca3af' : theme.colors.textMuted }]}>
                 {greetingName ? `שלום, ${greetingName}` : 'שלום'}
               </Text>
-              <Text style={[styles.title, { color: isDark ? '#ffffff' : '#111827' }]}>
-                המשימות שלי
-              </Text>
             </View>
 
             <View style={styles.headerActions}>

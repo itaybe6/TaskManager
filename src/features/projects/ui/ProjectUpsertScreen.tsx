@@ -62,7 +62,6 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
           <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
             <Text style={{ color: isDark ? '#a3a3a3' : '#6b7280', fontWeight: '800' }}>ביטול</Text>
           </Pressable>
-          <Text style={{ color: isDark ? '#fff' : '#111827', fontWeight: '900' }}>{title}</Text>
           <View style={{ width: 40 }} />
         </View>
 

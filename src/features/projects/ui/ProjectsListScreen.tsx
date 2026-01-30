@@ -35,7 +35,6 @@ export function ProjectsListScreen({ navigation }: any) {
         <View style={styles.topRow}>
           <View style={styles.brandRow}>
             <BrandLogo width={86} height={30} />
-            <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>פרויקטים</Text>
           </View>
           <View style={styles.headerActions}>
             <UserAvatarButton />

@@ -36,7 +36,6 @@ export function NotificationsScreen({ navigation }: any) {
         <View style={styles.topHeader}>
           <View style={styles.profileRow}>
             <View style={{ gap: 2 }}>
-              <Text style={[styles.title, { color: isDark ? '#ffffff' : '#111827' }]}>התראות</Text>
               <Text style={[styles.subtitle, { color: isDark ? '#9ca3af' : theme.colors.textMuted }]}>
                 {unreadCount > 0 ? `${unreadCount} לא נקראו` : 'הכל נקרא'}
               </Text>

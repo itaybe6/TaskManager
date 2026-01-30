@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator, Pressable, Text, I18nManager } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Pressable, Text, I18nManager, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,6 +7,13 @@ import { theme } from '../../../shared/ui/theme';
 
 export function DocumentViewerScreen({ route, navigation }: any) {
   const { url, title } = route.params;
+
+  const viewerUrl = useMemo(() => {
+    if (Platform.OS === 'android' && url.toLowerCase().endsWith('.pdf')) {
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    }
+    return url;
+  }, [url]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -26,12 +33,14 @@ export function DocumentViewerScreen({ route, navigation }: any) {
       </View>
 
       <WebView
-        source={{ uri: url }}
+        source={{ uri: viewerUrl }}
         style={styles.webview}
         startInLoadingState={true}
+        scalesPageToFit={true}
+        originWhitelist={['*']}
         renderLoading={() => (
           <View style={styles.loading}>
-            <ActivityIndicator color={theme.colors.primary} size="large" />
+            <ActivityIndicator color="#433878" size="large" />
           </View>
         )}
       />
@@ -40,30 +49,38 @@ export function DocumentViewerScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.background },
+  screen: { flex: 1, backgroundColor: '#F6F7FB' },
   header: {
-    height: 56,
-    backgroundColor: theme.colors.primary,
+    height: 64,
+    backgroundColor: '#433878',
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     justifyContent: 'space-between',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 22,
   },
   title: {
     color: '#fff',
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 17,
     flex: 1,
     textAlign: 'center',
+    marginHorizontal: 8,
   },
   webview: {
     flex: 1,
+    backgroundColor: '#F6F7FB',
   },
   loading: {
     position: 'absolute',
@@ -73,6 +90,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#F6F7FB',
   },
 });

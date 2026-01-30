@@ -57,7 +57,7 @@ export function ClientDetailsScreenMobile({ route, navigation }: any) {
     const cfg = getSupabaseConfig();
     if (!cfg) return;
     const url = `${cfg.url}/storage/v1/object/public/documents/${doc.storagePath}`;
-    await Linking.openURL(url);
+    navigation.navigate('DocumentViewer', { url, title: doc.title });
   };
 
   const accent = useMemo(() => accentColor(client?.name ?? ''), [client?.name]);
@@ -80,7 +80,6 @@ export function ClientDetailsScreenMobile({ route, navigation }: any) {
           <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
             <MaterialIcons name="arrow-forward" size={24} color={theme.colors.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>שגיאה</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.center}>
@@ -101,8 +100,6 @@ export function ClientDetailsScreenMobile({ route, navigation }: any) {
         >
           <MaterialIcons name="edit" size={22} color={theme.colors.primary} />
         </Pressable>
-        
-        <Text style={styles.headerTitle} numberOfLines={1}>{client.name}</Text>
         
         <Pressable onPress={() => navigation.goBack()} style={styles.headerAction}>
           <MaterialIcons name="arrow-forward" size={24} color={theme.colors.text} />
@@ -170,7 +167,7 @@ export function ClientDetailsScreenMobile({ route, navigation }: any) {
                       {c.phone ? (
                         <Pressable onPress={() => void openWhatsApp(c.phone!)} style={styles.contactBtn}>
                           <MaterialIcons name="call" size={18} color={theme.colors.primary} />
-                          <Text style={styles.contactBtnTxt}>{c.phone}</Text>
+                          <Text style={styles.contactBtnTxt}>{formatIsraeliPhoneDisplay(c.phone)}</Text>
                         </Pressable>
                       ) : null}
                       {c.email ? (
@@ -327,6 +324,34 @@ async function openWhatsApp(phone: string) {
   if (!digits) return;
   if (digits.startsWith('0') && digits.length >= 9) digits = `972${digits.slice(1)}`;
   await Linking.openURL(`https://wa.me/${digits}`);
+}
+
+function formatIsraeliPhoneDisplay(phone: string) {
+  const raw = (phone ?? '').trim();
+  if (!raw) return '';
+
+  let digits = raw.replace(/[^\d+]/g, '');
+  // Keep only one leading '+' if present
+  if (digits.startsWith('+')) digits = '+' + digits.slice(1).replace(/[^\d]/g, '');
+  else digits = digits.replace(/[^\d]/g, '');
+
+  // Convert +972 / 972 to local 0xxxxxxxxx
+  if (digits.startsWith('+972')) digits = '0' + digits.slice(4);
+  else if (digits.startsWith('972') && digits.length >= 11) digits = '0' + digits.slice(3);
+
+  const d = digits.replace(/[^\d]/g, '');
+
+  // Mobile/voip: 05Xxxxxxxx or 07Xxxxxxxx (10 digits)
+  if (d.length === 10 && (d.startsWith('05') || d.startsWith('07'))) {
+    return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  }
+
+  // Landline: 0Xxxxxxxx (9 digits) e.g. 02/03/04/08/09
+  if (d.length === 9 && d.startsWith('0')) {
+    return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`;
+  }
+
+  return raw;
 }
 
 const styles = StyleSheet.create({

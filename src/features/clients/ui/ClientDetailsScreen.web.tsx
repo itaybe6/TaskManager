@@ -277,7 +277,7 @@ export function ClientDetailsScreen({ route, navigation }: any) {
                               style={styles.detailRow}
                             >
                               <MaterialIcons name="call" size={16} color={theme.colors.primary} />
-                              <Text style={styles.detailTxt}>{c.phone}</Text>
+                              <Text style={styles.detailTxt}>{formatIsraeliPhoneDisplay(c.phone)}</Text>
                             </Pressable>
                           ) : null}
                           
@@ -379,6 +379,34 @@ async function openWhatsApp(phone: string) {
   const url = `https://wa.me/${digits}`;
   if (Platform.OS === 'web') window.open(url, '_blank');
   else await Linking.openURL(url);
+}
+
+function formatIsraeliPhoneDisplay(phone: string) {
+  const raw = (phone ?? '').trim();
+  if (!raw) return '';
+
+  let digits = raw.replace(/[^\d+]/g, '');
+  // Keep only one leading '+' if present
+  if (digits.startsWith('+')) digits = '+' + digits.slice(1).replace(/[^\d]/g, '');
+  else digits = digits.replace(/[^\d]/g, '');
+
+  // Convert +972 / 972 to local 0xxxxxxxxx
+  if (digits.startsWith('+972')) digits = '0' + digits.slice(4);
+  else if (digits.startsWith('972') && digits.length >= 11) digits = '0' + digits.slice(3);
+
+  const d = digits.replace(/[^\d]/g, '');
+
+  // Mobile/voip: 05Xxxxxxxx or 07Xxxxxxxx (10 digits)
+  if (d.length === 10 && (d.startsWith('05') || d.startsWith('07'))) {
+    return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  }
+
+  // Landline: 0Xxxxxxxx (9 digits) e.g. 02/03/04/08/09
+  if (d.length === 9 && d.startsWith('0')) {
+    return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`;
+  }
+
+  return raw;
 }
 
 const styles = StyleSheet.create({

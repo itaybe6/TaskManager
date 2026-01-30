@@ -109,102 +109,77 @@ export function DocumentsScreen({ navigation }: any) {
   const handleOpenDocument = async (doc: AppDocument) => {
     const url = getPublicUrl('documents', doc.storagePath);
     if (!url) return;
-    // Web: open in new tab. Native: use Linking.
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    await Linking.openURL(url);
+    navigation.navigate('DocumentViewer', { url, title: doc.title });
   };
 
   const header = useMemo(() => {
     return (
-      <View
-        style={[
-          styles.headerWrap,
-          {
-            paddingHorizontal: layout.paddingX,
-            backgroundColor: isDark ? 'rgba(18,18,18,0.96)' : 'rgba(246,247,251,0.96)',
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)',
-          },
-        ]}
-      >
-        <View style={styles.topHeader}>
-          <View style={styles.profileRow}>
-            <View style={{ gap: 2 }}>
-              <Text style={[styles.title, { color: isDark ? '#ffffff' : '#111827' }]}>
-                מסמכים
-              </Text>
-              <Text style={[styles.subtitle, { color: isDark ? '#9ca3af' : theme.colors.textMuted }]}>
-                כל המסמכים, הקבלות והחשבוניות
-              </Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <NotificationBellButton isDark={isDark} />
-              <UserAvatarButton />
-            </View>
-          </View>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>מסמכים</Text>
+          <Text style={styles.headerSub}>כל המסמכים, הקבלות והחשבוניות</Text>
         </View>
 
+        <View style={styles.headerActions}>
+          <Pressable style={styles.headerIconBtn}>
+            <MaterialIcons name="notifications-none" size={24} color="#6B7280" />
+          </Pressable>
+          <UserAvatarButton />
+        </View>
+      </View>
+    );
+  }, [isDark]);
+
+  const searchAndFilter = useMemo(() => {
+    return (
+      <View style={{ backgroundColor: isDark ? '#121212' : '#F6F7FB', paddingBottom: 16 }}>
         <View style={styles.searchRow}>
           <View style={styles.searchWrap}>
-            <View pointerEvents="none" style={[styles.searchIcon, { opacity: isDark ? 0.95 : 0.7 }]}>
-              <MaterialIcons name="search" size={20} color={isDark ? '#9ca3af' : '#9ca3af'} />
-            </View>
+            <MaterialIcons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
             <TextInput
               value={filter.searchText ?? ''}
               onChangeText={(t) => setFilter({ searchText: t })}
               placeholder="חפש מסמך לפי שם..."
-              placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
-              style={[
-                styles.searchInput,
-                {
-                  backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
-                  color: isDark ? '#ffffff' : '#111827',
-                },
-              ]}
+              placeholderTextColor="#9CA3AF"
+              style={styles.searchInput}
             />
           </View>
         </View>
 
         <View style={styles.filterRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            <FilterChip
-              label="הכל"
-              active={!filter.kind}
+          <View style={styles.tabs}>
+            <Pressable
               onPress={() => setFilter({ kind: undefined })}
-              isDark={isDark}
-            />
-            <FilterChip
-              label="כללי"
-              active={filter.kind === 'general'}
+              style={[styles.tab, !filter.kind && styles.tabActive]}
+            >
+              <Text style={[styles.tabTxt, !filter.kind && styles.tabTxtActive]}>הכל</Text>
+            </Pressable>
+            <Pressable
               onPress={() => setFilter({ kind: 'general' })}
-              isDark={isDark}
-            />
-            <FilterChip
-              label="חשבוניות"
-              active={filter.kind === 'invoice' || filter.kind === 'tax_invoice'}
+              style={[styles.tab, filter.kind === 'general' && styles.tabActive]}
+            >
+              <Text style={[styles.tabTxt, filter.kind === 'general' && styles.tabTxtActive]}>כללי</Text>
+            </Pressable>
+             <Pressable
               onPress={() => setFilter({ kind: 'invoice' })}
-              isDark={isDark}
-            />
-            <FilterChip
-              label="קבלות"
-              active={filter.kind === 'receipt'}
-              onPress={() => setFilter({ kind: 'receipt' })}
-              isDark={isDark}
-            />
-            <FilterChip
-              label="חוזים"
-              active={filter.kind === 'contract'}
-              onPress={() => setFilter({ kind: 'contract' })}
-              isDark={isDark}
-            />
-          </ScrollView>
+              style={[styles.tab, filter.kind === 'invoice' && styles.tabActive]}
+            >
+              <Text style={[styles.tabTxt, filter.kind === 'invoice' && styles.tabTxtActive]}>לקוחות</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     );
-  }, [filter, isDark, layout.paddingX]);
+  }, [filter, isDark]);
+
+  const combinedHeader = useMemo(() => {
+    return (
+      <View>
+        {header}
+        {searchAndFilter}
+      </View>
+    );
+  }, [header, searchAndFilter]);
 
   return (
     <SafeAreaView
@@ -214,7 +189,7 @@ export function DocumentsScreen({ navigation }: any) {
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={header}
+        ListHeaderComponent={combinedHeader}
         stickyHeaderIndices={[0]}
         refreshing={isLoading}
         onRefresh={load}
@@ -421,9 +396,6 @@ function DocumentCard({
   onPress: () => void;
   onDelete: () => void;
 }) {
-  const icon = getDocIcon(item.kind);
-  const color = getDocColor(item.kind);
-
   return (
     <Pressable
       onPress={onPress}
@@ -431,70 +403,75 @@ function DocumentCard({
         styles.card,
         {
           backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
-          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)',
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
           opacity: pressed ? 0.94 : 1,
         },
       ]}
     >
-      <View style={[styles.iconContainer, { backgroundColor: color + (isDark ? '33' : '11') }]}>
-        <MaterialCommunityIcons name={icon as any} size={28} color={color} />
+      <View style={[styles.docIconBox, { backgroundColor: getKindBgColor(item.kind) }]}>
+        <MaterialIcons name={getKindIcon(item.kind) as any} size={24} color={getKindIconColor(item.kind)} />
       </View>
 
       <View style={styles.cardContent}>
         <Text style={[styles.docTitle, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={[styles.docMeta, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-          {item.clientName ? `לקוח: ${item.clientName}` : 'מסמך כללי'} • {formatSize(item.sizeBytes)}
-        </Text>
-        <Text style={[styles.docDate, { color: isDark ? '#6b7280' : '#94a3b8' }]}>
-          {new Date(item.createdAt).toLocaleDateString('he-IL')}
-        </Text>
+        <View style={styles.docMetaRow}>
+          <Text style={[styles.docMetaTxt, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
+            {item.clientName || 'מסמך כללי'}
+          </Text>
+          <View style={styles.dot} />
+          <Text style={[styles.docMetaTxt, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
+            {formatSize(item.sizeBytes)}
+          </Text>
+          <View style={styles.dot} />
+          <Text style={[styles.docMetaTxt, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
+            {new Date(item.createdAt).toLocaleDateString('he-IL')}
+          </Text>
+        </View>
       </View>
 
       <Pressable
         onPress={(e: any) => {
-          // Prevent opening the document when clicking delete (important on web).
           e?.stopPropagation?.();
           onDelete();
         }}
         style={styles.deleteBtn}
       >
-        <MaterialIcons name="delete-outline" size={22} color="#ef4444" />
+        <MaterialIcons name="more-vert" size={22} color="#9CA3AF" />
       </Pressable>
     </Pressable>
   );
 }
 
-function getDocIcon(kind: DocumentKind) {
+function getKindIcon(kind: DocumentKind): keyof typeof MaterialIcons.glyphMap {
   switch (kind) {
-    case 'invoice':
-    case 'tax_invoice':
-      return 'file-document-outline';
-    case 'receipt':
-      return 'receipt';
-    case 'contract':
-      return 'file-certificate-outline';
-    case 'quote':
-      return 'file-chart-outline';
-    default:
-      return 'file-outline';
+    case 'receipt': return 'receipt-long';
+    case 'invoice': return 'description';
+    case 'quote': return 'request-quote';
+    case 'contract': return 'assignment-turned-in';
+    case 'tax_invoice': return 'receipt-long';
+    default: return 'insert-drive-file';
   }
 }
 
-function getDocColor(kind: DocumentKind) {
+function getKindBgColor(kind: DocumentKind): string {
   switch (kind) {
-    case 'invoice':
-    case 'tax_invoice':
-      return '#3b82f6';
     case 'receipt':
-      return '#10b981';
-    case 'contract':
-      return '#8b5cf6';
-    case 'quote':
-      return '#f59e0b';
-    default:
-      return '#6b7280';
+    case 'tax_invoice': return '#eff6ff'; // blue-50
+    case 'invoice': return '#faf5ff'; // purple-50
+    case 'contract': return '#f0fdf4'; // green-50
+    default: return '#f8fafc'; // slate-50
+  }
+}
+
+function getKindIconColor(kind: DocumentKind): string {
+  switch (kind) {
+    case 'receipt':
+    case 'tax_invoice': return '#2563eb'; // blue-600
+    case 'invoice': return '#9333ea'; // purple-600
+    case 'contract': return '#16a34a'; // green-600
+    default: return '#64748b'; // slate-600
   }
 }
 
@@ -507,114 +484,163 @@ function formatSize(bytes?: number) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerWrap: { paddingTop: 12, paddingBottom: 16 },
-  topHeader: {
-    marginBottom: 16,
-  },
-  profileRow: {
+  header: {
+    paddingTop: 48,
+    paddingBottom: 16,
+    paddingHorizontal: 24,
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    textAlign: 'right',
+  headerContent: { flex: 1, alignItems: 'flex-start' },
+  headerTitle: { 
+    color: '#433878', 
+    fontWeight: '900', 
+    fontSize: 30, 
+    textAlign: 'right', 
     writingDirection: 'rtl',
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'right',
-    writingDirection: 'rtl',
-  },
-  searchRow: {
-    marginBottom: 16,
-  },
-  searchWrap: { position: 'relative' },
-  searchIcon: { position: 'absolute', right: 14, top: 12 },
-  searchInput: {
-    paddingRight: 44,
-    paddingLeft: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'right',
-    writingDirection: 'rtl',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  filterRow: {
+  headerSub: { 
+    color: '#6B7280', 
+    fontWeight: '500', 
+    fontSize: 14, 
     marginTop: 4,
+    textAlign: 'right', 
+    writingDirection: 'rtl' 
   },
-  filterScroll: {
+  headerActions: { 
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', 
+    alignItems: 'center',
+    gap: 12 
+  },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+
+  searchRow: { paddingHorizontal: 24, marginBottom: 16 },
+  searchWrap: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    gap: 10,
-    paddingLeft: 4,
-  },
-  chip: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
+    height: 52,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '800',
+  searchIcon: { marginRight: 12 },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
+
+  filterRow: { paddingHorizontal: 24, marginBottom: 8 },
+  tabs: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 4,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabActive: {
+    backgroundColor: '#433878',
+    elevation: 4,
+    shadowColor: '#433878',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  tabTxt: {
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  tabTxtActive: {
+    color: '#fff',
+  },
+
   listContent: {
     paddingBottom: 120,
     paddingTop: 8,
-    gap: 12,
   },
   card: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 18,
+    padding: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    marginBottom: 12,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
   },
-  iconContainer: {
-    width: 52,
-    height: 52,
+  docIconBox: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardContent: {
     flex: 1,
-    marginHorizontal: 14,
+    marginHorizontal: 16,
+    gap: 4,
   },
   docTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     textAlign: 'right',
     writingDirection: 'rtl',
-    marginBottom: 2,
   },
-  docMeta: {
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'right',
-    writingDirection: 'rtl',
-    marginBottom: 2,
+  docMetaRow: { 
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', 
+    alignItems: 'center', 
+    gap: 6 
   },
-  docDate: {
+  docMetaTxt: {
     fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'right',
-    writingDirection: 'rtl',
+    fontWeight: '600',
+  },
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#cbd5e1',
   },
   deleteBtn: {
     padding: 8,
   },
+
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
