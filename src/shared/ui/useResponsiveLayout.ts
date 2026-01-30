@@ -30,18 +30,24 @@ type LayoutResult = {
  * Goal: keep content readable on large screens by capping width and centering.
  */
 export function useResponsiveLayout(kind: LayoutKind = 'list'): LayoutResult {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   return useMemo(() => {
+    // Use the shortest side so phones in landscape don't get treated as tablets.
+    const shortest = Math.min(width, height || width);
+
     const isDesktop = width >= 1024;
-    const isTablet = width >= 768 && width < 1024;
-    const isPhone = width < 768;
+    const isTablet = shortest >= 768 && shortest < 1024;
+    const isPhone = shortest < 768;
 
     const paddingX = width < 360 ? 16 : width < 768 ? 20 : isDesktop ? 32 : 24;
     const available = Math.max(0, width - paddingX * 2);
 
-    const maxWidth =
-      kind === 'narrow'
+    // On phones, we want full-bleed width. Padding should be applied by the screen styles,
+    // not by shrinking the container (which creates visible side gaps).
+    const maxWidth = isPhone
+      ? width
+      : kind === 'narrow'
         ? 520
         : kind === 'form'
           ? 720
@@ -68,6 +74,6 @@ export function useResponsiveLayout(kind: LayoutKind = 'list'): LayoutResult {
         alignSelf: 'center' as const,
       },
     };
-  }, [kind, width]);
+  }, [kind, width, height]);
 }
 

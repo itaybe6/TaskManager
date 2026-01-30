@@ -11,6 +11,7 @@ import { ProjectUpsertScreen } from '../../features/projects/ui/ProjectUpsertScr
 import { LoginScreen } from '../../features/auth/ui/LoginScreen';
 import { useAuthStore } from '../../features/auth/store/authStore';
 import { ClientPortalScreen } from '../../features/clients/ui/ClientPortalScreen';
+import { DocumentViewerScreen } from '../../features/documents/ui/DocumentViewerScreen';
 import { View, ActivityIndicator } from 'react-native';
 import { theme } from '../../shared/ui/theme';
 
@@ -55,6 +56,7 @@ export function RootNavigator() {
         <>
           <Stack.Screen name="ClientPortal" component={ClientPortalScreen} />
           <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
+          <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} />
         </>
       ) : (
         <>
@@ -66,6 +68,7 @@ export function RootNavigator() {
           <Stack.Screen name="ProjectUpsert" component={ProjectUpsertScreen} />
           <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
           <Stack.Screen name="TaskUpsert" component={TaskUpsertScreen} />
+          <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} />
         </>
       )}
     </Stack.Navigator>

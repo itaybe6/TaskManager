@@ -17,6 +17,7 @@ import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
+import { NotificationBellButton } from '../../../shared/ui/NotificationBellButton';
 
 export function ProjectsListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery, error } = useProjectsStore();
@@ -38,6 +39,7 @@ export function ProjectsListScreen({ navigation }: any) {
           </View>
           <View style={styles.headerActions}>
             <UserAvatarButton />
+            <NotificationBellButton isDark={isDark} />
             <Pressable
               onPress={() => navigation.navigate('ClientsList')}
               style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}

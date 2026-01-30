@@ -16,6 +16,7 @@ import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { NotificationBellButton } from '../../../shared/ui/NotificationBellButton';
 import { ClientsListScreen as ClientsListScreenWeb } from './ClientsListScreen.web';
 import type { Client } from '../model/clientTypes';
 
@@ -46,6 +47,7 @@ export function ClientsListScreen({ navigation, route }: any) {
         <View style={styles.topRow}>
           <View style={styles.headerActions}>
             <UserAvatarButton />
+            <NotificationBellButton isDark={isDark} />
             {!isTabRoot && typeof navigation?.canGoBack === 'function' && navigation.canGoBack() ? (
               <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
                 <Text style={{ color: isDark ? colors.textMutedDark : colors.textMutedLight, fontWeight: '900' }}>

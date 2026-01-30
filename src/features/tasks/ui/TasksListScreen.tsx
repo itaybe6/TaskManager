@@ -19,6 +19,7 @@ import { useTasksStore } from '../store/tasksStore';
 import { useTaskCategoriesStore } from '../store/taskCategoriesStore';
 import { supabaseRest } from '../../../app/supabase/rest';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { NotificationBellButton } from '../../../shared/ui/NotificationBellButton';
 import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
@@ -111,20 +112,7 @@ export function TasksListScreen({ navigation }: any) {
                 <UserAvatarButton />
                 <View style={styles.onlineDot} />
               </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.bellBtn,
-                  {
-                    backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-                onPress={() => navigation.navigate('Notifications')}
-              >
-                <MaterialIcons name="notifications" size={22} color={isDark ? '#e5e7eb' : '#6b7280'} />
-                <View style={styles.notifDot} />
-              </Pressable>
+            <NotificationBellButton isDark={isDark} onPress={() => navigation.navigate('Notifications')} />
             </View>
           </View>
         </View>
@@ -445,7 +433,7 @@ const styles = StyleSheet.create({
   listContentMobile: { paddingBottom: 160, gap: 14, paddingTop: 6 },
   listContentDesktop: { paddingBottom: 160, gap: 16, paddingTop: 6 },
 
-  headerWrap: { paddingTop: 10, paddingBottom: 10, width: '100%' },
+  headerWrap: { paddingTop: 12, paddingBottom: 16, width: '100%' },
   topHeader: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
@@ -458,14 +446,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  greeting: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  greeting: { fontSize: 14, fontWeight: '600', textAlign: 'right', writingDirection: 'rtl' },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '900',
     textAlign: 'right',
     writingDirection: 'rtl',
@@ -481,27 +469,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#22c55e',
     borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  bellBtn: {
-    padding: 10,
-    borderRadius: 999,
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  notifDot: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: '#ef4444',
-    borderWidth: 1,
     borderColor: '#ffffff',
   },
 

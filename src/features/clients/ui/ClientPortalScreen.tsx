@@ -132,7 +132,7 @@ export function ClientPortalScreen({ navigation }: any) {
   const handleOpenDocument = async (doc: AppDocument) => {
     const url = getPublicUrl('documents', doc.storagePath);
     if (url) {
-      await Linking.openURL(url);
+      navigation.navigate('DocumentViewer', { url, title: doc.title });
     }
   };
 

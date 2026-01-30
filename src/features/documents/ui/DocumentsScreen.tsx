@@ -23,6 +23,7 @@ import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
+import { NotificationBellButton } from '../../../shared/ui/NotificationBellButton';
 import { AppDocument, DocumentKind } from '../model/documentTypes';
 import { getPublicUrl } from '../../../app/supabase/storage';
 
@@ -139,7 +140,10 @@ export function DocumentsScreen({ navigation }: any) {
                 כל המסמכים, הקבלות והחשבוניות
               </Text>
             </View>
-            <UserAvatarButton />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <NotificationBellButton isDark={isDark} />
+              <UserAvatarButton />
+            </View>
           </View>
         </View>
 

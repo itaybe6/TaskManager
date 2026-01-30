@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NotificationsScreen } from '../../features/notifications/ui/NotificationsScreen';
 import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
+import { SettingsScreen } from '../../features/settings/ui/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ export function NotificationsStackNavigator() {
       {/* Keep route name identical to the tab route ("Notifications") */}
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }

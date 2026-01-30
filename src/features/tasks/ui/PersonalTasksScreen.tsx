@@ -8,6 +8,7 @@ import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
+import { NotificationBellButton } from '../../../shared/ui/NotificationBellButton';
 import type { Task } from '../model/taskTypes';
 
 // NOTE: Must be declared BEFORE StyleSheet.create usage.
@@ -146,6 +147,7 @@ export function PersonalTasksScreen({ navigation }: any) {
 
           <View style={styles.headerActions}>
             <UserAvatarButton />
+            <NotificationBellButton isDark={isDark} />
             <View style={[styles.lockBadge, { backgroundColor: isDark ? UI.surfaceDark2 : '#ffffff' }]}>
               <MaterialIcons name="lock" size={18} color={isDark ? UI.textDark : UI.primary} />
             </View>
@@ -319,7 +321,7 @@ export function PersonalTasksScreen({ navigation }: any) {
   if (!userId) {
     return (
       <SafeAreaView
-        edges={['top', 'left', 'right']}
+        edges={['top']}
         style={[styles.container, { backgroundColor: isDark ? '#1a1a1a' : theme.colors.background }]}
       >
         <View style={{ padding: 24, gap: 10 }}>
@@ -333,7 +335,7 @@ export function PersonalTasksScreen({ navigation }: any) {
 
   return (
     <SafeAreaView
-      edges={['top', 'left', 'right']}
+      edges={['top']}
       style={[
         styles.container,
         { backgroundColor: isDark ? UI.bgDark : UI.bgLight },
@@ -454,9 +456,9 @@ export function PersonalTasksScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  listContent: { paddingHorizontal: 20, paddingBottom: 160, gap: 14 },
+  listContent: { paddingBottom: 160, gap: 14 },
 
-  headerWrap: { paddingTop: 18, paddingBottom: 14, paddingHorizontal: 20 },
+  headerWrap: { paddingTop: 18, paddingBottom: 14 },
   topHeader: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',

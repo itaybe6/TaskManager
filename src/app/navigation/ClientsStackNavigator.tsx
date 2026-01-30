@@ -6,6 +6,7 @@ import { ClientUpsertScreen } from '../../features/clients/ui/ClientUpsertScreen
 import { ProjectDetailsScreen } from '../../features/projects/ui/ProjectDetailsScreen';
 import { ProjectUpsertScreen } from '../../features/projects/ui/ProjectUpsertScreen';
 import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
+import { SettingsScreen } from '../../features/settings/ui/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,7 @@ export function ClientsStackNavigator() {
       <Stack.Screen name="ProjectUpsert" component={ProjectUpsertScreen} />
       {/* For deep-links from notifications / cross navigation */}
       <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }

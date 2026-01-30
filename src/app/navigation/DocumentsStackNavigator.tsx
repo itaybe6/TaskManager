@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DocumentsScreen } from '../../features/documents/ui/DocumentsScreen';
+import { SettingsScreen } from '../../features/settings/ui/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -13,6 +14,7 @@ export function DocumentsStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* Keep route name identical to the tab route ("Documents") */}
       <Stack.Screen name="Documents" component={DocumentsScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }
