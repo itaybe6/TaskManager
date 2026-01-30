@@ -10,6 +10,24 @@ import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 import type { Task } from '../model/taskTypes';
 
+// NOTE: Must be declared BEFORE StyleSheet.create usage.
+// Metro/Babel can transpile const->var in some targets; if UI is defined after styles,
+// UI will be undefined at module init time and crash on iOS ("Cannot read property 'primary' of undefined").
+const UI = {
+  primary: '#5B508C',
+  secondary: '#7C71B0',
+  accent: '#FF6B6B',
+  bgLight: '#F8F9FE',
+  bgDark: '#121212',
+  surfaceLight: '#FFFFFF',
+  surfaceDark: '#1E1E1E',
+  surfaceDark2: '#242424',
+  textLight: '#1F2937',
+  textDark: '#F3F4F6',
+  textMutedLight: '#6B7280',
+  textMutedDark: '#9CA3AF',
+} as const;
+
 export function PersonalTasksScreen({ navigation }: any) {
   const repo = useTasksStore((s) => s.repo);
   const scheme = useAppColorScheme();
@@ -785,21 +803,6 @@ function EmptyState({ isDark }: { isDark: boolean }) {
     </View>
   );
 }
-
-const UI = {
-  primary: '#5B508C',
-  secondary: '#7C71B0',
-  accent: '#FF6B6B',
-  bgLight: '#F8F9FE',
-  bgDark: '#121212',
-  surfaceLight: '#FFFFFF',
-  surfaceDark: '#1E1E1E',
-  surfaceDark2: '#242424',
-  textLight: '#1F2937',
-  textDark: '#F3F4F6',
-  textMutedLight: '#6B7280',
-  textMutedDark: '#9CA3AF',
-} as const;
 
 function startOfDay(d: Date) {
   const x = new Date(d);

@@ -17,6 +17,7 @@ import { theme } from '../../../shared/ui/theme';
 import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 import { ClientsListScreen as ClientsListScreenWeb } from './ClientsListScreen.web';
+import type { Client } from '../model/clientTypes';
 
 export function ClientsListScreen({ navigation, route }: any) {
   const { items, load, isLoading, query, setQuery, error } = useClientsStore();
@@ -33,73 +34,52 @@ export function ClientsListScreen({ navigation, route }: any) {
   }, [query.searchText]);
 
   const header = useMemo(() => {
+    const today = formatHebFullDate(new Date());
     const countLabel = `${items.length} לקוחות`;
     const totalOutstanding = items.reduce((sum, c) => sum + safeMoney(c.remainingToPay), 0);
     return (
       <View style={styles.headerWrap}>
+        <Text style={[styles.kicker, { color: isDark ? colors.textMutedDark : colors.textMutedLight }]}>
+          {today}
+        </Text>
+
         <View style={styles.topRow}>
-          <View style={styles.brandRow}>
-            <BrandLogo width={78} height={28} />
-          </View>
-
-          <Text style={[styles.title, { color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]}>
-            לקוחות
-          </Text>
-
           <View style={styles.headerActions}>
             <UserAvatarButton />
             {!isTabRoot && typeof navigation?.canGoBack === 'function' && navigation.canGoBack() ? (
-              <Pressable
-                onPress={() => navigation.goBack()}
-                style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
-              >
-                <Text
-                  style={{ color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight, fontWeight: '900' }}
-                >
+              <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+                <Text style={{ color: isDark ? colors.textMutedDark : colors.textMutedLight, fontWeight: '900' }}>
                   סגור
                 </Text>
               </Pressable>
-            ) : (
-              <View style={{ width: 44 }} />
-            )}
+            ) : null}
+          </View>
+
+          <Text style={[styles.title, { color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]}>לקוחות</Text>
+
+          <View style={styles.brandRow}>
+            <BrandLogo width={78} height={28} />
           </View>
         </View>
 
         <View style={styles.searchWrap}>
           <View pointerEvents="none" style={styles.searchIcon}>
-            <MaterialIcons name="search" size={22} color={theme.colors.primaryStrong} />
+            <MaterialIcons name="search" size={20} color={isDark ? '#9CA3AF' : '#94A3B8'} />
           </View>
           <TextInput
             value={query.searchText ?? ''}
             onChangeText={(t) => setQuery({ searchText: t })}
             placeholder="חפש לקוח..."
-            placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondaryLight}
+            placeholderTextColor={isDark ? colors.textMutedDark : colors.textMutedLight}
             style={[
               styles.searchInput,
               {
-                backgroundColor: isDark ? colors.cardDark : colors.cardLight,
+                backgroundColor: isDark ? colors.searchDark : colors.searchLight,
                 color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight,
-                borderColor: isDark ? '#262626' : '#f1f5f9',
+                borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)',
               },
             ]}
           />
-        </View>
-
-        <View style={styles.sectionRow}>
-          <Text style={[styles.sectionTitle, { color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight }]}>
-            היום
-          </Text>
-          <Text
-            style={[
-              styles.sectionCount,
-              {
-                color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight,
-                backgroundColor: isDark ? theme.colors.primaryDeepSoft : theme.colors.primarySoft2,
-              },
-            ]}
-          >
-            {countLabel}
-          </Text>
         </View>
 
         <View
@@ -107,7 +87,7 @@ export function ClientsListScreen({ navigation, route }: any) {
             styles.summaryCard,
             {
               backgroundColor: isDark ? colors.cardDark : colors.cardLight,
-              borderColor: isDark ? '#262626' : '#eef2ff',
+              borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.08)',
             },
           ]}
         >
@@ -137,6 +117,15 @@ export function ClientsListScreen({ navigation, route }: any) {
           </View>
         </View>
 
+        <View style={styles.sectionRow}>
+          <Text style={[styles.sectionH2, { color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]}>
+            לקוחות פעילים
+          </Text>
+          <Text style={[styles.sectionCount, { color: isDark ? colors.textMutedDark : colors.textMutedLight }]}>
+            {countLabel}
+          </Text>
+        </View>
+
         {!!error ? <Text style={styles.errorTxt}>{error}</Text> : null}
       </View>
     );
@@ -150,7 +139,7 @@ export function ClientsListScreen({ navigation, route }: any) {
         alignItems: 'stretch',
       }}
     >
-      <View style={{ height: 10 }} />
+      <View style={{ height: 8 }} />
       <FlatList
         data={items}
         keyExtractor={(c) => c.id}
@@ -158,113 +147,18 @@ export function ClientsListScreen({ navigation, route }: any) {
         refreshing={isLoading}
         onRefresh={load}
         renderItem={({ item }) => (
-          <Pressable
+          <ClientRow
+            item={item}
+            isDark={isDark}
             onPress={() => navigation.navigate('ClientUpsert', { mode: 'edit', id: item.id })}
-            style={({ pressed }) => [
-              styles.card,
-              {
-                backgroundColor: isDark ? colors.cardDark : colors.cardLight,
-                borderColor: pressed ? theme.colors.primaryBorder : 'transparent',
-                opacity: pressed ? 0.96 : 1,
-              },
-            ]}
-          >
-            <View style={[styles.accentBar, { backgroundColor: accentColor(item.name) }]} />
-
-            <View style={styles.cardInner}>
-              <View style={styles.cardTopRow}>
-                <View style={{ flex: 1, gap: 6 }}>
-                  <Text
-                    style={[
-                      styles.cardTitle,
-                      { color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {item.name}
-                  </Text>
-
-                  <View style={styles.subRow}>
-                    <Text
-                      style={[
-                        styles.subTxt,
-                        { color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {(() => {
-                        const c = item.contacts?.[0];
-                        if (!c) return 'אין אנשי קשר';
-                        return c.name || 'איש קשר';
-                      })()}
-                    </Text>
-                    <View style={[styles.dot, { backgroundColor: isDark ? '#3f3f46' : '#d4d4d8' }]} />
-                    <Text
-                      style={[
-                        styles.phoneMono,
-                        { color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {formatPhoneOrEmail(item.contacts?.[0])}
-                    </Text>
-                  </View>
-                </View>
-
-                <Pressable
-                  onPress={() => navigation.navigate('ClientUpsert', { mode: 'edit', id: item.id })}
-                  hitSlop={10}
-                  style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1, padding: 6 }]}
-                >
-                  <MaterialIcons name="more-horiz" size={22} color={isDark ? '#52525b' : '#d4d4d8'} />
-                </Pressable>
-              </View>
-
-              <View style={styles.statsRow}>
-                <View
-                  style={[
-                    styles.statChip,
-                    {
-                      backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : 'rgba(148,163,184,0.14)',
-                      borderColor: isDark ? 'rgba(148,163,184,0.16)' : 'rgba(148,163,184,0.18)',
-                    },
-                  ]}
-                >
-                  <MaterialIcons name="payments" size={16} color={isDark ? '#a1a1aa' : '#757575'} />
-                  <Text style={[styles.chipLabel, { color: isDark ? colors.textSecondaryDark : colors.textSecondaryLight }]}>
-                    מחיר
-                  </Text>
-                  <Text style={[styles.chipValue, { color: isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]}>
-                    {formatMoney(item.totalPrice)}
-                  </Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.statChip,
-                    {
-                      backgroundColor: remainingTone(item.remainingToPay).bg(isDark),
-                      borderColor: remainingTone(item.remainingToPay).border(isDark),
-                    },
-                  ]}
-                >
-                  <MaterialIcons name="account-balance-wallet" size={16} color={remainingTone(item.remainingToPay).icon(isDark)} />
-                  <Text style={[styles.chipLabel, { color: remainingTone(item.remainingToPay).fg(isDark) }]}>
-                    נותר
-                  </Text>
-                  <Text style={[styles.chipValue, { color: remainingTone(item.remainingToPay).fg(isDark) }]}>
-                    {formatMoney(item.remainingToPay)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Pressable>
+          />
         )}
+        ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)' }]} />}
         contentContainerStyle={[
           {
-            paddingHorizontal: 0,
+            paddingHorizontal: 12,
             paddingBottom: isWeb ? 120 : 160,
-            gap: 16,
+            gap: 0,
             alignItems: 'stretch',
             width: '100%',
           },
@@ -286,115 +180,64 @@ export function ClientsListScreen({ navigation, route }: any) {
 }
 
 const colors = {
-  backgroundLight: theme.colors.background,
-  backgroundDark: '#121214',
-  cardLight: theme.colors.surface,
-  cardDark: '#1E1E22',
+  backgroundLight: '#F7F6F8',
+  backgroundDark: '#191022',
+  cardLight: '#FFFFFF',
+  cardDark: 'rgba(255,255,255,0.06)',
+  searchLight: '#F2F0F4',
+  searchDark: 'rgba(255,255,255,0.06)',
   textPrimaryLight: '#1A1A1A',
   textPrimaryDark: '#EDEDED',
-  textSecondaryLight: '#757575',
-  textSecondaryDark: '#A1A1AA',
+  textMutedLight: '#6B7280',
+  textMutedDark: 'rgba(255,255,255,0.62)',
 };
 
 const styles = StyleSheet.create({
-  headerWrap: { width: '100%', alignSelf: 'stretch', paddingHorizontal: 0, paddingTop: 10, paddingBottom: 10, gap: 14 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerWrap: { width: '100%', alignSelf: 'stretch', paddingHorizontal: 4, paddingTop: 10, paddingBottom: 10, gap: 12 },
+  kicker: { fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'rtl' },
+  topRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerActions: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { fontSize: 32, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', letterSpacing: -0.3 },
+  title: { fontSize: 30, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', letterSpacing: -0.3 },
   searchWrap: { position: 'relative' },
-  searchIcon: { position: 'absolute', right: 14, top: 16, opacity: 0.9 },
+  searchIcon: { position: 'absolute', right: 16, top: 14, opacity: 0.9 },
   searchInput: {
-    borderRadius: 18,
+    borderRadius: 999,
     paddingRight: 44,
     paddingLeft: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontWeight: '700',
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'right',
     writingDirection: 'rtl',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 2,
     borderWidth: 1,
   },
-  sectionRow: {
-    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 2,
-  },
-  sectionTitle: { fontSize: 12, fontWeight: '800', textAlign: 'right', letterSpacing: 0.6 },
-  sectionCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  summaryCard: {
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    alignSelf: 'stretch',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 2,
-  },
+  summaryCard: { borderRadius: 22, padding: 14, borderWidth: 1, alignSelf: 'stretch' },
   summaryIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  card: {
-    borderRadius: 24,
-    padding: 18,
-    borderWidth: 1,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  accentBar: {
-    position: 'absolute',
-    right: 0,
-    top: 18,
-    bottom: 18,
-    width: 4,
-    borderTopLeftRadius: 999,
-    borderBottomLeftRadius: 999,
-    opacity: 0.85,
-  },
-  cardInner: { paddingRight: 12 },
-  cardTopRow: {
-    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  cardTitle: { fontSize: 18, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  subRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  subTxt: { fontSize: 13, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
-  dot: { width: 4, height: 4, borderRadius: 999, opacity: 0.9 },
-  phoneMono: { fontSize: 12, fontWeight: '600', opacity: 0.9, textAlign: 'left' },
-  statsRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', gap: 10, marginTop: 14 },
-  statChip: {
-    flex: 1,
-    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 16,
+  sectionRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
+  sectionH2: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  sectionCount: { fontSize: 12, fontWeight: '800', textAlign: 'left' },
+  errorTxt: { color: '#ef4444', fontWeight: '800', textAlign: 'right' },
+  sep: { height: 1, marginHorizontal: 12 },
+
+  row: {
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginVertical: 8,
     borderWidth: 1,
   },
-  chipLabel: { fontSize: 12, fontWeight: '800' },
-  chipValue: { fontSize: 13, fontWeight: '900' },
-  errorTxt: { color: '#ef4444', fontWeight: '700', textAlign: 'right' },
+  rowInner: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  left: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 },
+  avatarWrap: { width: 56, height: 56, borderRadius: 999, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  avatarTxt: { fontSize: 16, fontWeight: '900' },
+  onlineDot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 999, borderWidth: 2 },
+  name: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  sub: { fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'rtl' },
+  progress: { width: 84, alignItems: I18nManager.isRTL ? 'flex-start' : 'flex-end', gap: 6 },
+  pct: { fontSize: 12, fontWeight: '900' },
+  barTrack: { height: 6, width: '100%', borderRadius: 999, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 999 },
   fab: {
     position: 'absolute',
     right: 16,
@@ -414,6 +257,66 @@ const styles = StyleSheet.create({
   },
 });
 
+function ClientRow(props: { item: Client; isDark: boolean; onPress: () => void }) {
+  const accent = accentColor(props.item.name);
+  const initials = initialsFor(props.item.name) ?? 'CL';
+  const pct = clientProgressPct(props.item);
+  const progress = progressTone(pct);
+  const recent = isRecentlyActive(props.item.updatedAt, 2);
+  const last = formatLastActivity(props.item.updatedAt);
+
+  const surface = props.isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
+  const border = props.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.06)';
+  const track = props.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.08)';
+
+  return (
+    <Pressable
+      onPress={props.onPress}
+      style={({ pressed }) => [
+        styles.row,
+        {
+          backgroundColor: surface,
+          borderColor: border,
+          opacity: pressed ? 0.96 : 1,
+        },
+      ]}
+    >
+      <View style={styles.rowInner}>
+        <View style={styles.left}>
+          <View style={[styles.avatarWrap, { backgroundColor: `${accent}1A` }]}>
+            <Text style={[styles.avatarTxt, { color: accent }]}>{initials}</Text>
+            <View
+              style={[
+                styles.onlineDot,
+                {
+                  backgroundColor: recent ? '#22c55e' : '#9ca3af',
+                  borderColor: surface,
+                },
+              ]}
+            />
+          </View>
+
+          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <Text style={[styles.name, { color: props.isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]} numberOfLines={1}>
+              {props.item.name}
+            </Text>
+            <Text style={[styles.sub, { color: props.isDark ? colors.textMutedDark : colors.textMutedLight }]} numberOfLines={1}>
+              פעילות אחרונה: {last}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.progress}>
+          <Text style={[styles.pct, { color: props.isDark ? colors.textPrimaryDark : colors.textPrimaryLight }]}>{pct}%</Text>
+          <View style={[styles.barTrack, { backgroundColor: track }]}>
+            <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: progress }]} />
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 function formatMoney(n?: number) {
   if (n === undefined || n === null || Number.isNaN(n)) return '—';
   const v = Math.round(n * 100) / 100;
@@ -425,41 +328,79 @@ function safeMoney(n?: number) {
   return n;
 }
 
-function formatPhoneOrEmail(c?: { phone?: string; email?: string } | null) {
-  const s = (c?.phone ?? c?.email ?? '').trim();
-  return s.length ? s : '—';
-}
-
-function remainingTone(remaining?: number) {
-  const r = remaining ?? 0;
-  if (r <= 0) {
-    return {
-      bg: (isDark: boolean) => (isDark ? 'rgba(45,212,191,0.16)' : 'rgba(45,212,191,0.14)'),
-      border: (isDark: boolean) => (isDark ? 'rgba(45,212,191,0.20)' : 'rgba(45,212,191,0.22)'),
-      fg: (_: boolean) => '#2DD4BF',
-      icon: (_: boolean) => '#2DD4BF',
-    };
-  }
-  if (r <= 1000) {
-    return {
-      bg: (isDark: boolean) => (isDark ? 'rgba(245,158,11,0.16)' : 'rgba(245,158,11,0.12)'),
-      border: (isDark: boolean) => (isDark ? 'rgba(245,158,11,0.20)' : 'rgba(245,158,11,0.18)'),
-      fg: (_: boolean) => '#F59E0B',
-      icon: (_: boolean) => '#F59E0B',
-    };
-  }
-  return {
-    bg: (isDark: boolean) => (isDark ? 'rgba(239,68,68,0.14)' : 'rgba(239,68,68,0.10)'),
-    border: (isDark: boolean) => (isDark ? 'rgba(239,68,68,0.20)' : 'rgba(239,68,68,0.18)'),
-    fg: (_: boolean) => theme.colors.danger,
-    icon: (_: boolean) => theme.colors.danger,
-  };
-}
-
 function accentColor(seed: string) {
   const palette = [theme.colors.primaryLight, theme.colors.primary, theme.colors.primaryStrong];
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return palette[h % palette.length];
+}
+
+function initialsFor(name?: string) {
+  const s = (name ?? '').trim();
+  if (!s) return undefined;
+  const parts = s.split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]).join('').toUpperCase();
+}
+
+function clientProgressPct(c: Client) {
+  const total = c.totalPrice;
+  const remaining = c.remainingToPay;
+
+  if (total === undefined || total === null || !Number.isFinite(total) || total <= 0) {
+    // No "total" -> interpret "paid" as 100% when nothing remains, otherwise 0%.
+    return remaining !== undefined && remaining !== null && Number.isFinite(remaining) && remaining <= 0 ? 100 : 0;
+  }
+
+  const rem = remaining ?? 0;
+  const paid = Math.max(0, total - rem);
+  const pct = Math.round((paid / total) * 100);
+  return Math.max(0, Math.min(100, pct));
+}
+
+function progressTone(pct: number) {
+  if (pct >= 85) return '#22c55e';
+  if (pct >= 65) return theme.colors.primaryStrong;
+  if (pct >= 40) return '#3b82f6';
+  if (pct >= 20) return '#f59e0b';
+  return '#ef4444';
+}
+
+function isRecentlyActive(iso: string, days: number) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  return diffDays <= days;
+}
+
+function formatLastActivity(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const now = new Date();
+  const startNow = new Date(now);
+  startNow.setHours(0, 0, 0, 0);
+  const startD = new Date(d);
+  startD.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((startNow.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'היום';
+  if (diffDays === 1) return 'אתמול';
+  if (diffDays <= 7) return `לפני ${diffDays} ימים`;
+  return formatHebShortDate(d);
+}
+
+function formatHebShortDate(d: Date) {
+  const months = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצ'];
+  const day = d.getDate();
+  const mon = months[d.getMonth()];
+  return `${day} ${mon}`;
+}
+
+function formatHebFullDate(d: Date) {
+  const weekdays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const months = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+  const wd = weekdays[d.getDay()];
+  const day = d.getDate();
+  const mon = months[d.getMonth()];
+  return `יום ${wd}, ${day} ב${mon}`;
 }
 
