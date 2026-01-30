@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTasksStore } from '../store/tasksStore';
 import type { TaskStatus } from '../model/taskTypes';
@@ -38,6 +39,8 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   // עיצוב לפי הדוגמה (רקע לבן בלבד)
   const isDark = false;
   const layout = useResponsiveLayout('form');
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomOffset = tabBarHeight > 0 ? tabBarHeight + 12 : 0;
 
   const [existingProjectId, setExistingProjectId] = useState<string | undefined>(projectId);
   const isProjectTask = Boolean(projectId ?? existingProjectId);
@@ -267,7 +270,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[styles.content, layout.contentContainerStyle]}
+          contentContainerStyle={[styles.content, { paddingBottom: 160 + bottomOffset }, layout.contentContainerStyle]}
           showsVerticalScrollIndicator={false}
         >
             {!isPersonalQuickCreate && !isProjectTask && (
@@ -737,7 +740,16 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             </View>
         </ScrollView>
 
-        <View style={[styles.footer, { backgroundColor: 'rgba(255,255,255,0.95)', borderTopColor: '#e2e8f0' }]}>
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              borderTopColor: '#e2e8f0',
+              bottom: bottomOffset,
+            },
+          ]}
+        >
           <Pressable
             disabled={!canSave}
             onPress={async () => {
@@ -946,7 +958,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
     paddingHorizontal: 20,
     paddingBottom: 18,
     paddingTop: 18,

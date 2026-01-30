@@ -12,6 +12,7 @@ import {
   ScrollView,
   Platform,
   Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 import { UserAvatarButton } from '../../../shared/ui/UserAvatarButton';
 import { AppDocument, DocumentKind } from '../model/documentTypes';
+import { getPublicUrl } from '../../../app/supabase/storage';
 
 export function DocumentsScreen({ navigation }: any) {
   const { items, load, isLoading, filter, setFilter, uploadDocument, deleteDocument } = useDocumentsStore();
@@ -101,6 +103,17 @@ export function DocumentsScreen({ navigation }: any) {
     setNewDocKind('general');
     setNewDocClientId(undefined);
     setSelectedFile(null);
+  };
+
+  const handleOpenDocument = async (doc: AppDocument) => {
+    const url = getPublicUrl('documents', doc.storagePath);
+    if (!url) return;
+    // Web: open in new tab. Native: use Linking.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    await Linking.openURL(url);
   };
 
   const header = useMemo(() => {
@@ -207,6 +220,7 @@ export function DocumentsScreen({ navigation }: any) {
             <DocumentCard
               item={item}
               isDark={isDark}
+              onPress={() => handleOpenDocument(item)}
               onDelete={() => {
                 Alert.alert('מחיקה', 'האם אתה בטוח שברצונך למחוק מסמך זה?', [
                   { text: 'ביטול', style: 'cancel' },
@@ -392,17 +406,29 @@ function FilterChip({ label, active, onPress, isDark }: any) {
   );
 }
 
-function DocumentCard({ item, isDark, onDelete }: { item: AppDocument; isDark: boolean; onDelete: () => void }) {
+function DocumentCard({
+  item,
+  isDark,
+  onPress,
+  onDelete,
+}: {
+  item: AppDocument;
+  isDark: boolean;
+  onPress: () => void;
+  onDelete: () => void;
+}) {
   const icon = getDocIcon(item.kind);
   const color = getDocColor(item.kind);
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
         styles.card,
         {
           backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
           borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)',
+          opacity: pressed ? 0.94 : 1,
         },
       ]}
     >
@@ -411,10 +437,7 @@ function DocumentCard({ item, isDark, onDelete }: { item: AppDocument; isDark: b
       </View>
 
       <View style={styles.cardContent}>
-        <Text
-          style={[styles.docTitle, { color: isDark ? '#fff' : '#111827' }]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.docTitle, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>
           {item.title}
         </Text>
         <Text style={[styles.docMeta, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
@@ -425,10 +448,17 @@ function DocumentCard({ item, isDark, onDelete }: { item: AppDocument; isDark: b
         </Text>
       </View>
 
-      <Pressable onPress={onDelete} style={styles.deleteBtn}>
-        <MaterialIcons name="delete-outline" size={22} color={isDark ? '#ef4444' : '#ef4444'} />
+      <Pressable
+        onPress={(e: any) => {
+          // Prevent opening the document when clicking delete (important on web).
+          e?.stopPropagation?.();
+          onDelete();
+        }}
+        style={styles.deleteBtn}
+      >
+        <MaterialIcons name="delete-outline" size={22} color="#ef4444" />
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 

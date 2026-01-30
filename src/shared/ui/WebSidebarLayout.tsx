@@ -5,7 +5,7 @@ import { useAuthStore } from '../../features/auth/store/authStore';
 import { useNotificationsStore } from '../../features/notifications/store/notificationsStore';
 import { theme } from './theme';
 
-type ActiveKey = 'personal' | 'clients' | 'tasks' | 'notifications';
+type ActiveKey = 'personal' | 'clients' | 'tasks' | 'documents' | 'notifications';
 
 type Props = {
   navigation: any;
@@ -55,6 +55,12 @@ export function WebSidebarLayout({ navigation, active, children }: Props) {
             label="כל המשימות"
             active={active === 'tasks'}
             onPress={() => navigation.navigate('Tasks')}
+          />
+          <NavItem
+            icon="folder"
+            label="מסמכים"
+            active={active === 'documents'}
+            onPress={() => navigation.navigate('Documents')}
           />
           <NavItem
             icon="notifications"

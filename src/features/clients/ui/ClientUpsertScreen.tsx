@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as Contacts from 'expo-contacts/src/Contacts';
 import * as DocumentPicker from 'expo-document-picker';
 import { useClientsStore } from '../store/clientsStore';
@@ -32,6 +33,8 @@ export function ClientUpsertScreen({ route, navigation }: any) {
   const { repo, createClient, updateClient, addDocument, removeDocument } = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
   const layout = useResponsiveLayout('form');
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomOffset = tabBarHeight > 0 ? tabBarHeight + 12 : 0;
 
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -280,7 +283,7 @@ export function ClientUpsertScreen({ route, navigation }: any) {
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[styles.content, layout.contentContainerStyle]}
+            contentContainerStyle={[styles.content, { paddingBottom: 170 + bottomOffset }, layout.contentContainerStyle]}
             style={{ flex: 1 }}
           >
           <FormField
@@ -479,7 +482,13 @@ export function ClientUpsertScreen({ route, navigation }: any) {
           />
           </ScrollView>
 
-          <View pointerEvents="none" style={[styles.footerFade, { backgroundColor: colors.footerFade }]} />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.footerFade,
+              { backgroundColor: colors.footerFade, height: 110 + bottomOffset },
+            ]}
+          />
           <Pressable
             disabled={!canSave}
             onPress={async () => {
@@ -511,6 +520,7 @@ export function ClientUpsertScreen({ route, navigation }: any) {
               styles.saveBtn,
               {
                 backgroundColor: colors.saveBg,
+                bottom: bottomOffset ? bottomOffset + 24 : 24,
                 opacity: !canSave ? 0.5 : 1,
                 transform: [{ scale: pressed && canSave ? 0.985 : 1 }],
                 shadowColor: colors.saveShadow,
@@ -765,7 +775,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 24,
     right: 24,
-    bottom: 24,
     height: 58,
     borderRadius: 18,
     flexDirection: 'row',

@@ -54,12 +54,15 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
     const { repo } = get();
     const user = useAuthStore.getState().user;
     
-    // 1. Upload to storage
+    // 1. Generate a SAFE storage path (ASCII only) to avoid encoding issues with Hebrew
     const bucket = 'documents';
     const timestamp = Date.now();
+    const extension = args.fileName.split('.').pop() || '';
+    const safeStorageName = `${timestamp}${extension ? `.${extension}` : ''}`;
+    
     const objectPath = args.clientId 
-      ? `clients/${args.clientId}/${timestamp}_${args.fileName}`
-      : `general/${timestamp}_${args.fileName}`;
+      ? `clients/${args.clientId}/${safeStorageName}`
+      : `general/${safeStorageName}`;
 
     const { publicUrl, objectPath: finalPath } = await uploadFileFromUri({
       bucket,
@@ -68,14 +71,14 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
       contentType: args.mimeType,
     });
 
-    // 2. Create database record
+    // 2. Create database record - Here we keep the original Hebrew title and filename
     const doc = await repo.create({
       title: args.title,
       kind: args.kind,
       clientId: args.clientId,
       projectId: args.projectId,
       storagePath: finalPath,
-      fileName: args.fileName,
+      fileName: args.fileName, // Original Hebrew name preserved here
       mimeType: args.mimeType,
       sizeBytes: args.sizeBytes,
       uploadedBy: user?.id,

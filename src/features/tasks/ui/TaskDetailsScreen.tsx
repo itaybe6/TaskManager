@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useTasksStore } from '../store/tasksStore';
 import type { Task } from '../model/taskTypes';
 import { theme } from '../../../shared/ui/theme';
@@ -24,6 +25,8 @@ export function TaskDetailsScreen({ route, navigation }: any) {
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
   const layout = useResponsiveLayout('detail');
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomOffset = tabBarHeight > 0 ? tabBarHeight + 12 : 0;
 
   const [task, setTask] = useState<Task | null>(null);
 
@@ -185,6 +188,7 @@ export function TaskDetailsScreen({ route, navigation }: any) {
               {
                 backgroundColor: isDark ? 'rgba(36,36,36,0.85)' : 'rgba(255,255,255,0.85)',
                 borderTopColor: isDark ? '#262626' : '#f1f5f9',
+                bottom: bottomOffset,
               },
             ]}
           >
@@ -320,7 +324,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 14,

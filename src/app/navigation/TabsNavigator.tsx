@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import { createBottomTabNavigator, type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { TasksListScreen } from '../../features/tasks/ui/TasksListScreen';
-import { PersonalTasksScreen } from '../../features/tasks/ui/PersonalTasksScreen';
-import { ClientsListScreen } from '../../features/clients/ui/ClientsListScreen';
-import { DocumentsScreen } from '../../features/documents/ui/DocumentsScreen';
-import { NotificationsScreen } from '../../features/notifications/ui/NotificationsScreen';
+import { TasksStackNavigator } from './TasksStackNavigator';
+import { PersonalTasksStackNavigator } from './PersonalTasksStackNavigator';
+import { ClientsStackNavigator } from './ClientsStackNavigator';
+import { DocumentsStackNavigator } from './DocumentsStackNavigator';
+import { NotificationsStackNavigator } from './NotificationsStackNavigator';
 import { theme } from '../../shared/ui/theme';
 import { useAppColorScheme } from '../../shared/ui/useAppColorScheme';
 import { useNotificationsStore } from '../../features/notifications/store/notificationsStore';
@@ -50,7 +50,7 @@ export function TabsNavigator() {
     >
       <Tab.Screen
         name="Tasks"
-        component={TasksListScreen}
+        component={TasksStackNavigator}
         options={{
           title: 'משימות',
           tabBarIcon: ({ color, focused, size }) => (
@@ -62,7 +62,7 @@ export function TabsNavigator() {
       />
       <Tab.Screen
         name="PersonalTasks"
-        component={PersonalTasksScreen}
+        component={PersonalTasksStackNavigator}
         options={{
           title: 'אישיות',
           tabBarIcon: ({ color, focused, size }) => (
@@ -74,7 +74,7 @@ export function TabsNavigator() {
       />
       <Tab.Screen
         name="Clients"
-        component={ClientsListScreen}
+        component={ClientsStackNavigator}
         options={{
           title: 'לקוחות',
           tabBarIcon: ({ color, focused, size }) => (
@@ -86,7 +86,7 @@ export function TabsNavigator() {
       />
       <Tab.Screen
         name="Documents"
-        component={DocumentsScreen}
+        component={DocumentsStackNavigator}
         options={{
           title: 'מסמכים',
           tabBarIcon: ({ color, focused, size }) => (
@@ -98,7 +98,7 @@ export function TabsNavigator() {
       />
       <Tab.Screen
         name="Notifications"
-        component={NotificationsScreen}
+        component={NotificationsStackNavigator}
         options={{
           title: 'התראות',
           tabBarBadge:

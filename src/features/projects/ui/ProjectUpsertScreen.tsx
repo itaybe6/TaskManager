@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useProjectsStore } from '../store/projectsStore';
 import { useClientsStore } from '../../clients/store/clientsStore';
 import { ProjectStatus } from '../model/projectTypes';
@@ -15,6 +16,8 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
   const clients = useClientsStore();
   const isDark = useAppColorScheme() === 'dark';
   const layout = useResponsiveLayout('form');
+  const tabBarHeight = useBottomTabBarHeight();
+  const bottomOffset = tabBarHeight > 0 ? tabBarHeight + 12 : 0;
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -65,7 +68,7 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
 
         <ScrollView
           contentContainerStyle={[
-            { padding: 20, paddingBottom: 120, gap: 14 },
+            { padding: 20, paddingBottom: 120 + bottomOffset, gap: 14 },
             layout.contentContainerStyle,
           ]}
         >
@@ -163,7 +166,10 @@ export function ProjectUpsertScreen({ route, navigation }: any) {
           }}
           style={({ pressed }) => [
             styles.saveBtn,
-            { opacity: !canSave ? 0.5 : pressed ? 0.92 : 1 },
+            {
+              opacity: !canSave ? 0.5 : pressed ? 0.92 : 1,
+              bottom: bottomOffset ? bottomOffset + 24 : 24,
+            },
           ]}
         >
           <MaterialIcons name="check" size={20} color="#fff" />
@@ -300,7 +306,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 24,
     height: 54,
     borderRadius: 16,
     backgroundColor: theme.colors.primary,

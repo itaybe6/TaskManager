@@ -22,45 +22,59 @@ export function NotificationsScreen({ navigation }: any) {
 
   const header = useMemo(() => {
     return (
-      <View style={styles.headerWrap}>
+      <View
+        style={[
+          styles.headerWrap,
+          {
+            paddingHorizontal: layout.paddingX,
+            backgroundColor: isDark ? 'rgba(18,18,18,0.96)' : 'rgba(246,247,251,0.96)',
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)',
+          },
+        ]}
+      >
         <View style={styles.topHeader}>
-          <View style={styles.brandRow}>
-            <BrandLogo width={86} height={30} />
-            <Text style={[styles.title, { color: isDark ? '#fff' : theme.colors.text }]}>התראות</Text>
-          </View>
+          <View style={styles.profileRow}>
+            <View style={{ gap: 2 }}>
+              <Text style={[styles.title, { color: isDark ? '#ffffff' : '#111827' }]}>התראות</Text>
+              <Text style={[styles.subtitle, { color: isDark ? '#9ca3af' : theme.colors.textMuted }]}>
+                {unreadCount > 0 ? `${unreadCount} לא נקראו` : 'הכל נקרא'}
+              </Text>
+            </View>
 
-          <View style={styles.headerActions}>
-            <UserAvatarButton />
-            {unreadCount > 0 ? (
-              <Pressable
-                onPress={() => markAllRead()}
-                style={({ pressed }) => [
-                  styles.markAllBtn,
-                  {
-                    backgroundColor: isDark ? '#242424' : theme.colors.surface,
-                    opacity: pressed ? 0.86 : 1,
-                  },
-                ]}
-              >
-                <MaterialIcons name="done-all" size={18} color={isDark ? '#e5e7eb' : '#374151'} />
-                <Text style={[styles.markAllText, { color: isDark ? '#e5e7eb' : '#374151' }]}>
-                  סמן הכל
-                </Text>
-              </Pressable>
-            ) : (
-              <View style={styles.markAllBtnPlaceholder} />
-            )}
+            <View style={styles.headerActions}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {unreadCount > 0 ? (
+                  <Pressable
+                    onPress={() => markAllRead()}
+                    style={({ pressed }) => [
+                      styles.actionBtn,
+                      {
+                        backgroundColor: isDark ? '#1E1E1E' : '#ffffff',
+                        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.10)',
+                        opacity: pressed ? 0.9 : 1,
+                      },
+                    ]}
+                  >
+                    <MaterialIcons name="done-all" size={18} color={isDark ? '#e5e7eb' : '#475569'} />
+                    <Text style={[styles.actionBtnText, { color: isDark ? '#e5e7eb' : '#0f172a' }]}>סמן הכל</Text>
+                  </Pressable>
+                ) : null}
+
+                <UserAvatarButton />
+              </View>
+            </View>
           </View>
         </View>
 
-        <View style={styles.sectionRow}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#e5e7eb' : '#1f2937' }]}>
-            {unreadCount > 0 ? `${unreadCount} לא נקראו` : 'הכל נקרא'}
-          </Text>
+        <View style={styles.brandHintRow}>
+          <BrandLogo width={70} height={24} />
         </View>
+
+        <View style={{ height: 6 }} />
       </View>
     );
-  }, [isDark, unreadCount]);
+  }, [isDark, unreadCount, layout.paddingX, markAllRead]);
 
   return (
     <SafeAreaView
@@ -74,6 +88,7 @@ export function NotificationsScreen({ navigation }: any) {
         data={items}
         keyExtractor={(n) => n.id}
         ListHeaderComponent={header}
+        stickyHeaderIndices={[0]}
         refreshing={isLoading}
         onRefresh={load}
         contentContainerStyle={[styles.listContent, layout.contentContainerStyle]}
@@ -164,52 +179,45 @@ function NotificationRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  listContent: { paddingHorizontal: 24, paddingBottom: 120, gap: 16 },
+  listContent: { paddingBottom: 120, gap: 16, paddingTop: 6 },
 
-  headerWrap: { paddingTop: 6, paddingBottom: 10 },
+  headerWrap: { paddingTop: 10, paddingBottom: 10, width: '100%' },
   topHeader: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
   },
-  headerActions: {
-    flexDirection: 'row',
+  profileRow: {
+    flex: 1,
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
   },
-  brandRow: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', alignItems: 'center', gap: 10 },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     textAlign: 'right',
     writingDirection: 'rtl',
-    letterSpacing: -0.3,
   },
-
-  markAllBtn: {
+  subtitle: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  actionBtn: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: 8,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 14,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
-  markAllBtnPlaceholder: { width: 88, height: 40 },
-  markAllText: { fontSize: 12, fontWeight: '800' },
-
-  sectionRow: {
-    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 6,
-  },
-  sectionTitle: { fontSize: 14, fontWeight: '800', textAlign: 'right' },
+  actionBtnText: { fontWeight: '900', fontSize: 13, textAlign: 'right', writingDirection: 'rtl' },
+  brandHintRow: { alignItems: 'flex-end', opacity: 0.9 },
 
   card: {
     padding: 18,

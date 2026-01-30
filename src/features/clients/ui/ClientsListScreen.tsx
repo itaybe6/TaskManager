@@ -150,7 +150,7 @@ export function ClientsListScreen({ navigation, route }: any) {
           <ClientRow
             item={item}
             isDark={isDark}
-            onPress={() => navigation.navigate('ClientUpsert', { mode: 'edit', id: item.id })}
+            onPress={() => navigation.navigate('ClientDetails', { id: item.id })}
           />
         )}
         ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15, 23, 42, 0.06)' }]} />}
@@ -346,12 +346,12 @@ function clientProgressPct(c: Client) {
   const total = c.totalPrice;
   const remaining = c.remainingToPay;
 
-  if (total === undefined || total === null || !Number.isFinite(total) || total <= 0) {
-    // No "total" -> interpret "paid" as 100% when nothing remains, otherwise 0%.
-    return remaining !== undefined && remaining !== null && Number.isFinite(remaining) && remaining <= 0 ? 100 : 0;
-  }
+  // Percent paid = (total - remaining) / total
+  // If we don't have `remainingToPay`, we can't infer "paid" safely -> show 0%.
+  if (total === undefined || total === null || !Number.isFinite(total) || total <= 0) return 0;
+  if (remaining === undefined || remaining === null || !Number.isFinite(remaining)) return 0;
 
-  const rem = remaining ?? 0;
+  const rem = Math.max(0, remaining);
   const paid = Math.max(0, total - rem);
   const pct = Math.round((paid / total) * 100);
   return Math.max(0, Math.min(100, pct));
