@@ -127,7 +127,7 @@ export function WebSidebarLayout({ navigation, active, children }: Props) {
       <View style={styles.sidebarWrap}>
         <View style={[styles.sidebar, { backgroundColor: palette.panelBg, borderColor: palette.border }]}>
           <View style={styles.brandRow}>
-            <BrandLogo width={170} height={52} />
+            <BrandLogo width={140} height={42} />
           </View>
 
           <View
@@ -348,8 +348,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     overflow: 'hidden',
-    padding: 24,
-    gap: 18,
+    padding: 16,
+    gap: 12,
   },
   bgBlobs: {
     ...StyleSheet.absoluteFillObject,
@@ -364,15 +364,15 @@ const styles = StyleSheet.create({
   blob2: { bottom: -90, left: -70, width: 420, height: 420 },
 
   sidebarWrap: {
-    width: 320,
-    maxWidth: 360,
-    minWidth: 300,
+    width: 260,
+    maxWidth: 300,
+    minWidth: 240,
     alignSelf: 'stretch',
   },
   sidebar: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOpacity: 0.14,
     shadowRadius: 26,
@@ -381,9 +381,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   brandRow: {
-    paddingHorizontal: 24,
-    paddingTop: 26,
-    paddingBottom: 18,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -394,9 +394,9 @@ const styles = StyleSheet.create({
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
     marginBottom: 8,
   },
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  navItemTxt: { fontSize: 18, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  navItemTxt: { fontSize: 15, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
   pulseDot: { width: 8, height: 8, borderRadius: 999, marginHorizontal: 8 },
   badge: {
     backgroundColor: '#EF4444',
@@ -421,16 +421,16 @@ const styles = StyleSheet.create({
   footerDivider: { height: 1, marginVertical: 10 },
   userRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   userAvatar: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 999,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userName: { fontSize: 13, fontWeight: '900' },
-  userEmail: { fontSize: 11, fontWeight: '700' },
-  settingsBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  userName: { fontSize: 12, fontWeight: '900' },
+  userEmail: { fontSize: 10, fontWeight: '700' },
+  settingsBtn: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 
   toggleRow: {
     marginBottom: 14,
@@ -439,23 +439,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  toggleTitle: { fontSize: 13, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  toggleSubtitle: { fontSize: 10, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  toggleTitle: { fontSize: 12, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  toggleSubtitle: { fontSize: 9, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
   toggleTrack: { alignItems: 'flex-start', justifyContent: 'center', overflow: 'hidden', borderWidth: 1 },
   toggleKnob: { position: 'absolute', left: 0 },
 
   logoutButton: {
     width: '100%',
-    height: 46,
-    borderRadius: 14,
+    height: 40,
+    borderRadius: 12,
     borderWidth: 1,
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
-  logoutText: { fontSize: 14, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
+  logoutText: { fontSize: 12, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl' },
 
-  main: { flex: 1, minWidth: 0, borderRadius: 24, overflow: 'hidden' },
+  main: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: 20,
+    // Allow dropdown menus to escape their cards on web.
+    overflow: Platform.OS === 'web' ? 'visible' : 'hidden',
+  },
 });
 

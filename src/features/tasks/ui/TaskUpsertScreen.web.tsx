@@ -276,19 +276,19 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
   const dateInputStyle: React.CSSProperties = {
     width: '100%',
-    height: 44,
-    borderRadius: 12,
+    height: 40,
+    borderRadius: 10,
     border: `1px solid ${chrome.inputBorder}`,
     background: chrome.surface,
     // Align with other "button-like" inputs (SelectField)
-    padding: '0 12px',
-    fontSize: 13,
+    padding: '0 10px',
+    fontSize: 12,
     fontWeight: 800,
     color: chrome.text,
     outline: 'none',
     boxSizing: 'border-box',
     margin: 0,
-    lineHeight: '44px',
+    lineHeight: '40px',
     textAlign: 'right',
     direction: 'rtl',
     fontFamily: 'inherit',
@@ -300,10 +300,10 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       <SafeAreaView edges={['top', 'left', 'right']} style={[styles.screen, { backgroundColor: chrome.bg }]}>
         <ScrollView
           style={{ flex: 1, overflow: 'visible' as any }}
-          contentContainerStyle={{ paddingHorizontal: isDesktop ? 32 : 16, paddingTop: 24, paddingBottom: 40, overflow: 'visible' as any }}
+          contentContainerStyle={{ paddingHorizontal: isDesktop ? 20 : 14, paddingTop: 16, paddingBottom: 32, overflow: 'visible' as any }}
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ maxWidth: 1200, alignSelf: 'center', width: '100%' }}>
+            <View style={{ maxWidth: 1080, alignSelf: 'center', width: '100%' }}>
             <View style={styles.headerRow}>
               <View>
                 <Text style={styles.pageTitle}>יצירת משימה חדשה</Text>
@@ -319,7 +319,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
             <View style={styles.card}>
               <View style={styles.cardBody}>
-                {openSelect ? <Pressable style={styles.dropdownOverlay} onPress={() => setOpenSelect(null)} /> : null}
+                {openSelect ? <View style={styles.dropdownOverlay} pointerEvents="none" /> : null}
                 <View style={styles.topGrid}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.label}>כותרת המשימה</Text>
@@ -457,7 +457,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                   </View>
                 </View>
 
-                <View style={{ marginTop: 18 }}>
+                <View style={{ marginTop: 18, position: 'relative', zIndex: 0 }}>
                   <Text style={styles.label}>תיאור המשימה</Text>
                   <TextInput
                     value={details}
@@ -620,7 +620,7 @@ function StatusPill(props: {
         },
       ]}
     >
-      <Text style={{ color: props.active ? colors.activeText : colors.text, fontWeight: '800', fontSize: 12 }}>{props.label}</Text>
+      <Text style={{ color: props.active ? colors.activeText : colors.text, fontWeight: '800', fontSize: 11 }}>{props.label}</Text>
     </Pressable>
   );
 }
@@ -640,23 +640,23 @@ const createStyles = (colors: {
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: 12,
-      marginBottom: 18,
+      gap: 10,
+      marginBottom: 14,
     },
-    pageTitle: { fontSize: 28, fontWeight: '900', color: colors.text, textAlign: 'right', writingDirection: 'rtl' },
-    pageSubtitle: { color: colors.muted, fontSize: 14, fontWeight: '600', textAlign: 'right', writingDirection: 'rtl' },
+    pageTitle: { fontSize: 22, fontWeight: '900', color: colors.text, textAlign: 'right', writingDirection: 'rtl' },
+    pageSubtitle: { color: colors.muted, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'rtl' },
     cancelBtn: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.surface,
     },
-    cancelTxt: { color: colors.muted, fontWeight: '700', fontSize: 13 },
+    cancelTxt: { color: colors.muted, fontWeight: '700', fontSize: 12 },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: 18,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: colors.border,
       shadowColor: '#000',
@@ -666,7 +666,7 @@ const createStyles = (colors: {
       elevation: 4,
       overflow: 'visible',
     },
-    cardBody: { padding: 24, gap: 18, overflow: 'visible' },
+    cardBody: { padding: 18, gap: 14, overflow: 'visible', position: 'relative' },
     dropdownOverlay: {
       ...StyleSheet.absoluteFillObject,
       zIndex: 20,
@@ -674,18 +674,18 @@ const createStyles = (colors: {
     topGrid: {
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'flex-start',
-      gap: 18,
+      gap: 14,
     },
-    label: { fontSize: 13, fontWeight: '900', color: colors.text, marginBottom: 8, textAlign: 'right', writingDirection: 'rtl' },
-    fieldLabel: { fontSize: 12, fontWeight: '800', color: colors.text, marginBottom: 8, textAlign: 'right', writingDirection: 'rtl' },
+    label: { fontSize: 12, fontWeight: '900', color: colors.text, marginBottom: 6, textAlign: 'right', writingDirection: 'rtl' },
+    fieldLabel: { fontSize: 11, fontWeight: '800', color: colors.text, marginBottom: 6, textAlign: 'right', writingDirection: 'rtl' },
     titleInput: {
-      height: 50,
-      borderRadius: 12,
+      height: 44,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.inputBorder,
       backgroundColor: colors.surfaceMuted,
-      paddingHorizontal: 14,
-      fontSize: 16,
+      paddingHorizontal: 12,
+      fontSize: 14,
       fontWeight: '800',
       color: colors.text,
       textAlign: 'right',
@@ -695,35 +695,37 @@ const createStyles = (colors: {
     fieldsGrid: {
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       flexWrap: 'wrap',
-      gap: 16,
+      gap: 12,
       overflow: 'visible',
+      position: 'relative',
+      zIndex: 2,
     },
-    selectWrap: { position: 'relative', overflow: 'visible' },
-    selectWrapOpen: { zIndex: 100000, position: 'relative' },
+    selectWrap: { position: 'relative', overflow: 'visible', zIndex: 1 },
+    selectWrapOpen: { zIndex: 50, position: 'relative' },
     selectBtn: {
-      height: 44,
-      borderRadius: 12,
+      height: 40,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.inputBorder,
       backgroundColor: colors.surface,
-      paddingHorizontal: 12,
+      paddingHorizontal: 10,
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 10,
     },
-    selectTxt: { color: colors.text, fontSize: 13, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl', flex: 1 },
+    selectTxt: { color: colors.text, fontSize: 12, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl', flex: 1 },
     selectMenu: {
       position: 'absolute',
       left: 0,
       right: 0,
-      top: 48,
-      borderRadius: 14,
+      top: 44,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.surface,
       overflow: 'hidden',
-      maxHeight: 260,
+      maxHeight: 220,
       zIndex: 100001,
       shadowColor: '#000',
       shadowOpacity: 0.12,
@@ -732,35 +734,35 @@ const createStyles = (colors: {
       elevation: 8,
     },
     selectItem: {
-      height: 42,
-      paddingHorizontal: 12,
+      height: 38,
+      paddingHorizontal: 10,
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 10,
     },
-    selectItemTxt: { fontSize: 13, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl', flex: 1 },
+    selectItemTxt: { fontSize: 12, fontWeight: '800', textAlign: 'right', writingDirection: 'rtl', flex: 1 },
     selectLikeInput: {
-      height: 44,
-      borderRadius: 12,
+      height: 40,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.inputBorder,
       backgroundColor: colors.surface,
-      paddingHorizontal: 12,
-      fontSize: 13,
+      paddingHorizontal: 10,
+      fontSize: 12,
       fontWeight: '800',
       color: colors.text,
       textAlign: 'right',
       writingDirection: 'rtl',
     },
     textarea: {
-      minHeight: 150,
-      borderRadius: 12,
+      minHeight: 130,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: colors.inputBorder,
       backgroundColor: colors.surfaceMuted,
-      padding: 12,
-      fontSize: 13,
+      padding: 10,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.text,
       textAlign: 'right',
@@ -768,33 +770,33 @@ const createStyles = (colors: {
       textAlignVertical: 'top',
     },
     footerRow: {
-      marginTop: 10,
-      paddingTop: 18,
+      marginTop: 8,
+      paddingTop: 14,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: 12,
+      gap: 10,
     },
-    statusRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 },
-    statusLabel: { fontSize: 13, fontWeight: '800', color: colors.text },
-    statusPills: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', gap: 8 },
-    statusPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+    statusRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 },
+    statusLabel: { fontSize: 12, fontWeight: '800', color: colors.text },
+    statusPills: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', gap: 6 },
+    statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1 },
     saveBtn: {
-      height: 48,
-      paddingHorizontal: 20,
-      borderRadius: 12,
+      height: 42,
+      paddingHorizontal: 16,
+      borderRadius: 10,
       backgroundColor: theme.colors.primary,
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 8,
+      gap: 6,
       shadowColor: theme.colors.primary,
       shadowOpacity: 0.25,
       shadowRadius: 14,
       shadowOffset: { width: 0, height: 8 },
       elevation: 6,
     },
-    saveTxt: { color: '#fff', fontSize: 14, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+    saveTxt: { color: '#fff', fontSize: 12, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   });

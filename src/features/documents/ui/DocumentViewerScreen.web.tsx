@@ -24,7 +24,7 @@ export function DocumentViewerScreen({ route, navigation }: any) {
         >
           <MaterialIcons
             name={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'}
-            size={28}
+            size={22}
             color="#fff"
           />
         </Pressable>
@@ -37,7 +37,7 @@ export function DocumentViewerScreen({ route, navigation }: any) {
           onPress={() => Linking.openURL(url)}
           style={({ pressed }) => [styles.openBtn, pressed && { opacity: 0.85 }]}
         >
-          <MaterialIcons name="open-in-new" size={20} color="#fff" />
+          <MaterialIcons name="open-in-new" size={18} color="#fff" />
         </Pressable>
       </View>
 
@@ -56,11 +56,11 @@ export function DocumentViewerScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F6F7FB' },
   header: {
-    height: 64,
+    height: 52,
     backgroundColor: '#433878',
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     justifyContent: 'space-between',
     elevation: 4,
     shadowColor: '#000',
@@ -69,26 +69,26 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   backBtn: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 22,
+    borderRadius: 18,
   },
   title: {
     color: '#fff',
     fontWeight: '900',
-    fontSize: 17,
+    fontSize: 14,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 8,
   },
   openBtn: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 22,
+    borderRadius: 18,
   },
   viewerWrap: {
     flex: 1,

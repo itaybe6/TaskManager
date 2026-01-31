@@ -62,7 +62,7 @@ export function ClientsListScreen({ navigation }: any) {
           numColumns={cols}
           columnWrapperStyle={cols > 1 ? { gap: 16 } : undefined}
           ListHeaderComponent={header}
-          contentContainerStyle={{ paddingHorizontal: 32, paddingTop: 24, paddingBottom: 180, gap: 16 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 140, gap: 12 }}
           refreshing={isLoading}
           onRefresh={load}
           renderItem={({ item }) => (
@@ -257,13 +257,13 @@ const styles = StyleSheet.create({
 
   header: { gap: 10, paddingBottom: 10 },
   sectionRow: { paddingTop: 6, paddingBottom: 2 },
-  sectionTitle: { fontSize: 24, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
   errorTxt: { color: '#ef4444', fontWeight: '800', textAlign: 'right' },
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'transparent',
     shadowColor: '#000',
@@ -293,14 +293,14 @@ const styles = StyleSheet.create({
   },
   clientRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 12 },
   clientAvatar: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clientAvatarTxt: { fontSize: 16, fontWeight: '700' },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
+  clientAvatarTxt: { fontSize: 14, fontWeight: '700' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
   metaPill: {
     marginTop: 4,
     alignSelf: 'flex-start',
@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(249, 250, 251, 0.8)',
     borderWidth: 1,
     borderColor: '#f1f5f9',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 12,
   },
   contactLeft: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
   contactAvatar: {
@@ -335,8 +335,8 @@ const styles = StyleSheet.create({
   contactLabel: { fontSize: 11, fontWeight: '500', color: '#6b7280', textAlign: 'right', writingDirection: 'rtl' },
   contactName: { fontSize: 13, fontWeight: '600', color: '#1f2937', textAlign: 'right', writingDirection: 'rtl' },
   callBtn: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -349,24 +349,24 @@ const styles = StyleSheet.create({
   },
   tile: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
-    minHeight: 74,
+    padding: 10,
+    minHeight: 64,
     justifyContent: 'space-between',
   },
   tileLabelRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   tileLabel: { fontSize: 11, fontWeight: '600', textAlign: 'right', writingDirection: 'rtl' },
-  tileValue: { fontSize: 17, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
+  tileValue: { fontSize: 15, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
 
   fab: {
     position: 'absolute',
     left: 32,
     bottom: 32,
-    height: 58,
+    height: 50,
     borderRadius: 999,
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
+    paddingHorizontal: 18,
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
     gap: 10,
@@ -376,5 +376,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 10,
   },
-  fabTxt: { color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
+  fabTxt: { color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl' },
 });

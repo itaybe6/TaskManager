@@ -96,10 +96,10 @@ export function TasksListScreen({ navigation }: any) {
     } as const;
   }, [isDark]);
 
-  const maxWidth = Math.min(1680, Math.max(1100, width - 48));
-  const padX = width < 1280 ? 20 : 28;
-  const gap = 18;
-  const sidebarW = isDesktop ? 360 : 0;
+  const maxWidth = Math.min(1440, Math.max(980, width - 48));
+  const padX = width < 1280 ? 16 : 22;
+  const gap = 12;
+  const sidebarW = isDesktop ? 300 : 0;
   const contentW = Math.max(320, maxWidth - sidebarW - gap - padX * 2);
   const cols = isDesktop ? clamp(Math.floor(contentW / 360), 2, 4) : 1;
   const pageLeft = Math.max(12, (width - maxWidth) / 2 + padX);
@@ -145,7 +145,7 @@ export function TasksListScreen({ navigation }: any) {
                   keyExtractor={(t) => t.id}
                   numColumns={cols}
                   columnWrapperStyle={cols > 1 ? { gap: 16, justifyContent: 'flex-end' } : undefined}
-                  contentContainerStyle={{ paddingBottom: 140, gap: 16, paddingHorizontal: padX, paddingTop: 10 }}
+                  contentContainerStyle={{ paddingBottom: 110, gap: 12, paddingHorizontal: padX, paddingTop: 8 }}
                   refreshing={isLoading}
                   onRefresh={load}
                   showsVerticalScrollIndicator={false}
@@ -171,7 +171,7 @@ export function TasksListScreen({ navigation }: any) {
                   }
                 />
               ) : (
-                <View style={{ flex: 1, minHeight: 0, padding: 16, paddingRight: 16 }}>
+                <View style={{ flex: 1, minHeight: 0, padding: 12, paddingRight: 12 }}>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -455,8 +455,8 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     borderLeftWidth: 1,
-    padding: 16,
-    gap: 14,
+    padding: 12,
+    gap: 10,
     overflow: 'hidden',
   },
   sideHeaderRow: {
@@ -465,29 +465,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   main: { flex: 1, minWidth: 0, overflow: 'hidden' },
-  sideTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
-  sideLabel: { fontSize: 13, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  sideTitle: { fontSize: 14, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  sideLabel: { fontSize: 12, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   sideDivider: { height: 1, backgroundColor: 'rgba(15, 23, 42, 0.08)' },
   pillsWrap: { flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-start' },
   searchIcon: { position: 'absolute', right: 12, top: 12, opacity: 0.85 },
   searchIconMobile: { position: 'absolute', right: 12, top: 12, opacity: 0.85 },
   search: {
-    height: 42,
-    borderRadius: 14,
+    height: 38,
+    borderRadius: 12,
     borderWidth: 1,
     paddingRight: 38,
     paddingLeft: 12,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-  empty: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 6 },
+  empty: { padding: 12, borderRadius: 14, borderWidth: 1, gap: 6 },
   fabMini: {
     position: 'absolute',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: theme.colors.primary,
@@ -497,9 +497,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   kanbanRow: {
-    gap: 18,
-    paddingBottom: 120,
-    minWidth: 1000,
+    gap: 12,
+    paddingBottom: 90,
+    minWidth: 880,
     alignItems: 'stretch',
   },
   kanbanScroll: {
@@ -511,17 +511,17 @@ const segStyles = StyleSheet.create({
   wrap: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     gap: 6,
-    padding: 4,
-    borderRadius: 14,
+    padding: 3,
+    borderRadius: 12,
     backgroundColor: '#E5E7EB',
   },
-  item: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  item: { flex: 1, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });
 
 const pillStyles = StyleSheet.create({
   wrap: {
-    height: 34,
-    paddingHorizontal: 12,
+    height: 30,
+    paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
@@ -534,11 +534,11 @@ const cardStyles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOpacity: 0.06,
-    shadowRadius: 18,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
     overflow: 'hidden',
@@ -549,12 +549,12 @@ const cardStyles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 8,
     paddingRight: 8,
   },
   badges: { flex: 1, flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse', flexWrap: 'wrap', gap: 8 },
   moreBtn: { padding: 4 },
-  title: { fontSize: 16, fontWeight: '900', lineHeight: 22, color: '#0F172A', textAlign: 'right', writingDirection: 'rtl', marginBottom: 12, paddingRight: 8 },
+  title: { fontSize: 14, fontWeight: '900', lineHeight: 20, color: '#0F172A', textAlign: 'right', writingDirection: 'rtl', marginBottom: 10, paddingRight: 8 },
   bottomRow: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     justifyContent: 'space-between',
@@ -566,27 +566,27 @@ const cardStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 10,
   },
-  metaTxt: { fontSize: 12, fontWeight: '800', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
+  metaTxt: { fontSize: 11, fontWeight: '800', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
 });
 
 const badgeStyles = StyleSheet.create({
-  wrap: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
-  txt: { fontSize: 10, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  wrap: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  txt: { fontSize: 9, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
 });
 
 const assigneeStyles = StyleSheet.create({
-  wrap: { width: 32, height: 32, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  txt: { color: '#fff', fontWeight: '900', fontSize: 11 },
+  wrap: { width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  txt: { color: '#fff', fontWeight: '900', fontSize: 10 },
 });
 
 const kanbanStyles = StyleSheet.create({
   col: {
-    width: 340,
-    minWidth: 320,
+    width: 300,
+    minWidth: 280,
     minHeight: 0,
     flexShrink: 0,
     alignSelf: 'stretch',
@@ -595,7 +595,7 @@ const kanbanStyles = StyleSheet.create({
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
     paddingHorizontal: 6,
   },
   colHeaderLeft: {
@@ -604,14 +604,14 @@ const kanbanStyles = StyleSheet.create({
     gap: 8,
   },
   dot: { width: 8, height: 8, borderRadius: 999 },
-  colTitle: { fontSize: 15, fontWeight: '900', color: '#1A202C', textAlign: 'right', writingDirection: 'rtl' },
+  colTitle: { fontSize: 13, fontWeight: '900', color: '#1A202C', textAlign: 'right', writingDirection: 'rtl' },
   countPill: {
     backgroundColor: 'rgba(148, 163, 184, 0.35)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
-  countTxt: { fontSize: 11, fontWeight: '900', color: '#4B5563' },
+  countTxt: { fontSize: 10, fontWeight: '900', color: '#4B5563' },
   colScroll: {
     flex: 1,
     minHeight: 0,
@@ -622,7 +622,7 @@ const kanbanStyles = StyleSheet.create({
     paddingBottom: 24,
   },
   addBtn: {
-    height: 46,
+    height: 40,
     borderRadius: 14,
     borderWidth: 1,
     borderStyle: 'dashed',
@@ -633,16 +633,16 @@ const kanbanStyles = StyleSheet.create({
     gap: 8,
     backgroundColor: theme.colors.primarySoft2,
   },
-  addTxt: { fontSize: 13, fontWeight: '900', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
+  addTxt: { fontSize: 12, fontWeight: '900', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
   emptyCol: {
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
-    padding: 12,
+    padding: 10,
     backgroundColor: 'rgba(255,255,255,0.85)',
   },
-  emptyTitle: { fontSize: 13, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
-  emptyHint: { marginTop: 6, fontSize: 12, fontWeight: '700', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
+  emptyTitle: { fontSize: 12, fontWeight: '900', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
+  emptyHint: { marginTop: 6, fontSize: 11, fontWeight: '700', color: '#64748B', textAlign: 'right', writingDirection: 'rtl' },
 });
 
 function badgeColors(tone: 'danger' | 'todo' | 'done' | 'category') {

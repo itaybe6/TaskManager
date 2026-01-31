@@ -107,7 +107,7 @@ export function PersonalTasksScreen({ navigation }: any) {
 
   const isDesktop = width >= 1024;
   const cols = isDesktop ? 2 : 1;
-  const contentPad = width < 1280 ? 20 : 28;
+  const contentPad = width < 1280 ? 16 : 22;
 
   const EmptyCreateCard = useMemo(() => {
     return function EmptyCreateCardInner(props: { onPress: () => void }) {
@@ -146,8 +146,8 @@ export function PersonalTasksScreen({ navigation }: any) {
     return (
       <WebSidebarLayout navigation={navigation} active="personal">
         <SafeAreaView style={[styles.page, { backgroundColor: chrome.bg }]}>
-          <View style={{ padding: 24, gap: 10 }}>
-            <Text style={{ color: chrome.text, fontSize: 18, fontWeight: '900', textAlign: 'right' }}>
+          <View style={{ padding: 16, gap: 8 }}>
+            <Text style={{ color: chrome.text, fontSize: 16, fontWeight: '900', textAlign: 'right' }}>
               צריך להתחבר כדי לראות משימות אישיות
             </Text>
           </View>
@@ -481,17 +481,17 @@ function formatTimeOnlyOrAllDay(iso?: string) {
 const createStyles = (c: PersonalTasksChrome) =>
   StyleSheet.create({
     page: { flex: 1 },
-    container: { flex: 1, width: '100%', maxWidth: 1200, alignSelf: 'center' },
+    container: { flex: 1, width: '100%', maxWidth: 1080, alignSelf: 'center' },
 
     headerRow: {
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: 16,
-      marginBottom: 18,
+      gap: 12,
+      marginBottom: 14,
     },
-    hiTitle: { fontSize: 32, fontWeight: '900', color: c.text, textAlign: 'right', writingDirection: 'rtl', letterSpacing: -0.4 },
-    hiSubtitle: { marginTop: 4, fontSize: 16, fontWeight: '700', color: c.muted, textAlign: 'right', writingDirection: 'rtl' },
+    hiTitle: { fontSize: 26, fontWeight: '900', color: c.text, textAlign: 'right', writingDirection: 'rtl', letterSpacing: -0.3 },
+    hiSubtitle: { marginTop: 4, fontSize: 13, fontWeight: '700', color: c.muted, textAlign: 'right', writingDirection: 'rtl' },
 
     headerActions: { flexShrink: 0 },
     searchPill: {
@@ -499,45 +499,45 @@ const createStyles = (c: PersonalTasksChrome) =>
       alignItems: 'center',
       gap: 10,
       borderRadius: 999,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       backgroundColor: c.surface,
       borderWidth: 1,
       borderColor: c.border,
       shadowColor: '#000',
-      shadowOpacity: Platform.OS === 'web' ? 0.06 : 0.1,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: Platform.OS === 'web' ? 0.05 : 0.1,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
       elevation: 4,
     },
     searchInput: {
-      width: 220,
-      height: 20,
+      width: 200,
+      height: 18,
       paddingVertical: 0,
       paddingHorizontal: 0,
       color: c.text,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '800',
       textAlign: 'right',
       writingDirection: 'rtl',
     },
-    divider: { width: 1, height: 22, backgroundColor: c.border, opacity: 0.9, marginHorizontal: 6 },
-    iconBtn: { width: 38, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+    divider: { width: 1, height: 18, backgroundColor: c.border, opacity: 0.9, marginHorizontal: 6 },
+    iconBtn: { width: 34, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
     notifDot: {
       position: 'absolute',
-      top: 9,
-      right: 11,
-      width: 8,
-      height: 8,
+      top: 8,
+      right: 10,
+      width: 7,
+      height: 7,
       borderRadius: 999,
       backgroundColor: '#EF4444',
       borderWidth: 2,
       borderColor: c.surface,
     },
     addBtn: {
-      height: 38,
+      height: 34,
       borderRadius: 999,
-      paddingHorizontal: 16,
+      paddingHorizontal: 12,
       flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -548,7 +548,7 @@ const createStyles = (c: PersonalTasksChrome) =>
       shadowOffset: { width: 0, height: 10 },
       elevation: 8,
     },
-    addBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+    addBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
 
     section: { marginTop: 6, marginBottom: 10 },
     sectionHeadRow: {
@@ -557,12 +557,12 @@ const createStyles = (c: PersonalTasksChrome) =>
       justifyContent: 'space-between',
       marginBottom: 10,
     },
-    sectionTitle: { fontSize: 18, fontWeight: '900', color: c.text, textAlign: 'right', writingDirection: 'rtl' },
+    sectionTitle: { fontSize: 16, fontWeight: '900', color: c.text, textAlign: 'right', writingDirection: 'rtl' },
     monthNav: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 },
-    monthNavBtn: { width: 32, height: 32, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border },
+    monthNavBtn: { width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border },
     monthLabel: { fontSize: 12, fontWeight: '800', color: c.text, textAlign: 'right', writingDirection: 'rtl', minWidth: 110 },
 
-    weekStrip: { gap: 12, paddingVertical: 8, paddingHorizontal: 2 },
+    weekStrip: { gap: 10, paddingVertical: 6, paddingHorizontal: 2 },
     weekStripScroll: (Platform.OS === 'web'
       ? ({
           scrollbarWidth: 'none',
@@ -570,77 +570,77 @@ const createStyles = (c: PersonalTasksChrome) =>
         } as any)
       : null) as any,
     dayChip: {
-      width: 76,
-      height: 96,
-      borderRadius: 24,
+      width: 66,
+      height: 84,
+      borderRadius: 20,
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
       shadowColor: '#000',
-      shadowOpacity: 0.06,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.05,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
       elevation: 3,
     },
-    dayDow: { fontSize: 11, fontWeight: '800', textAlign: 'center' },
-    dayNum: { fontSize: 22, fontWeight: '900', textAlign: 'center' },
+    dayDow: { fontSize: 10, fontWeight: '800', textAlign: 'center' },
+    dayNum: { fontSize: 18, fontWeight: '900', textAlign: 'center' },
     todayDot: { width: 4, height: 4, borderRadius: 999, marginTop: 6 },
 
     filtersRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 10 },
 
     emptyCard: {
-      marginTop: 16,
-      minHeight: 220,
-      borderRadius: 24,
+      marginTop: 12,
+      minHeight: 180,
+      borderRadius: 20,
       borderWidth: 2,
       borderStyle: 'dashed',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 10,
+      gap: 8,
     },
-    emptyPlusCircle: { width: 56, height: 56, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-    emptyCardTxt: { fontSize: 14, fontWeight: '900', color: c.muted, textAlign: 'right', writingDirection: 'rtl' },
+    emptyPlusCircle: { width: 48, height: 48, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+    emptyCardTxt: { fontSize: 12, fontWeight: '900', color: c.muted, textAlign: 'right', writingDirection: 'rtl' },
 
     fabMini: {
       position: 'absolute',
-      left: 24,
-      bottom: 24,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      left: 20,
+      bottom: 20,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
       backgroundColor: c.primary,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: c.primary,
       shadowOpacity: 0.35,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 12 },
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 10 },
       elevation: 12,
     },
   });
 
 const filterStyles = StyleSheet.create({
   pill: {
-    height: 36,
-    paddingHorizontal: 18,
+    height: 32,
+    paddingHorizontal: 14,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
-  pillTxt: { fontSize: 13, textAlign: 'right', writingDirection: 'rtl' },
+  pillTxt: { fontSize: 12, textAlign: 'right', writingDirection: 'rtl' },
 });
 
 const cardStyles = StyleSheet.create({
   card: {
-    minHeight: 190,
-    borderRadius: 24,
-    padding: 18,
+    minHeight: 170,
+    borderRadius: 20,
+    padding: 14,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 26,
-    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
     elevation: 6,
     overflow: 'hidden',
     borderWidth: 1,
@@ -652,24 +652,24 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  urgencyBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, maxWidth: '80%' },
-  urgencyTxt: { fontSize: 11, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  urgencyBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, maxWidth: '80%' },
+  urgencyTxt: { fontSize: 10, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
   moreBtn: { padding: 4 },
-  title: { fontSize: 18, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', marginBottom: 6, letterSpacing: -0.2 },
-  subtitle: { fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl', lineHeight: 18 },
-  hr: { height: 1, backgroundColor: 'rgba(15, 23, 42, 0.06)', marginTop: 14, marginBottom: 12 },
+  title: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', marginBottom: 6, letterSpacing: -0.2 },
+  subtitle: { fontSize: 11, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl', lineHeight: 16 },
+  hr: { height: 1, backgroundColor: 'rgba(15, 23, 42, 0.06)', marginTop: 12, marginBottom: 10 },
   bottomRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timePill: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
-  timeTxt: { fontSize: 12, fontWeight: '800' },
+  timePill: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  timeTxt: { fontSize: 11, fontWeight: '800' },
   avatar: {
-    width: 34,
-    height: 34,
+    width: 30,
+    height: 30,
     borderRadius: 999,
     backgroundColor: theme.colors.primarySoft2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarTxt: { color: theme.colors.primary, fontWeight: '900', fontSize: 11, textAlign: 'center' },
+  avatarTxt: { color: theme.colors.primary, fontWeight: '900', fontSize: 10, textAlign: 'center' },
 });
 
 function startOfDay(d: Date) {
