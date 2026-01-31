@@ -51,7 +51,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const [assigneeChoice, setAssigneeChoice] = useState<'iti' | 'adir' | 'both'>('iti');
   const [users, setUsers] = useState<UserLite[]>([
     { id: 'u_iti', displayName: 'איתי' },
-    { id: 'u_adir', displayName: 'אדיר' },
+    { id: 'u_adir', displayName: 'אדיר בוקובזה' },
   ]);
   const [visibility, setVisibility] = useState<'shared' | 'personal'>('shared');
   const [clientId, setClientId] = useState<string | undefined>(undefined);
@@ -80,12 +80,15 @@ export function TaskUpsertScreen({ route, navigation }: any) {
           query: { select: 'id,display_name', role: 'eq.admin', order: 'display_name.asc' },
         });
         const mapped = res
-          .map((u) => ({ id: u.id, displayName: u.display_name }))
+          .map((u) => ({
+            id: u.id,
+            displayName: u.display_name === 'אדיר' ? 'אדיר בוקובזה' : u.display_name,
+          }))
           .filter((u) => u.displayName);
         if (mapped.length) {
           setUsers(mapped);
           const iti = mapped.find((u) => u.displayName === 'איתי');
-          const adir = mapped.find((u) => u.displayName === 'אדיר');
+          const adir = mapped.find((u) => u.displayName === 'אדיר בוקובזה');
           setAssigneeId((prev) => prev ?? iti?.id ?? adir?.id ?? mapped[0]?.id);
         }
       } catch {
@@ -124,7 +127,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   const isPersonalQuickCreate = mode === 'create' && defaultVisibility === 'personal';
 
   const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
-  const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר') ?? users[1], [users]);
+  const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר בוקובזה' || u.displayName === 'אדיר') ?? users[1], [users]);
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -432,7 +435,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       }}
                     />
                     <SegmentOption
-                      label="אדיר"
+                      label="אדיר בוקובזה"
                       active={assigneeChoice === 'adir'}
                       isDark={isDark}
                       onPress={() => {
@@ -558,7 +561,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               />
             </View>
 
-            {!isPersonalQuickCreate ? (
+            {mode === 'edit' ? (
               <View style={{ marginBottom: 22 }}>
                 <Text style={[styles.label, { color: '#64748b' }]}>סטטוס</Text>
                 <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
@@ -697,10 +700,11 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                       height: '100%',
                       opacity: 0,
                       cursor: 'pointer',
+                      zIndex: 2,
                     }}
                   />
                 ) : null}
-                <View style={styles.pickerMain}>
+                <View style={styles.pickerMain} pointerEvents={Platform.OS === 'web' ? 'none' : 'auto'}>
                   <View style={[styles.pickerIconCircle, { backgroundColor: '#eff6ff' }]}>
                     <MaterialIcons name="calendar-today" size={18} color={theme.colors.primary} />
                   </View>

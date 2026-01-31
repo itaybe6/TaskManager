@@ -19,6 +19,7 @@ import type { Task, TaskStatus } from '../model/taskTypes';
 import { theme } from '../../../shared/ui/theme';
 import { useAuthStore } from '../../auth/store/authStore';
 import { WebSidebarLayout } from '../../../shared/ui/WebSidebarLayout';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 
 type UserLite = { id: string; displayName: string };
 
@@ -34,6 +35,8 @@ export function TasksListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery } = useTasksStore();
   const cats = useTaskCategoriesStore();
   const session = useAuthStore((s) => s.session);
+  const scheme = useAppColorScheme();
+  const isDark = scheme === 'dark';
 
   const [users, setUsers] = useState<UserLite[]>([
     { id: 'u_iti', displayName: 'איתי' },
@@ -75,17 +78,23 @@ export function TasksListScreen({ navigation }: any) {
 
   const chrome = useMemo(() => {
     return {
-      bg: '#F7F8FA',
-      surface: '#FFFFFF',
-      surface2: '#F7F8FA',
-      border: 'rgba(15, 23, 42, 0.08)',
-      muted: '#718096',
-      text: '#1A202C',
-      shadow: 'rgba(0,0,0,0.06)',
+      bg: theme.colors.background,
+      surface: theme.colors.surface,
+      surface2: theme.colors.surfaceMuted,
+      border: theme.colors.border,
+      muted: theme.colors.textMuted,
+      text: theme.colors.text,
+      shadow: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.06)',
       primaryLight: theme.colors.primarySoft2,
-      navItem: '#F7F8FA',
+      navItem: isDark ? theme.colors.surfaceMuted : '#F7F8FA',
+      metaBg: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9',
+      metaText: isDark ? '#CBD5E1' : '#64748B',
+      countBg: isDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(148, 163, 184, 0.35)',
+      countText: isDark ? '#E2E8F0' : '#4B5563',
+      emptyBg: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+      emptyBorder: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.06)',
     } as const;
-  }, []);
+  }, [isDark]);
 
   const maxWidth = Math.min(1680, Math.max(1100, width - 48));
   const padX = width < 1280 ? 20 : 28;
@@ -146,6 +155,7 @@ export function TasksListScreen({ navigation }: any) {
                         item={item}
                         lane={item.status === 'done' ? 'done' : 'todo'}
                         onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
+                        chrome={chrome}
                       />
                     </View>
                   )}
@@ -176,6 +186,7 @@ export function TasksListScreen({ navigation }: any) {
                       items={kanban.todo}
                       onAdd={() => navigation.navigate('TaskUpsert', { mode: 'create' })}
                       onOpen={(id) => navigation.navigate('TaskDetails', { id })}
+                      chrome={chrome}
                     />
                     <KanbanColumn
                       title="בוצע"
@@ -185,6 +196,7 @@ export function TasksListScreen({ navigation }: any) {
                       items={kanban.done}
                       onAdd={undefined}
                       onOpen={(id) => navigation.navigate('TaskDetails', { id })}
+                      chrome={chrome}
                     />
                   </ScrollView>
                 </View>
@@ -277,7 +289,20 @@ function Pill(props: { label: string; active: boolean; onPress: () => void }) {
 
 type KanbanLane = 'todo' | 'done';
 
-function KanbanTaskCard(props: { item: Task; lane: KanbanLane; onPress: () => void; showStatusBadge?: boolean }) {
+function KanbanTaskCard(props: {
+  item: Task;
+  lane: KanbanLane;
+  onPress: () => void;
+  showStatusBadge?: boolean;
+  chrome: {
+    surface: string;
+    border: string;
+    text: string;
+    muted: string;
+    metaBg: string;
+    metaText: string;
+  };
+}) {
   const urgent = isUrgent(props.item.dueAt);
   const strip = laneStripColor(props.lane, urgent);
   const showStatus = props.showStatusBadge ?? true;
@@ -288,7 +313,8 @@ function KanbanTaskCard(props: { item: Task; lane: KanbanLane; onPress: () => vo
       style={({ pressed }) => [
         cardStyles.card,
         {
-          borderColor: 'rgba(15, 23, 42, 0.08)',
+          backgroundColor: props.chrome.surface,
+          borderColor: props.chrome.border,
           opacity: pressed ? 0.96 : props.lane === 'done' ? 0.86 : 1,
         },
       ]}
@@ -300,18 +326,20 @@ function KanbanTaskCard(props: { item: Task; lane: KanbanLane; onPress: () => vo
           {props.item.categoryName ? <Badge label={props.item.categoryName} tone="category" /> : null}
         </View>
         <Pressable onPress={() => {}} hitSlop={10} style={cardStyles.moreBtn}>
-          <MaterialIcons name="more-horiz" size={20} color="#A0AEC0" />
+          <MaterialIcons name="more-horiz" size={20} color={props.chrome.muted} />
         </Pressable>
       </View>
 
-      <Text style={cardStyles.title} numberOfLines={2}>
+      <Text style={[cardStyles.title, { color: props.chrome.text }]} numberOfLines={2}>
         {props.item.description}
       </Text>
 
       <View style={cardStyles.bottomRow}>
-        <View style={cardStyles.meta}>
-          <MaterialIcons name="schedule" size={14} color="#A0AEC0" />
-          <Text style={cardStyles.metaTxt}>{formatTimeLabel(props.item.dueAt ?? props.item.updatedAt)}</Text>
+        <View style={[cardStyles.meta, { backgroundColor: props.chrome.metaBg }]}>
+          <MaterialIcons name="schedule" size={14} color={props.chrome.muted} />
+          <Text style={[cardStyles.metaTxt, { color: props.chrome.metaText }]}>
+            {formatTimeLabel(props.item.dueAt ?? props.item.updatedAt)}
+          </Text>
         </View>
         <AssigneeAvatar name={props.item.assignee} />
       </View>
@@ -328,19 +356,29 @@ function KanbanColumn(props: {
   onAdd?: () => void;
   onOpen: (id: string) => void;
   emptyHint?: string;
+  chrome: {
+    text: string;
+    muted: string;
+    countBg: string;
+    countText: string;
+    emptyBg: string;
+    emptyBorder: string;
+    surface: string;
+    border: string;
+  };
 }) {
   return (
     <View style={kanbanStyles.col}>
       <View style={kanbanStyles.colHeader}>
         <View style={kanbanStyles.colHeaderLeft}>
           <View style={[kanbanStyles.dot, { backgroundColor: props.dotColor }]} />
-          <Text style={kanbanStyles.colTitle}>{props.title}</Text>
-          <View style={kanbanStyles.countPill}>
-            <Text style={kanbanStyles.countTxt}>{props.count}</Text>
+          <Text style={[kanbanStyles.colTitle, { color: props.chrome.text }]}>{props.title}</Text>
+          <View style={[kanbanStyles.countPill, { backgroundColor: props.chrome.countBg }]}>
+            <Text style={[kanbanStyles.countTxt, { color: props.chrome.countText }]}>{props.count}</Text>
           </View>
         </View>
         <Pressable style={({ pressed }) => [{ padding: 6, opacity: pressed ? 0.75 : 1 }]}>
-          <MaterialIcons name="more-horiz" size={20} color="#A0AEC0" />
+          <MaterialIcons name="more-horiz" size={20} color={props.chrome.muted} />
         </Pressable>
       </View>
 
@@ -356,23 +394,27 @@ function KanbanColumn(props: {
             lane={props.lane}
             showStatusBadge={false}
             onPress={() => props.onOpen(t.id)}
+            chrome={props.chrome}
           />
         ))}
 
         {!props.items.length ? (
-          <View style={kanbanStyles.emptyCol}>
-            <Text style={kanbanStyles.emptyTitle}>אין משימות</Text>
-            {props.emptyHint ? <Text style={kanbanStyles.emptyHint}>{props.emptyHint}</Text> : null}
+          <View style={[kanbanStyles.emptyCol, { backgroundColor: props.chrome.emptyBg, borderColor: props.chrome.emptyBorder }]}>
+            <Text style={[kanbanStyles.emptyTitle, { color: props.chrome.text }]}>אין משימות</Text>
+            {props.emptyHint ? <Text style={[kanbanStyles.emptyHint, { color: props.chrome.muted }]}>{props.emptyHint}</Text> : null}
           </View>
         ) : null}
 
         {props.onAdd ? (
           <Pressable
             onPress={props.onAdd}
-            style={({ pressed }) => [kanbanStyles.addBtn, { opacity: pressed ? 0.9 : 1 }]}
+            style={({ pressed }) => [
+              kanbanStyles.addBtn,
+              { opacity: pressed ? 0.9 : 1, backgroundColor: props.chrome.surface, borderColor: props.chrome.border },
+            ]}
           >
-            <MaterialIcons name="add" size={18} color="#A0AEC0" />
-            <Text style={kanbanStyles.addTxt}>הוסף משימה</Text>
+            <MaterialIcons name="add" size={18} color={props.chrome.muted} />
+            <Text style={[kanbanStyles.addTxt, { color: props.chrome.muted }]}>הוסף משימה</Text>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -707,8 +749,8 @@ function TasksFiltersBar(props: {
         style={[filterStyles.bar, { backgroundColor: props.chrome.surface, borderColor: props.chrome.border }]}
       >
         <View style={filterStyles.leftIcons}>
-          <IconSquare icon="view-agenda" />
-          <IconSquare icon="tune" />
+          <IconSquare icon="view-agenda" chrome={props.chrome} />
+          <IconSquare icon="tune" chrome={props.chrome} />
         </View>
 
         <View style={filterStyles.center}>
@@ -716,29 +758,39 @@ function TasksFiltersBar(props: {
             label={`סטטוס: ${statusLabel}`}
             active={!!props.query.status}
             onPress={() => setOpen(open === 'status' ? null : 'status')}
+            chrome={props.chrome}
           />
           <DropPill
             label={assigneeLabel}
             active={!!props.query.assigneeId}
             onPress={() => setOpen(open === 'assignee' ? null : 'assignee')}
+            chrome={props.chrome}
           />
           <DropPill
             label={categoryLabel}
             active={!!props.query.categoryId}
             onPress={() => setOpen(open === 'category' ? null : 'category')}
+            chrome={props.chrome}
           />
         </View>
 
         <View style={filterStyles.searchWrap}>
           <View pointerEvents="none" style={filterStyles.searchIcon}>
-            <MaterialIcons name="search" size={18} color="#9ca3af" />
+            <MaterialIcons name="search" size={18} color={props.chrome.muted} />
           </View>
           <TextInput
             value={props.query.searchText ?? ''}
             onChangeText={(t) => props.setQuery({ searchText: t.trim() ? t : undefined })}
             placeholder="חיפוש מהיר..."
-            placeholderTextColor="#9ca3af"
-            style={filterStyles.search}
+            placeholderTextColor={props.chrome.muted}
+            style={[
+              filterStyles.search,
+              {
+                backgroundColor: props.chrome.surface,
+                borderColor: props.chrome.border,
+                color: props.chrome.text,
+              },
+            ]}
           />
         </View>
 
@@ -769,29 +821,32 @@ function TasksFiltersBar(props: {
           >
             {open === 'status' ? (
               <>
-                <MenuItem
+              <MenuItem
                   label="הכל"
                   active={!props.query.status}
                   onPress={() => {
                     props.setQuery({ status: undefined });
                     setOpen(null);
                   }}
+                chrome={props.chrome}
                 />
-                <MenuItem
+              <MenuItem
                   label="לא נעשה"
                   active={props.query.status === 'todo'}
                   onPress={() => {
                     props.setQuery({ status: 'todo' });
                     setOpen(null);
                   }}
+                chrome={props.chrome}
                 />
-                <MenuItem
+              <MenuItem
                   label="נעשה"
                   active={props.query.status === 'done'}
                   onPress={() => {
                     props.setQuery({ status: 'done' });
                     setOpen(null);
                   }}
+                chrome={props.chrome}
                 />
               </>
             ) : null}
@@ -815,6 +870,7 @@ function TasksFiltersBar(props: {
                       props.setQuery({ assigneeId: u.id });
                       setOpen(null);
                     }}
+                    chrome={props.chrome}
                   />
                 ))}
               </>
@@ -839,6 +895,7 @@ function TasksFiltersBar(props: {
                       props.setQuery({ categoryId: c.id });
                       setOpen(null);
                     }}
+                    chrome={props.chrome}
                   />
                 ))}
               </>
@@ -850,7 +907,7 @@ function TasksFiltersBar(props: {
   );
 }
 
-function IconSquare({ icon }: { icon: keyof typeof MaterialIcons.glyphMap }) {
+function IconSquare({ icon, chrome }: { icon: keyof typeof MaterialIcons.glyphMap; chrome: { muted: string } }) {
   return (
     <View style={filterStyles.iconSquare}>
       <MaterialIcons name={icon} size={18} color={theme.colors.primaryNeon} />
@@ -858,31 +915,51 @@ function IconSquare({ icon }: { icon: keyof typeof MaterialIcons.glyphMap }) {
   );
 }
 
-function DropPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function DropPill({
+  label,
+  active,
+  onPress,
+  chrome,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  chrome: { border: string; surface: string; muted: string; text: string };
+}) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         filterStyles.dropPill,
         {
-          borderColor: active ? theme.colors.primaryBorder : 'rgba(15, 23, 42, 0.10)',
-          backgroundColor: active ? theme.colors.primarySoft2 : '#fff',
+          borderColor: active ? theme.colors.primaryBorder : chrome.border,
+          backgroundColor: active ? theme.colors.primarySoft2 : chrome.surface,
           opacity: pressed ? 0.9 : 1,
         },
       ]}
     >
       <Text
-        style={[filterStyles.dropPillTxt, { color: active ? theme.colors.primaryNeon : '#334155' }]}
+        style={[filterStyles.dropPillTxt, { color: active ? theme.colors.primaryNeon : chrome.text }]}
         numberOfLines={1}
       >
         {label}
       </Text>
-      <MaterialIcons name="keyboard-arrow-down" size={18} color={active ? theme.colors.primaryNeon : '#94A3B8'} />
+      <MaterialIcons name="keyboard-arrow-down" size={18} color={active ? theme.colors.primaryNeon : chrome.muted} />
     </Pressable>
   );
 }
 
-function MenuItem({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function MenuItem({
+  label,
+  active,
+  onPress,
+  chrome,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  chrome: { text: string };
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -891,7 +968,10 @@ function MenuItem({ label, active, onPress }: { label: string; active: boolean; 
         { backgroundColor: active ? 'rgba(127, 0, 255, 0.08)' : 'transparent', opacity: pressed ? 0.9 : 1 },
       ]}
     >
-      <Text style={{ fontWeight: active ? '900' : '800', color: active ? theme.colors.primaryNeon : '#334155' }} numberOfLines={1}>
+      <Text
+        style={{ fontWeight: active ? '900' : '800', color: active ? theme.colors.primaryNeon : chrome.text }}
+        numberOfLines={1}
+      >
         {label}
       </Text>
       {active ? (

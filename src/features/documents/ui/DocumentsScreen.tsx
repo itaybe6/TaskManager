@@ -34,6 +34,23 @@ export function DocumentsScreen({ navigation }: any) {
   const isDark = scheme === 'dark';
   const layout = useResponsiveLayout('list');
   const [isUploading, setIsUploading] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewerTitle, setViewerTitle] = useState<string>('');
+  const chrome = useMemo(
+    () => ({
+      bg: isDark ? theme.colors.background : '#F6F7FB',
+      surface: theme.colors.surface,
+      border: isDark ? 'rgba(255,255,255,0.10)' : '#e5e7eb',
+      text: theme.colors.text,
+      muted: theme.colors.textMuted,
+      title: isDark ? theme.colors.text : '#433878',
+      sub: isDark ? theme.colors.textMuted : '#6B7280',
+      iconMuted: isDark ? '#A1A1AA' : '#6B7280',
+      tabText: isDark ? '#CBD5E1' : '#9CA3AF',
+    }),
+    [isDark]
+  );
 
   // Upload Modal State
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
@@ -109,68 +126,92 @@ export function DocumentsScreen({ navigation }: any) {
   const handleOpenDocument = async (doc: AppDocument) => {
     const url = getPublicUrl('documents', doc.storagePath);
     if (!url) return;
+
+    if (Platform.OS === 'web') {
+      setViewerUrl(url);
+      setViewerTitle(doc.title);
+      setViewerOpen(true);
+      return;
+    }
+
     navigation.navigate('DocumentViewer', { url, title: doc.title });
   };
+
+  const IFrame = useMemo(() => {
+    // Web-only helper to avoid TSX typing issues with <iframe />
+    return (props: any) => React.createElement('iframe', props);
+  }, []);
+
+  const viewerSrc = useMemo(() => {
+    if (!viewerUrl) return null;
+    const lower = viewerUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) {
+      // Prefer native browser PDF viewer with "fit" params (works well in Chrome/Edge).
+      // If the host blocks embedding, user can still use "open in new" button.
+      return `${viewerUrl}#view=FitH&toolbar=0&navpanes=0`;
+    }
+    return viewerUrl;
+  }, [viewerUrl]);
 
   const header = useMemo(() => {
     return (
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>מסמכים</Text>
-          <Text style={styles.headerSub}>כל המסמכים, הקבלות והחשבוניות</Text>
+          <Text style={[styles.headerTitle, { color: chrome.title }]}>מסמכים</Text>
+          <Text style={[styles.headerSub, { color: chrome.sub }]}>כל המסמכים, הקבלות והחשבוניות</Text>
         </View>
 
         <View style={styles.headerActions}>
-          <Pressable style={styles.headerIconBtn}>
-            <MaterialIcons name="notifications-none" size={24} color="#6B7280" />
+          <Pressable style={[styles.headerIconBtn, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
+            <MaterialIcons name="notifications-none" size={24} color={chrome.iconMuted} />
           </Pressable>
           <UserAvatarButton />
         </View>
       </View>
     );
-  }, [isDark]);
+  }, [chrome.border, chrome.iconMuted, chrome.sub, chrome.surface, chrome.title]);
 
   const searchAndFilter = useMemo(() => {
     return (
-      <View style={{ backgroundColor: isDark ? '#121212' : '#F6F7FB', paddingBottom: 16 }}>
+      <View style={{ backgroundColor: chrome.bg, paddingBottom: 16 }}>
         <View style={styles.searchRow}>
-          <View style={styles.searchWrap}>
-            <MaterialIcons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+          <View style={[styles.searchWrap, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
+            <MaterialIcons name="search" size={20} color={chrome.muted} style={styles.searchIcon} />
             <TextInput
               value={filter.searchText ?? ''}
               onChangeText={(t) => setFilter({ searchText: t })}
               placeholder="חפש מסמך לפי שם..."
-              placeholderTextColor="#9CA3AF"
-              style={styles.searchInput}
+              placeholderTextColor={chrome.muted}
+              style={[styles.searchInput, { color: chrome.text }]}
             />
           </View>
         </View>
 
         <View style={styles.filterRow}>
-          <View style={styles.tabs}>
+          <View style={[styles.tabs, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
             <Pressable
               onPress={() => setFilter({ kind: undefined })}
-              style={[styles.tab, !filter.kind && styles.tabActive]}
+              style={[styles.tab, !filter.kind && [styles.tabActive, { backgroundColor: theme.colors.primary }]]}
             >
-              <Text style={[styles.tabTxt, !filter.kind && styles.tabTxtActive]}>הכל</Text>
+              <Text style={[styles.tabTxt, { color: chrome.tabText }, !filter.kind && styles.tabTxtActive]}>הכל</Text>
             </Pressable>
             <Pressable
               onPress={() => setFilter({ kind: 'general' })}
-              style={[styles.tab, filter.kind === 'general' && styles.tabActive]}
+              style={[styles.tab, filter.kind === 'general' && [styles.tabActive, { backgroundColor: theme.colors.primary }]]}
             >
-              <Text style={[styles.tabTxt, filter.kind === 'general' && styles.tabTxtActive]}>כללי</Text>
+              <Text style={[styles.tabTxt, { color: chrome.tabText }, filter.kind === 'general' && styles.tabTxtActive]}>כללי</Text>
             </Pressable>
              <Pressable
               onPress={() => setFilter({ kind: 'invoice' })}
-              style={[styles.tab, filter.kind === 'invoice' && styles.tabActive]}
+              style={[styles.tab, filter.kind === 'invoice' && [styles.tabActive, { backgroundColor: theme.colors.primary }]]}
             >
-              <Text style={[styles.tabTxt, filter.kind === 'invoice' && styles.tabTxtActive]}>לקוחות</Text>
+              <Text style={[styles.tabTxt, { color: chrome.tabText }, filter.kind === 'invoice' && styles.tabTxtActive]}>לקוחות</Text>
             </Pressable>
           </View>
         </View>
       </View>
     );
-  }, [filter, isDark]);
+  }, [chrome.bg, chrome.border, chrome.muted, chrome.surface, chrome.tabText, chrome.text, filter, setFilter]);
 
   const combinedHeader = useMemo(() => {
     return (
@@ -184,7 +225,7 @@ export function DocumentsScreen({ navigation }: any) {
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
-      style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F6F7FB' }]}
+      style={[styles.container, { backgroundColor: chrome.bg }]}
     >
       <FlatList
         data={items}
@@ -353,6 +394,59 @@ export function DocumentsScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      {/* Web document viewer (inline modal) */}
+      <Modal
+        visible={Platform.OS === 'web' && viewerOpen}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setViewerOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.viewerCard,
+              { backgroundColor: isDark ? '#1E1E1E' : '#ffffff' },
+            ]}
+          >
+            <View style={[styles.modalHeader, { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }]}>
+              <Pressable onPress={() => setViewerOpen(false)} style={{ padding: 6 }}>
+                <MaterialIcons name="close" size={24} color={isDark ? '#9ca3af' : '#6b7280'} />
+              </Pressable>
+
+              <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#111827', flex: 1, textAlign: 'center' }]} numberOfLines={1}>
+                {viewerTitle || 'מסמך'}
+              </Text>
+
+              <Pressable
+                onPress={() => viewerUrl && Linking.openURL(viewerUrl)}
+                style={{ padding: 6 }}
+              >
+                <MaterialIcons name="open-in-new" size={22} color={isDark ? '#fff' : '#111827'} />
+              </Pressable>
+            </View>
+
+            <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : '#e5e7eb' }} />
+
+            <View style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F6F7FB' }}>
+              {viewerSrc ? (
+                <IFrame
+                  title={viewerTitle || 'Document'}
+                  src={viewerSrc}
+                  style={{
+                    border: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: isDark ? '#121212' : '#F6F7FB',
+                    display: 'block',
+                  }}
+                  allow="fullscreen"
+                />
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -408,7 +502,7 @@ function DocumentCard({
         },
       ]}
     >
-      <View style={[styles.docIconBox, { backgroundColor: getKindBgColor(item.kind) }]}>
+      <View style={[styles.docIconBox, { backgroundColor: getKindBgColor(item.kind, isDark) }]}>
         <MaterialIcons name={getKindIcon(item.kind) as any} size={24} color={getKindIconColor(item.kind)} />
       </View>
 
@@ -455,13 +549,31 @@ function getKindIcon(kind: DocumentKind): keyof typeof MaterialIcons.glyphMap {
   }
 }
 
-function getKindBgColor(kind: DocumentKind): string {
+function getKindBgColor(kind: DocumentKind, isDark: boolean): string {
+  if (isDark) {
+    switch (kind) {
+      case 'receipt':
+      case 'tax_invoice':
+        return 'rgba(37, 99, 235, 0.18)'; // blue
+      case 'invoice':
+        return 'rgba(147, 51, 234, 0.20)'; // purple
+      case 'contract':
+        return 'rgba(22, 163, 74, 0.20)'; // green
+      default:
+        return 'rgba(148, 163, 184, 0.14)'; // slate
+    }
+  }
+
   switch (kind) {
     case 'receipt':
-    case 'tax_invoice': return '#eff6ff'; // blue-50
-    case 'invoice': return '#faf5ff'; // purple-50
-    case 'contract': return '#f0fdf4'; // green-50
-    default: return '#f8fafc'; // slate-50
+    case 'tax_invoice':
+      return '#eff6ff'; // blue-50
+    case 'invoice':
+      return '#faf5ff'; // purple-50
+    case 'contract':
+      return '#f0fdf4'; // green-50
+    default:
+      return '#f8fafc'; // slate-50
   }
 }
 
@@ -518,9 +630,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -532,10 +644,10 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 52,
+    borderWidth: 1,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -555,9 +667,9 @@ const styles = StyleSheet.create({
   filterRow: { paddingHorizontal: 24, marginBottom: 8 },
   tabs: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
-    backgroundColor: '#fff',
     borderRadius: 14,
     padding: 4,
+    borderWidth: 1,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -571,9 +683,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabActive: {
-    backgroundColor: '#433878',
+    backgroundColor: theme.colors.primary,
     elevation: 4,
-    shadowColor: '#433878',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -635,7 +747,7 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: theme.colors.border,
   },
   deleteBtn: {
     padding: 8,
@@ -675,12 +787,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
   modalContent: {
     borderRadius: 32,
     padding: 24,
     maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  viewerCard: {
+    borderRadius: 22,
+    padding: 0,
+    alignSelf: 'center',
+    // Force a clearly smaller size on web (CSS viewport units supported by RN Web).
+    width: '68vw',
+    height: '70vh',
+    maxWidth: 760,
+    maxHeight: 640,
+    minWidth: 320,
+    minHeight: 360,
+    // Make sure the iframe doesn't "bleed" outside rounded corners on web.
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.25,
     shadowRadius: 20,

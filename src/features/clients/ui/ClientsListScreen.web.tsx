@@ -5,11 +5,34 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useClientsStore } from '../store/clientsStore';
 import { WebSidebarLayout } from '../../../shared/ui/WebSidebarLayout';
 import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import type { Client } from '../model/clientTypes';
 
 export function ClientsListScreen({ navigation }: any) {
   const { items, load, isLoading, query, setQuery, error } = useClientsStore();
   const { width } = useWindowDimensions();
+  const scheme = useAppColorScheme();
+  const isDark = scheme === 'dark';
+  const chrome = useMemo(
+    () => ({
+      bg: theme.colors.background,
+      surface: theme.colors.surface,
+      surfaceMuted: theme.colors.surfaceMuted,
+      border: theme.colors.border,
+      text: theme.colors.text,
+      muted: theme.colors.textMuted,
+      cardBorder: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+      contactBg: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(249, 250, 251, 0.8)',
+      contactBorder: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+      contactAvatarBg: isDark ? '#1f2937' : '#e5e7eb',
+      contactAvatarText: isDark ? '#cbd5e1' : '#4b5563',
+      metaPillBg: isDark ? 'rgba(148,163,184,0.18)' : 'rgba(148,163,184,0.1)',
+      metaPillText: isDark ? '#cbd5e1' : '#94A3B8',
+      iconMuted: isDark ? '#9ca3af' : '#d1d5db',
+      tileValue: theme.colors.text,
+    }),
+    [isDark]
+  );
 
   useEffect(() => {
     load();
@@ -21,17 +44,17 @@ export function ClientsListScreen({ navigation }: any) {
     return (
       <View style={styles.header}>
         <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>סקירת לקוחות</Text>
+          <Text style={[styles.sectionTitle, { color: chrome.text }]}>סקירת לקוחות</Text>
         </View>
 
         {!!error ? <Text style={styles.errorTxt}>{error}</Text> : null}
       </View>
     );
-  }, [error]);
+  }, [error, chrome.text]);
 
   return (
     <WebSidebarLayout navigation={navigation} active="clients">
-      <SafeAreaView style={styles.page}>
+      <SafeAreaView style={[styles.page, { backgroundColor: chrome.bg }]}>
         <FlatList
           data={items}
           key={`cols-${cols}`}
@@ -44,7 +67,7 @@ export function ClientsListScreen({ navigation }: any) {
           onRefresh={load}
           renderItem={({ item }) => (
             <View style={cols > 1 ? { flex: 1, maxWidth: `${100 / cols}%` } : undefined}>
-              <ClientCard item={item} onPress={() => navigation.navigate('ClientDetails', { id: item.id })} />
+              <ClientCard item={item} chrome={chrome} onPress={() => navigation.navigate('ClientDetails', { id: item.id })} />
             </View>
           )}
           showsVerticalScrollIndicator={false}
@@ -62,7 +85,29 @@ export function ClientsListScreen({ navigation }: any) {
   );
 }
 
-function ClientCard({ item, onPress }: { item: Client; onPress: () => void }) {
+function ClientCard({
+  item,
+  chrome,
+  onPress,
+}: {
+  item: Client;
+  chrome: {
+    surface: string;
+    border: string;
+    text: string;
+    muted: string;
+    cardBorder: string;
+    contactBg: string;
+    contactBorder: string;
+    contactAvatarBg: string;
+    contactAvatarText: string;
+    metaPillBg: string;
+    metaPillText: string;
+    iconMuted: string;
+    tileValue: string;
+  };
+  onPress: () => void;
+}) {
   const contact = item.contacts?.[0];
   const sub = contact?.name?.trim() ? contact.name : 'אין אנשי קשר';
   const phoneRaw = (contact?.phone ?? '').trim();
@@ -74,7 +119,13 @@ function ClientCard({ item, onPress }: { item: Client; onPress: () => void }) {
   const remainingTile = remainingTileTone(remaining);
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, { opacity: pressed ? 0.96 : 1 }]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: chrome.surface, borderColor: chrome.cardBorder, opacity: pressed ? 0.96 : 1 },
+      ]}
+    >
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
 
       <View style={styles.cardTopRow}>
@@ -83,28 +134,28 @@ function ClientCard({ item, onPress }: { item: Client; onPress: () => void }) {
             <Text style={[styles.clientAvatarTxt, { color: accent }]}>{initials}</Text>
           </View>
           <View style={{ minWidth: 0 }}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
+            <Text style={[styles.cardTitle, { color: chrome.text }]} numberOfLines={1}>
               {item.name}
             </Text>
-            <View style={styles.metaPill}>
-              <Text style={styles.metaPillTxt}>לקוח</Text>
+            <View style={[styles.metaPill, { backgroundColor: chrome.metaPillBg }]}>
+              <Text style={[styles.metaPillTxt, { color: chrome.metaPillText }]}>לקוח</Text>
             </View>
           </View>
         </View>
 
         <Pressable onPress={() => {}} hitSlop={10} style={({ pressed }) => [{ padding: 6, opacity: pressed ? 0.8 : 1 }]}>
-          <MaterialIcons name="more-horiz" size={22} color="#d1d5db" />
+          <MaterialIcons name="more-horiz" size={22} color={chrome.iconMuted} />
         </Pressable>
       </View>
 
-      <View style={styles.contactCard}>
+      <View style={[styles.contactCard, { backgroundColor: chrome.contactBg, borderColor: chrome.contactBorder }]}>
         <View style={styles.contactLeft}>
-          <View style={styles.contactAvatar}>
-            <Text style={styles.contactAvatarTxt}>{contactInitials}</Text>
+          <View style={[styles.contactAvatar, { backgroundColor: chrome.contactAvatarBg }]}>
+            <Text style={[styles.contactAvatarTxt, { color: chrome.contactAvatarText }]}>{contactInitials}</Text>
           </View>
           <View style={{ minWidth: 0, flex: 1 }}>
-            <Text style={styles.contactLabel}>איש קשר</Text>
-            <Text style={styles.contactName} numberOfLines={1}>
+            <Text style={[styles.contactLabel, { color: chrome.muted }]}>איש קשר</Text>
+            <Text style={[styles.contactName, { color: chrome.text }]} numberOfLines={1}>
               {sub}
             </Text>
           </View>
@@ -134,7 +185,7 @@ function ClientCard({ item, onPress }: { item: Client; onPress: () => void }) {
             <MaterialIcons name="account-balance-wallet" size={16} color={remainingTile.fg} />
             <Text style={[styles.tileLabel, { color: remainingTile.fg }]}>יתרה לתשלום</Text>
           </View>
-          <Text style={styles.tileValue}>{formatMoney(remaining)}</Text>
+          <Text style={[styles.tileValue, { color: chrome.tileValue }]}>{formatMoney(remaining)}</Text>
         </View>
 
         <View style={[styles.tile, { backgroundColor: 'rgba(148,163,184,0.12)', borderColor: 'rgba(148,163,184,0.18)' }]}>
@@ -142,7 +193,7 @@ function ClientCard({ item, onPress }: { item: Client; onPress: () => void }) {
             <MaterialIcons name="monetization-on" size={16} color="#64748B" />
             <Text style={[styles.tileLabel, { color: '#64748B' }]}>שווי פרויקט</Text>
           </View>
-          <Text style={styles.tileValue}>{formatMoney(total)}</Text>
+          <Text style={[styles.tileValue, { color: chrome.tileValue }]}>{formatMoney(total)}</Text>
         </View>
       </View>
     </Pressable>
@@ -201,13 +252,8 @@ function normalizePhoneForWhatsApp(phone: string) {
   return digits;
 }
 
-const colors = {
-  primary: '#7c3aed',
-  bg: '#f3f4f6',
-} as const;
-
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.bg },
+  page: { flex: 1 },
 
   header: { gap: 10, paddingBottom: 10 },
   sectionRow: { paddingTop: 6, paddingBottom: 2 },
@@ -319,12 +365,12 @@ const styles = StyleSheet.create({
     bottom: 32,
     height: 58,
     borderRadius: 999,
-    backgroundColor: colors.primary,
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
     gap: 10,
-    shadowColor: colors.primary,
+    shadowColor: theme.colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 12 },

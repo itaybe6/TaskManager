@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabsNavigator } from './TabsNavigator';
 import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
+import { TaskUpsertScreen } from '../../features/tasks/ui/TaskUpsertScreen.web';
 import { ClientsListScreen } from '../../features/clients/ui/ClientsListScreen';
 import { ClientUpsertScreen } from '../../features/clients/ui/ClientUpsertScreen';
 import { ClientDetailsScreen } from '../../features/clients/ui/ClientDetailsScreen';
@@ -10,16 +11,11 @@ import { ProjectUpsertScreen } from '../../features/projects/ui/ProjectUpsertScr
 import { LoginScreen } from '../../features/auth/ui/LoginScreen';
 import { useAuthStore } from '../../features/auth/store/authStore';
 import { ClientPortalScreen } from '../../features/clients/ui/ClientPortalScreen';
-import { DocumentViewerScreen } from '../../features/documents/ui/DocumentViewerScreen';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { DocumentViewerScreen } from '../../features/documents/ui/DocumentViewerScreen.web';
+import { View, ActivityIndicator } from 'react-native';
 import { theme } from '../../shared/ui/theme';
 
 const Stack = createNativeStackNavigator();
-
-const TaskUpsertScreen =
-  Platform.OS === 'web'
-    ? require('../../features/tasks/ui/TaskUpsertScreen.web').TaskUpsertScreen
-    : require('../../features/tasks/ui/TaskUpsertScreen').TaskUpsertScreen;
 
 export function RootNavigator() {
   const session = useAuthStore((s) => s.session);
@@ -78,3 +74,4 @@ export function RootNavigator() {
     </Stack.Navigator>
   );
 }
+

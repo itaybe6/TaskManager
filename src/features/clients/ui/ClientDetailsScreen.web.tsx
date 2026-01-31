@@ -17,6 +17,7 @@ import { useClientsStore } from '../store/clientsStore';
 import { useTasksStore } from '../../tasks/store/tasksStore';
 import { WebSidebarLayout } from '../../../shared/ui/WebSidebarLayout';
 import { theme } from '../../../shared/ui/theme';
+import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import type { Client, ClientDocument } from '../model/clientTypes';
 import { getSupabaseConfig } from '../../../app/supabase/rest';
 
@@ -25,6 +26,28 @@ export function ClientDetailsScreen({ route, navigation }: any) {
   const { repo, isLoading: isClientsLoading } = useClientsStore();
   const tasksStore = useTasksStore();
   const { width } = useWindowDimensions();
+  const scheme = useAppColorScheme();
+  const isDark = scheme === 'dark';
+  const chrome = useMemo(
+    () => ({
+      bg: theme.colors.background,
+      surface: theme.colors.surface,
+      surfaceMuted: theme.colors.surfaceMuted,
+      border: theme.colors.border,
+      text: theme.colors.text,
+      muted: theme.colors.textMuted,
+      hover: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+      chipBg: isDark ? 'rgba(148,163,184,0.18)' : '#e2e8f0',
+      chipText: isDark ? '#cbd5e1' : '#64748b',
+      iconMuted: isDark ? '#94a3b8' : '#64748b',
+      contactBg: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+      contactAvatarBg: isDark ? '#1f2937' : '#e2e8f0',
+      contactAvatarText: isDark ? '#cbd5e1' : '#64748b',
+      detailText: isDark ? '#e2e8f0' : '#475569',
+      emptyText: isDark ? '#94a3b8' : '#94a3b8',
+    }),
+    [isDark]
+  );
   
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,7 +96,7 @@ export function ClientDetailsScreen({ route, navigation }: any) {
   if (isLoading) {
     return (
       <WebSidebarLayout navigation={navigation} active="clients">
-        <SafeAreaView style={styles.page}>
+        <SafeAreaView style={[styles.page, { backgroundColor: chrome.bg }]}>
           <View style={styles.center}>
             <ActivityIndicator color={theme.colors.primary} size="large" />
           </View>
@@ -85,7 +108,7 @@ export function ClientDetailsScreen({ route, navigation }: any) {
   if (error || !client) {
     return (
       <WebSidebarLayout navigation={navigation} active="clients">
-        <SafeAreaView style={styles.page}>
+        <SafeAreaView style={[styles.page, { backgroundColor: chrome.bg }]}>
           <View style={styles.center}>
             <MaterialIcons name="error-outline" size={48} color={theme.colors.danger} />
             <Text style={styles.errorTxt}>{error ?? 'לקוח לא נמצא'}</Text>
@@ -100,7 +123,7 @@ export function ClientDetailsScreen({ route, navigation }: any) {
 
   return (
     <WebSidebarLayout navigation={navigation} active="clients">
-      <SafeAreaView style={styles.page}>
+      <SafeAreaView style={[styles.page, { backgroundColor: chrome.bg }]}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Top Header */}
           <View style={styles.topHeader}>
@@ -109,12 +132,14 @@ export function ClientDetailsScreen({ route, navigation }: any) {
                 <Text style={[styles.avatarLargeTxt, { color: accent }]}>{initials}</Text>
               </View>
               <View style={styles.titleCol}>
-                <Text style={styles.clientName}>{client.name}</Text>
+                <Text style={[styles.clientName, { color: chrome.text }]}>{client.name}</Text>
                 <View style={styles.metaRow}>
-                  <View style={styles.metaPill}>
-                    <Text style={styles.metaPillTxt}>לקוח</Text>
+                  <View style={[styles.metaPill, { backgroundColor: chrome.chipBg }]}>
+                    <Text style={[styles.metaPillTxt, { color: chrome.chipText }]}>לקוח</Text>
                   </View>
-                  <Text style={styles.dateTxt}>נוצר ב-{new Date(client.createdAt).toLocaleDateString('he-IL')}</Text>
+                  <Text style={[styles.dateTxt, { color: chrome.muted }]}>
+                    נוצר ב-{new Date(client.createdAt).toLocaleDateString('he-IL')}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -122,7 +147,11 @@ export function ClientDetailsScreen({ route, navigation }: any) {
             <View style={styles.headerActions}>
               <Pressable 
                 onPress={() => navigation.navigate('ClientUpsert', { mode: 'edit', id: client.id })}
-                style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [
+                  styles.editBtn,
+                  { backgroundColor: chrome.surface, borderColor: chrome.border },
+                  pressed && { opacity: 0.8 },
+                ]}
               >
                 <MaterialIcons name="edit" size={18} color={theme.colors.primary} />
                 <Text style={styles.editBtnTxt}>עריכת פרטים</Text>
@@ -130,9 +159,13 @@ export function ClientDetailsScreen({ route, navigation }: any) {
               
               <Pressable 
                 onPress={() => navigation.goBack()}
-                style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [
+                  styles.iconBtn,
+                  { backgroundColor: chrome.surface, borderColor: chrome.border },
+                  pressed && { opacity: 0.8 },
+                ]}
               >
-                <MaterialIcons name="close" size={22} color="#64748b" />
+                <MaterialIcons name="close" size={22} color={chrome.iconMuted} />
               </Pressable>
             </View>
           </View>
@@ -144,6 +177,7 @@ export function ClientDetailsScreen({ route, navigation }: any) {
               value={formatMoney(client.totalPrice)} 
               icon="monetization-on" 
               color="#64748b"
+              chrome={chrome}
             />
             <StatCard 
               label="יתרה לתשלום" 
@@ -151,18 +185,21 @@ export function ClientDetailsScreen({ route, navigation }: any) {
               icon="account-balance-wallet" 
               color={client.remainingToPay && client.remainingToPay > 0 ? '#ef4444' : '#10b981'}
               isAlert={client.remainingToPay && client.remainingToPay > 0}
+              chrome={chrome}
             />
             <StatCard 
               label="אנשי קשר" 
               value={String(client.contacts?.length ?? 0)} 
               icon="people" 
               color="#7c3aed"
+              chrome={chrome}
             />
             <StatCard 
               label="מסמכים" 
               value={String(client.documents?.length ?? 0)} 
               icon="description" 
               color="#3b82f6"
+              chrome={chrome}
             />
           </View>
 
@@ -170,15 +207,15 @@ export function ClientDetailsScreen({ route, navigation }: any) {
             {/* Left Column: Tasks & Documents */}
             <View style={styles.leftCol}>
               {/* Documents Section */}
-              <View style={styles.section}>
+              <View style={[styles.section, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>מסמכים</Text>
-                  <MaterialIcons name="folder-open" size={20} color="#64748b" />
+                  <Text style={[styles.sectionTitle, { color: chrome.text }]}>מסמכים</Text>
+                  <MaterialIcons name="folder-open" size={20} color={chrome.iconMuted} />
                 </View>
                 
                 {(!client.documents || client.documents.length === 0) ? (
                   <View style={styles.emptyState}>
-                    <Text style={styles.emptyTxt}>אין מסמכים עבור לקוח זה</Text>
+                    <Text style={[styles.emptyTxt, { color: chrome.emptyText }]}>אין מסמכים עבור לקוח זה</Text>
                   </View>
                 ) : (
                   <View style={styles.docsList}>
@@ -186,9 +223,13 @@ export function ClientDetailsScreen({ route, navigation }: any) {
                       <Pressable 
                         key={doc.id} 
                         onPress={() => handleOpenDocument(doc)}
-                        style={({ pressed }) => [styles.docItem, pressed && { backgroundColor: '#f8fafc' }]}
+                        style={({ pressed }) => [
+                          styles.docItem,
+                          { borderColor: chrome.border },
+                          pressed && { backgroundColor: chrome.hover },
+                        ]}
                       >
-                        <View style={styles.docIconWrap}>
+                        <View style={[styles.docIconWrap, { backgroundColor: chrome.surfaceMuted }]}>
                           <MaterialIcons 
                             name={getDocIcon(doc.kind)} 
                             size={20} 
@@ -196,10 +237,14 @@ export function ClientDetailsScreen({ route, navigation }: any) {
                           />
                         </View>
                         <View style={styles.docInfo}>
-                          <Text style={styles.docTitle} numberOfLines={1}>{doc.title}</Text>
-                          <Text style={styles.docMeta}>{getDocLabel(doc.kind)} • {new Date(doc.createdAt).toLocaleDateString('he-IL')}</Text>
+                          <Text style={[styles.docTitle, { color: chrome.text }]} numberOfLines={1}>
+                            {doc.title}
+                          </Text>
+                          <Text style={[styles.docMeta, { color: chrome.muted }]}>
+                            {getDocLabel(doc.kind)} • {new Date(doc.createdAt).toLocaleDateString('he-IL')}
+                          </Text>
                         </View>
-                        <MaterialIcons name="chevron-left" size={20} color="#cbd5e1" />
+                        <MaterialIcons name="chevron-left" size={20} color={chrome.iconMuted} />
                       </Pressable>
                     ))}
                   </View>
@@ -207,15 +252,15 @@ export function ClientDetailsScreen({ route, navigation }: any) {
               </View>
 
               {/* Tasks Section */}
-              <View style={styles.section}>
+              <View style={[styles.section, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>משימות פתוחות</Text>
-                  <MaterialIcons name="list-alt" size={20} color="#64748b" />
+                  <Text style={[styles.sectionTitle, { color: chrome.text }]}>משימות פתוחות</Text>
+                  <MaterialIcons name="list-alt" size={20} color={chrome.iconMuted} />
                 </View>
                 
                 {tasksStore.items.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Text style={styles.emptyTxt}>אין משימות פתוחות</Text>
+                    <Text style={[styles.emptyTxt, { color: chrome.emptyText }]}>אין משימות פתוחות</Text>
                   </View>
                 ) : (
                   <View style={styles.tasksList}>
@@ -223,14 +268,20 @@ export function ClientDetailsScreen({ route, navigation }: any) {
                       <Pressable 
                         key={task.id}
                         onPress={() => navigation.navigate('TaskDetails', { id: task.id })}
-                        style={({ pressed }) => [styles.taskItem, pressed && { backgroundColor: '#f8fafc' }]}
+                        style={({ pressed }) => [
+                          styles.taskItem,
+                          { borderColor: chrome.border },
+                          pressed && { backgroundColor: chrome.hover },
+                        ]}
                       >
                         <View style={styles.taskStatus}>
                            <View style={[styles.statusDot, { backgroundColor: task.status === 'done' ? '#10b981' : '#f59e0b' }]} />
                         </View>
                         <View style={styles.taskInfo}>
-                          <Text style={styles.taskDesc} numberOfLines={1}>{task.description}</Text>
-                          <Text style={styles.taskMeta}>
+                          <Text style={[styles.taskDesc, { color: chrome.text }]} numberOfLines={1}>
+                            {task.description}
+                          </Text>
+                          <Text style={[styles.taskMeta, { color: chrome.muted }]}>
                             {task.dueAt ? `עד ${new Date(task.dueAt).toLocaleDateString('he-IL')}` : 'ללא תאריך יעד'}
                           </Text>
                         </View>
@@ -248,25 +299,27 @@ export function ClientDetailsScreen({ route, navigation }: any) {
 
             {/* Right Column: Contact Info & Notes */}
             <View style={styles.rightCol}>
-              <View style={styles.section}>
+              <View style={[styles.section, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>אנשי קשר</Text>
-                  <MaterialIcons name="contacts" size={20} color="#64748b" />
+                  <Text style={[styles.sectionTitle, { color: chrome.text }]}>אנשי קשר</Text>
+                  <MaterialIcons name="contacts" size={20} color={chrome.iconMuted} />
                 </View>
                 
                 <View style={styles.contactsList}>
                   {(!client.contacts || client.contacts.length === 0) ? (
-                     <Text style={styles.emptyTxt}>אין אנשי קשר</Text>
+                     <Text style={[styles.emptyTxt, { color: chrome.emptyText }]}>אין אנשי קשר</Text>
                   ) : (
                     client.contacts.map((c, idx) => (
-                      <View key={c.id || idx} style={styles.contactCard}>
+                      <View key={c.id || idx} style={[styles.contactCard, { backgroundColor: chrome.contactBg }]}>
                         <View style={styles.contactTop}>
-                          <View style={styles.contactAvatar}>
-                            <Text style={styles.contactAvatarTxt}>{initialsFor(c.name) ?? '?'}</Text>
+                          <View style={[styles.contactAvatar, { backgroundColor: chrome.contactAvatarBg }]}>
+                            <Text style={[styles.contactAvatarTxt, { color: chrome.contactAvatarText }]}>
+                              {initialsFor(c.name) ?? '?'}
+                            </Text>
                           </View>
                           <View style={styles.contactNameBox}>
-                            <Text style={styles.contactName}>{c.name}</Text>
-                            <Text style={styles.contactRole}>איש קשר</Text>
+                            <Text style={[styles.contactName, { color: chrome.text }]}>{c.name}</Text>
+                            <Text style={[styles.contactRole, { color: chrome.muted }]}>איש קשר</Text>
                           </View>
                         </View>
                         
@@ -277,14 +330,16 @@ export function ClientDetailsScreen({ route, navigation }: any) {
                               style={styles.detailRow}
                             >
                               <MaterialIcons name="call" size={16} color={theme.colors.primary} />
-                              <Text style={styles.detailTxt}>{formatIsraeliPhoneDisplay(c.phone)}</Text>
+                              <Text style={[styles.detailTxt, { color: chrome.detailText }]}>
+                                {formatIsraeliPhoneDisplay(c.phone)}
+                              </Text>
                             </Pressable>
                           ) : null}
                           
                           {c.email ? (
                             <View style={styles.detailRow}>
-                              <MaterialIcons name="email" size={16} color="#64748b" />
-                              <Text style={styles.detailTxt}>{c.email}</Text>
+                              <MaterialIcons name="email" size={16} color={chrome.iconMuted} />
+                              <Text style={[styles.detailTxt, { color: chrome.detailText }]}>{c.email}</Text>
                             </View>
                           ) : null}
                         </View>
@@ -295,12 +350,12 @@ export function ClientDetailsScreen({ route, navigation }: any) {
               </View>
 
               {client.notes ? (
-                <View style={styles.section}>
+                <View style={[styles.section, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
                   <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>הערות</Text>
-                    <MaterialIcons name="notes" size={20} color="#64748b" />
+                    <Text style={[styles.sectionTitle, { color: chrome.text }]}>הערות</Text>
+                    <MaterialIcons name="notes" size={20} color={chrome.iconMuted} />
                   </View>
-                  <Text style={styles.notesTxt}>{client.notes}</Text>
+                  <Text style={[styles.notesTxt, { color: chrome.detailText }]}>{client.notes}</Text>
                 </View>
               ) : null}
             </View>
@@ -311,11 +366,25 @@ export function ClientDetailsScreen({ route, navigation }: any) {
   );
 }
 
-function StatCard({ label, value, icon, color, isAlert }: { label: string, value: string, icon: keyof typeof MaterialIcons.glyphMap, color: string, isAlert?: boolean }) {
+function StatCard({
+  label,
+  value,
+  icon,
+  color,
+  isAlert,
+  chrome,
+}: {
+  label: string;
+  value: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  color: string;
+  isAlert?: boolean;
+  chrome: { surface: string; border: string; muted: string };
+}) {
   return (
-    <View style={[styles.statCard, isAlert && styles.statCardAlert]}>
+    <View style={[styles.statCard, { backgroundColor: chrome.surface, borderColor: chrome.border }, isAlert && styles.statCardAlert]}>
       <View style={styles.statTop}>
-        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={[styles.statLabel, { color: chrome.muted }]}>{label}</Text>
         <View style={[styles.statIconBox, { backgroundColor: `${color}15` }]}>
           <MaterialIcons name={icon} size={20} color={color} />
         </View>

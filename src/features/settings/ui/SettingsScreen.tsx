@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View, I18nManager } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Switch, Text, View, I18nManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../auth/store/authStore';
-import { useAppColorScheme } from '../../../shared/ui/useAppColorScheme';
+import { useAppColorScheme, useToggleAppColorScheme } from '../../../shared/ui/useAppColorScheme';
 import { useResponsiveLayout } from '../../../shared/ui/useResponsiveLayout';
 import { supabaseRest } from '../../../app/supabase/rest';
 import { uploadAvatarFromUri } from '../../../app/supabase/storage';
@@ -16,6 +16,7 @@ export function SettingsScreen({ navigation }: any) {
   const signOut = useAuthStore((s) => s.signOut);
   const scheme = useAppColorScheme();
   const isDark = scheme === 'dark';
+  const toggleScheme = useToggleAppColorScheme();
   const layout = useResponsiveLayout('narrow');
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -154,6 +155,23 @@ export function SettingsScreen({ navigation }: any) {
         </View>
 
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>תצוגה</Text>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={[styles.cardTitle, { color: palette.text }]}>מצב חושך</Text>
+              <Text style={[styles.cardSubtitle, { color: palette.muted }]}>הכהה את צבעי האפליקציה</Text>
+            </View>
+            <Switch
+              value={isDark}
+              onValueChange={toggleScheme}
+              trackColor={{ false: '#cbd5e1', true: theme.colors.primary }}
+              thumbColor="#ffffff"
+              ios_backgroundColor="#cbd5e1"
+            />
+          </View>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>חשבון</Text>
           <Text style={[styles.cardSubtitle, { color: palette.muted }]}>התנתקות מהאפליקציה במכשיר זה</Text>
           <Pressable
@@ -221,6 +239,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  toggleRow: {
+    flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   signOutBtn: {
     height: 44,
     borderRadius: 14,

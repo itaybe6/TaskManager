@@ -1,11 +1,16 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Platform } from 'react-native';
 import { PersonalTasksScreen } from '../../features/tasks/ui/PersonalTasksScreen';
 import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
-import { TaskUpsertScreen } from '../../features/tasks/ui/TaskUpsertScreen';
 import { SettingsScreen } from '../../features/settings/ui/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
+
+const TaskUpsertScreen =
+  Platform.OS === 'web'
+    ? require('../../features/tasks/ui/TaskUpsertScreen.web').TaskUpsertScreen
+    : require('../../features/tasks/ui/TaskUpsertScreen').TaskUpsertScreen;
 
 /**
  * Personal tasks flow inside the PersonalTasks tab.

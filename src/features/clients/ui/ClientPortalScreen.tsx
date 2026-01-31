@@ -1,5 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, I18nManager, ActivityIndicator, Linking, TextInput, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  FlatList,
+  I18nManager,
+  ActivityIndicator,
+  Linking,
+  TextInput,
+  ScrollView,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabaseRest } from '../../../app/supabase/rest';
@@ -8,8 +21,14 @@ import { useTasksStore } from '../../tasks/store/tasksStore';
 import { useDocumentsStore } from '../../documents/store/documentsStore';
 import { getPublicUrl } from '../../../app/supabase/storage';
 import { theme } from '../../../shared/ui/theme';
+import { BrandLogo } from '../../../shared/ui/BrandLogo';
 import type { Client } from '../model/clientTypes';
 import type { AppDocument, DocumentKind } from '../../documents/model/documentTypes';
+
+function looksLikeMissingRelation(details?: string) {
+  const d = (details ?? '').toLowerCase();
+  return d.includes('could not find') || d.includes('does not exist') || d.includes('relationship') || d.includes('relation');
+}
 
 function getKindLabel(kind: DocumentKind): string {
   switch (kind) {
@@ -112,7 +131,10 @@ function mapRowToClient(r: DbClientRow): Client {
 }
 
 export function ClientPortalScreen({ navigation }: any) {
+  const { width } = useWindowDimensions();
+  const isDesktopWeb = Platform.OS === 'web' && width >= 1024;
   const userId = useAuthStore((s) => s.session?.user?.id);
+  const userEmail = useAuthStore((s) => s.session?.user?.email);
   const signOut = useAuthStore((s) => s.signOut);
   const tasks = useTasksStore();
   const documents = useDocumentsStore();
@@ -129,22 +151,45 @@ export function ClientPortalScreen({ navigation }: any) {
     setClientError(null);
     (async () => {
       try {
-        const res = await supabaseRest<DbClientRow[]>({
-          method: 'GET',
-          path: '/rest/v1/clients',
-          query: {
-            select: 'id,name,notes,total_price,remaining_to_pay,created_at,updated_at,client_contacts(id,client_id,name,email,phone,created_at,updated_at)',
-            client_user_id: `eq.${userId}`,
-            limit: '1',
-          },
-        });
+        const selectBase = 'id,name,notes,total_price,remaining_to_pay,created_at,updated_at';
+        const selectWithContacts = `${selectBase},client_contacts(id,client_id,name,email,phone,created_at,updated_at)`;
+
+        let res: DbClientRow[];
+        try {
+          res = await supabaseRest<DbClientRow[]>({
+            method: 'GET',
+            path: '/rest/v1/clients',
+            query: {
+              select: selectWithContacts,
+              client_user_id: `eq.${userId}`,
+              limit: '1',
+            },
+          });
+        } catch (e: any) {
+          // Common if business schema wasn't applied yet (e.g. client_contacts relation missing).
+          const details = e?.details ?? e?.message;
+          if (looksLikeMissingRelation(details)) {
+            res = await supabaseRest<DbClientRow[]>({
+              method: 'GET',
+              path: '/rest/v1/clients',
+              query: {
+                select: selectBase,
+                client_user_id: `eq.${userId}`,
+                limit: '1',
+              },
+            });
+          } else {
+            throw e;
+          }
+        }
         const row = res?.[0];
         const c = row ? mapRowToClient(row) : null;
         setClient(c);
         setIsLoadingClient(false);
       } catch (e: any) {
         setClient(null);
-        setClientError(e?.message ?? 'נכשל בטעינת לקוח');
+        const details = e?.details ?? undefined;
+        setClientError(details ? `${e?.message ?? 'נכשל בטעינת לקוח'}\n${details}` : e?.message ?? 'נכשל בטעינת לקוח');
         setIsLoadingClient(false);
       }
     })();
@@ -192,16 +237,53 @@ export function ClientPortalScreen({ navigation }: any) {
           <Pressable style={styles.headerIconBtn}>
             <MaterialIcons name="notifications-none" size={24} color={theme.colors.textMuted} />
           </Pressable>
-          <Pressable onPress={() => signOut()} style={styles.avatarBtn}>
-             <MaterialIcons name="person" size={24} color="#fff" />
+          <Pressable onPress={() => signOut()} style={styles.logoutBtn}>
+            <MaterialIcons name="logout" size={18} color="#fff" />
+            <Text style={styles.logoutTxt}>התנתקות</Text>
           </Pressable>
         </View>
       </View>
     );
   }, [activeTab, client?.name]);
 
+  const desktopSidebar = isDesktopWeb ? (
+    <View style={styles.sidebar}>
+      <View style={styles.sidebarBrand}>
+        <BrandLogo width={180} height={56} />
+      </View>
+
+      <View style={styles.sidebarDivider} />
+
+      <Text style={styles.sidebarCaption} numberOfLines={1} dir="ltr">
+        {userEmail?.trim() ?? ''}
+      </Text>
+
+      <View style={{ height: 12 }} />
+
+      <SideNavItem
+        icon="check-circle"
+        label="משימות"
+        active={activeTab === 'tasks'}
+        onPress={() => setActiveTab('tasks')}
+      />
+      <SideNavItem
+        icon="folder"
+        label="מסמכים"
+        active={activeTab === 'documents'}
+        onPress={() => setActiveTab('documents')}
+      />
+
+      <View style={{ flex: 1 }} />
+
+      <Pressable onPress={() => signOut()} style={({ pressed }) => [styles.sidebarLogout, pressed && { opacity: 0.9 }]}>
+        <MaterialIcons name="logout" size={18} color={theme.colors.danger} />
+        <Text style={styles.sidebarLogoutTxt}>התנתקות</Text>
+      </Pressable>
+    </View>
+  ) : null;
+
   if (isLoadingClient) {
-    return (
+    const body = (
       <SafeAreaView style={styles.screen}>
         {header}
         <View style={styles.center}>
@@ -210,10 +292,11 @@ export function ClientPortalScreen({ navigation }: any) {
         </View>
       </SafeAreaView>
     );
+    return isDesktopWeb ? <View style={styles.desktopWrap}>{desktopSidebar}{body}</View> : body;
   }
 
   if (clientError) {
-    return (
+    const body = (
       <SafeAreaView style={styles.screen}>
         {header}
         <View style={styles.center}>
@@ -224,10 +307,11 @@ export function ClientPortalScreen({ navigation }: any) {
         </View>
       </SafeAreaView>
     );
+    return isDesktopWeb ? <View style={styles.desktopWrap}>{desktopSidebar}{body}</View> : body;
   }
 
   if (!client) {
-    return (
+    const body = (
       <SafeAreaView style={styles.screen}>
         {header}
         <View style={styles.center}>
@@ -235,9 +319,10 @@ export function ClientPortalScreen({ navigation }: any) {
         </View>
       </SafeAreaView>
     );
+    return isDesktopWeb ? <View style={styles.desktopWrap}>{desktopSidebar}{body}</View> : body;
   }
 
-  return (
+  const body = (
     <SafeAreaView style={styles.screen}>
       {header}
 
@@ -255,22 +340,21 @@ export function ClientPortalScreen({ navigation }: any) {
           </View>
         </View>
 
-        <View style={styles.tabsWrapper}>
-          <View style={styles.tabs}>
-            <Pressable
-              onPress={() => setActiveTab('tasks')}
-              style={[styles.tab, activeTab === 'tasks' && styles.tabActive]}
-            >
-              <Text style={[styles.tabTxt, activeTab === 'tasks' && styles.tabTxtActive]}>משימות</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveTab('documents')}
-              style={[styles.tab, activeTab === 'documents' && styles.tabActive]}
-            >
-              <Text style={[styles.tabTxt, activeTab === 'documents' && styles.tabTxtActive]}>מסמכים</Text>
-            </Pressable>
+        {!isDesktopWeb ? (
+          <View style={styles.tabsWrapper}>
+            <View style={styles.tabs}>
+              <Pressable onPress={() => setActiveTab('tasks')} style={[styles.tab, activeTab === 'tasks' && styles.tabActive]}>
+                <Text style={[styles.tabTxt, activeTab === 'tasks' && styles.tabTxtActive]}>משימות</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setActiveTab('documents')}
+                style={[styles.tab, activeTab === 'documents' && styles.tabActive]}
+              >
+                <Text style={[styles.tabTxt, activeTab === 'documents' && styles.tabTxtActive]}>מסמכים</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        ) : null}
 
         <View style={styles.content}>
           {activeTab === 'tasks' ? (
@@ -299,11 +383,7 @@ export function ClientPortalScreen({ navigation }: any) {
               )}
               ListEmptyComponent={
                 <View style={styles.emptyBox}>
-                  {tasks.isLoading ? (
-                    <ActivityIndicator color={theme.colors.primary} />
-                  ) : (
-                    <Text style={styles.muted}>אין משימות עדיין</Text>
-                  )}
+                  {tasks.isLoading ? <ActivityIndicator color={theme.colors.primary} /> : <Text style={styles.muted}>אין משימות עדיין</Text>}
                 </View>
               }
             />
@@ -314,10 +394,7 @@ export function ClientPortalScreen({ navigation }: any) {
               scrollEnabled={false}
               contentContainerStyle={{ paddingBottom: 40, gap: 12 }}
               renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => handleOpenDocument(item)}
-                  style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
-                >
+                <Pressable onPress={() => handleOpenDocument(item)} style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
                   <View style={styles.cardContent}>
                     <View style={[styles.docIconBox, { backgroundColor: getKindBgColor(item.kind) }]}>
                       <MaterialIcons name={getKindIcon(item.kind)} size={24} color={getKindIconColor(item.kind)} />
@@ -353,6 +430,8 @@ export function ClientPortalScreen({ navigation }: any) {
       </ScrollView>
     </SafeAreaView>
   );
+
+  return isDesktopWeb ? <View style={styles.desktopWrap}>{desktopSidebar}{body}</View> : body;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -364,8 +443,84 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SideNavItem(props: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={props.onPress}
+      style={({ pressed, hovered }) => [
+        styles.sideNavItem,
+        {
+          backgroundColor: props.active ? 'rgba(67, 56, 120, 0.10)' : hovered ? 'rgba(15, 23, 42, 0.04)' : '#fff',
+          opacity: pressed ? 0.92 : 1,
+          borderColor: props.active ? 'rgba(67, 56, 120, 0.25)' : 'rgba(15, 23, 42, 0.08)',
+        },
+      ]}
+    >
+      <View style={styles.sideNavLeft}>
+        <MaterialIcons name={props.icon} size={22} color={props.active ? '#433878' : '#6B7280'} />
+        <Text style={[styles.sideNavTxt, { color: props.active ? '#433878' : '#111827' }]} numberOfLines={1}>
+          {props.label}
+        </Text>
+      </View>
+      {props.active ? <MaterialIcons name="chevron-left" size={22} color="#433878" /> : <View style={{ width: 22, height: 22 }} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F6F7FB' },
+  desktopWrap: {
+    flex: 1,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    backgroundColor: '#F6F7FB',
+  },
+  sidebar: {
+    width: 320,
+    borderLeftWidth: I18nManager.isRTL ? 1 : 0,
+    borderRightWidth: I18nManager.isRTL ? 0 : 1,
+    borderColor: 'rgba(15, 23, 42, 0.10)',
+    padding: 18,
+    backgroundColor: '#fff',
+  },
+  sidebarBrand: { alignItems: 'center', justifyContent: 'center', paddingTop: 8, paddingBottom: 14 },
+  sidebarDivider: { height: 1, backgroundColor: 'rgba(15, 23, 42, 0.08)' },
+  sidebarCaption: { marginTop: 12, color: '#6B7280', fontWeight: '700', fontSize: 12, textAlign: 'right' },
+  sideNavItem: {
+    height: 48,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  sideNavLeft: {
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  sideNavTxt: { fontWeight: '900', color: '#111827', fontSize: 14, textAlign: 'right', writingDirection: 'rtl' },
+  sidebarLogout: {
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: 'rgba(239, 68, 68, 0.06)',
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  sidebarLogoutTxt: { fontWeight: '900', color: theme.colors.danger, textAlign: 'right', writingDirection: 'rtl' },
   header: {
     paddingTop: 48,
     paddingBottom: 16,
@@ -409,19 +564,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  avatarBtn: {
-    width: 40,
+  logoutBtn: {
     height: 40,
-    borderRadius: 20,
+    borderRadius: 999,
     backgroundColor: '#433878',
+    paddingHorizontal: 14,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     elevation: 4,
     shadowColor: '#433878',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
+  logoutTxt: { color: '#fff', fontWeight: '900' },
 
   topSection: { paddingHorizontal: 24, marginBottom: 24 },
   searchContainer: {

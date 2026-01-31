@@ -24,11 +24,14 @@ export async function createClientAuthUser(
 
   const url = new URL('/functions/v1/create-client-user', cfg.url);
   const token = getSupabaseAccessToken();
+  if (!token) {
+    throw new SupabaseRestError('Not authenticated (missing Supabase access token)', 401);
+  }
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: {
       apikey: cfg.anonKey,
-      Authorization: `Bearer ${token ?? cfg.anonKey}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },

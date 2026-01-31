@@ -1,6 +1,22 @@
-// We deliberately force a light UI for this Hebrew RTL app.
-// If you want to re-enable dark mode later, switch this to `useColorScheme()`.
-export function useAppColorScheme(): 'light' | 'dark' {
-  return 'light';
+import { useAppColorSchemeStore, type AppColorScheme } from './appColorSchemeStore';
+
+export function useAppColorScheme(): AppColorScheme {
+  return useAppColorSchemeStore((s) => s.scheme);
+}
+
+export function useToggleAppColorScheme() {
+  return useAppColorSchemeStore((s) => s.toggleScheme);
+}
+
+export function useSetAppColorScheme() {
+  return useAppColorSchemeStore((s) => s.setScheme);
+}
+
+export function useIsAppColorSchemeHydrated() {
+  return useAppColorSchemeStore((s) => s.isHydrated);
+}
+
+export async function bootstrapAppColorScheme() {
+  await useAppColorSchemeStore.getState().hydrate();
 }
 

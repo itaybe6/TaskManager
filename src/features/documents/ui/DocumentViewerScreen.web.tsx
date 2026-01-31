@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, ActivityIndicator, Pressable, Text, I18nManager, Platform } from 'react-native';
+import { View, StyleSheet, Pressable, Text, I18nManager, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 import { MaterialIcons } from '@expo/vector-icons';
 import { theme } from '../../../shared/ui/theme';
 
@@ -9,8 +8,9 @@ export function DocumentViewerScreen({ route, navigation }: any) {
   const { url, title } = route.params;
 
   const viewerUrl = useMemo(() => {
-    if (Platform.OS === 'android' && url.toLowerCase().endsWith('.pdf')) {
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    // For some hosted PDFs, embedding may fail; Google viewer is often more reliable.
+    if (typeof url === 'string' && url.toLowerCase().endsWith('.pdf')) {
+      return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
     }
     return url;
   }, [url]);
@@ -18,32 +18,37 @@ export function DocumentViewerScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
-        <Pressable 
-          onPress={() => navigation.goBack()} 
+        <Pressable
+          onPress={() => navigation.goBack()}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
         >
-          <MaterialIcons 
-            name={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'} 
-            size={28} 
-            color="#fff" 
+          <MaterialIcons
+            name={I18nManager.isRTL ? 'chevron-right' : 'chevron-left'}
+            size={28}
+            color="#fff"
           />
         </Pressable>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        <View style={{ width: 40 }} />
+
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+
+        <Pressable
+          onPress={() => Linking.openURL(url)}
+          style={({ pressed }) => [styles.openBtn, pressed && { opacity: 0.85 }]}
+        >
+          <MaterialIcons name="open-in-new" size={20} color="#fff" />
+        </Pressable>
       </View>
 
-      <WebView
-        source={{ uri: viewerUrl }}
-        style={styles.webview}
-        startInLoadingState={true}
-        scalesPageToFit={true}
-        originWhitelist={['*']}
-        renderLoading={() => (
-          <View style={styles.loading}>
-            <ActivityIndicator color="#433878" size="large" />
-          </View>
-        )}
-      />
+      <View style={styles.viewerWrap}>
+        <iframe
+          title={title ?? 'Document'}
+          src={viewerUrl}
+          style={styles.iframe as any}
+          allow="fullscreen"
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -78,18 +83,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginHorizontal: 8,
   },
-  webview: {
+  openBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+  },
+  viewerWrap: {
     flex: 1,
     backgroundColor: '#F6F7FB',
   },
-  loading: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // Note: iframe is a DOM element (web only). React Native typings don't include its style.
+  iframe: {
+    borderWidth: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#F6F7FB',
   },
 });
+

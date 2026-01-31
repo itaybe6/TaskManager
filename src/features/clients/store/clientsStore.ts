@@ -62,18 +62,12 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
     const created = await repo.create(clientInput);
 
     if (authEmail && authPassword && getSupabaseConfig()) {
+      let createdAuth: { user_id: string } | null = null;
       try {
-        const createdAuth = await createClientAuthUser({
+        createdAuth = await createClientAuthUser({
           email: authEmail.trim(),
           password: authPassword,
           displayName: clientInput.name.trim(),
-        });
-
-        await supabaseRest<void>({
-          method: 'PATCH',
-          path: '/rest/v1/clients',
-          query: { id: `eq.${created.id}` },
-          body: { client_user_id: createdAuth.user_id },
         });
       } catch (e) {
         // Best-effort rollback: remove client if auth creation failed
@@ -81,6 +75,27 @@ export const useClientsStore = create<ClientsState>((set, get) => ({
           await repo.remove(created.id);
         } catch {}
         throw e;
+      }
+
+      // Best-effort linking: if it fails, keep the client and the auth user (don't rollback the client).
+      // This can fail if the DB schema isn't applied yet or due to RLS/schema-cache issues.
+      if (createdAuth?.user_id) {
+        try {
+          await supabaseRest<void>({
+            method: 'PATCH',
+            path: '/rest/v1/clients',
+            query: { id: `eq.${created.id}` },
+            body: { client_user_id: createdAuth.user_id },
+          });
+        } catch (e: any) {
+          const details = (e?.details ?? e?.message ?? '').toString();
+          console.warn('[clientsStore] Created client + auth user but failed to link client_user_id (non-fatal)', {
+            clientId: created.id,
+            userId: createdAuth.user_id,
+            status: e instanceof SupabaseRestError ? e.status : undefined,
+            details,
+          });
+        }
       }
     }
     await get().load();

@@ -1,26 +1,20 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Platform } from 'react-native';
-import { TasksListScreen } from '../../features/tasks/ui/TasksListScreen';
+import { PersonalTasksScreen } from '../../features/tasks/ui/PersonalTasksScreen';
 import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
+import { TaskUpsertScreen } from '../../features/tasks/ui/TaskUpsertScreen.web';
 import { SettingsScreen } from '../../features/settings/ui/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
-const TaskUpsertScreen =
-  Platform.OS === 'web'
-    ? require('../../features/tasks/ui/TaskUpsertScreen.web').TaskUpsertScreen
-    : require('../../features/tasks/ui/TaskUpsertScreen').TaskUpsertScreen;
-
 /**
- * Tasks flow inside the Tasks tab.
- * Keeps the bottom tab bar visible across "details" / "upsert" screens.
+ * Personal tasks flow inside the PersonalTasks tab (web).
+ * Forces the desktop-first upsert UI.
  */
-export function TasksStackNavigator() {
+export function PersonalTasksStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Keep route name identical to the tab route ("Tasks") */}
-      <Stack.Screen name="Tasks" component={TasksListScreen} />
+      <Stack.Screen name="PersonalTasks" component={PersonalTasksScreen} />
       <Stack.Screen name="TaskDetails" component={TaskDetailsScreen} />
       <Stack.Screen name="TaskUpsert" component={TaskUpsertScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
