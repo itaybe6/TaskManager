@@ -12,6 +12,9 @@ import {
   ScrollView,
   Platform,
   useWindowDimensions,
+  Modal,
+  Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import { supabaseRest } from '../../../app/supabase/rest';
 import { useAuthStore } from '../../auth/store/authStore';
 import { useTasksStore } from '../../tasks/store/tasksStore';
 import { useDocumentsStore } from '../../documents/store/documentsStore';
+import { useClientNotesStore } from '../../clientNotes/store/clientNotesStore';
 import { getPublicUrl } from '../../../app/supabase/storage';
 import { theme } from '../../../shared/ui/theme';
 import { BrandLogo } from '../../../shared/ui/BrandLogo';
@@ -138,12 +142,18 @@ export function ClientPortalScreen({ navigation }: any) {
   const signOut = useAuthStore((s) => s.signOut);
   const tasks = useTasksStore();
   const documents = useDocumentsStore();
+  const notes = useClientNotesStore();
 
-  const [activeTab, setActiveTab] = useState<'tasks' | 'documents'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'documents' | 'notes'>('tasks');
   const [searchText, setSearchText] = useState('');
   const [client, setClient] = useState<Client | null>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
+
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [noteBody, setNoteBody] = useState('');
+  const [pickedImages, setPickedImages] = useState<Array<{ uri: string; fileName: string; mimeType?: string; sizeBytes?: number }>>([]);
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -208,11 +218,18 @@ export function ClientPortalScreen({ navigation }: any) {
       if (activeTab === 'tasks') {
         tasks.setQuery({ searchText: searchText || undefined });
       } else {
-        documents.setFilter({ searchText: searchText || undefined });
+        if (activeTab === 'documents') documents.setFilter({ searchText: searchText || undefined });
+        // notes search is local only (no server filter yet)
       }
     }, 400);
     return () => clearTimeout(timer);
   }, [searchText, activeTab]);
+
+  useEffect(() => {
+    if (!client?.id) return;
+    if (activeTab !== 'notes') return;
+    notes.loadForClient(client.id);
+  }, [activeTab, client?.id]);
 
   const handleOpenDocument = async (doc: AppDocument) => {
     const url = getPublicUrl('documents', doc.storagePath);
@@ -221,15 +238,25 @@ export function ClientPortalScreen({ navigation }: any) {
     }
   };
 
+  const filteredNotes = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return notes.items;
+    return notes.items.filter((n) => (n.body ?? '').toLowerCase().includes(q));
+  }, [notes.items, searchText]);
+
   const header = useMemo(() => {
     return (
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{activeTab === 'tasks' ? 'משימות' : 'מסמכים'}</Text>
+          <Text style={styles.headerTitle}>
+            {activeTab === 'tasks' ? 'משימות' : activeTab === 'documents' ? 'מסמכים' : 'הערות'}
+          </Text>
           <Text style={styles.headerSub}>
-            {activeTab === 'tasks' 
-              ? 'עקוב אחר המשימות וההתקדמות שלך' 
-              : 'כל המסמכים, הקבלות והחשבוניות'}
+            {activeTab === 'tasks'
+              ? 'עקוב אחר המשימות וההתקדמות שלך'
+              : activeTab === 'documents'
+                ? 'כל המסמכים, הקבלות והחשבוניות'
+                : 'שתף בעיות ובקשות עם תמונות'}
           </Text>
         </View>
 
@@ -271,6 +298,12 @@ export function ClientPortalScreen({ navigation }: any) {
         label="מסמכים"
         active={activeTab === 'documents'}
         onPress={() => setActiveTab('documents')}
+      />
+      <SideNavItem
+        icon="chat-bubble-outline"
+        label="הערות"
+        active={activeTab === 'notes'}
+        onPress={() => setActiveTab('notes')}
       />
 
       <View style={{ flex: 1 }} />
@@ -332,7 +365,13 @@ export function ClientPortalScreen({ navigation }: any) {
             <MaterialIcons name="search" size={20} color={theme.colors.textMuted} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder={activeTab === 'tasks' ? 'חפש משימה...' : 'חפש מסמך לפי שם...'}
+              placeholder={
+                activeTab === 'tasks'
+                  ? 'חפש משימה...'
+                  : activeTab === 'documents'
+                    ? 'חפש מסמך לפי שם...'
+                    : 'חפש בהערות...'
+              }
               value={searchText}
               onChangeText={setSearchText}
               placeholderTextColor="#9ca3af"
@@ -351,6 +390,12 @@ export function ClientPortalScreen({ navigation }: any) {
                 style={[styles.tab, activeTab === 'documents' && styles.tabActive]}
               >
                 <Text style={[styles.tabTxt, activeTab === 'documents' && styles.tabTxtActive]}>מסמכים</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setActiveTab('notes')}
+                style={[styles.tab, activeTab === 'notes' && styles.tabActive]}
+              >
+                <Text style={[styles.tabTxt, activeTab === 'notes' && styles.tabTxtActive]}>הערות</Text>
               </Pressable>
             </View>
           </View>
@@ -387,7 +432,7 @@ export function ClientPortalScreen({ navigation }: any) {
                 </View>
               }
             />
-          ) : (
+          ) : activeTab === 'documents' ? (
             <FlatList
               data={documents.items}
               keyExtractor={(d) => d.id}
@@ -425,9 +470,181 @@ export function ClientPortalScreen({ navigation }: any) {
                 </View>
               }
             />
+          ) : (
+            <>
+              <Pressable
+                onPress={() => setNoteModalOpen(true)}
+                style={({ pressed }) => [
+                  styles.addNoteBtn,
+                  { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
+                ]}
+              >
+                <MaterialIcons name="add" size={18} color="#fff" />
+                <Text style={styles.addNoteTxt}>הוסף הערה</Text>
+              </Pressable>
+
+              <FlatList
+                data={filteredNotes}
+                keyExtractor={(n) => n.id}
+                scrollEnabled={false}
+                contentContainerStyle={{ paddingBottom: 40, gap: 12 }}
+                renderItem={({ item }) => (
+                  <View style={styles.card}>
+                    <View style={styles.cardTopRow}>
+                      <Text style={styles.cardTitle} numberOfLines={3}>
+                        {item.body}
+                      </Text>
+                      <View style={[styles.badge, item.isResolved ? styles.badgeDone : styles.badgeTodo]}>
+                        <Text style={styles.badgeTxt}>{item.isResolved ? 'טופל' : 'לא טופל'}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.cardMeta}>
+                      {new Date(item.createdAt).toLocaleDateString('he-IL')}
+                      {item.attachments?.length ? ` • ${item.attachments.length} תמונות` : ''}
+                    </Text>
+
+                    {item.attachments?.length ? (
+                      <View style={styles.attachmentsRow}>
+                        {item.attachments.slice(0, 3).map((a) => (
+                          <Image key={a.id} source={{ uri: a.publicUrl }} style={styles.attachmentThumb} />
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyBox}>
+                    {notes.isLoading ? (
+                      <ActivityIndicator color={theme.colors.primary} />
+                    ) : (
+                      <Text style={styles.muted}>אין הערות עדיין</Text>
+                    )}
+                  </View>
+                }
+              />
+            </>
           )}
         </View>
       </ScrollView>
+
+      <Modal transparent visible={noteModalOpen} animationType="fade" onRequestClose={() => setNoteModalOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setNoteModalOpen(false)}>
+          <Pressable onPress={() => {}} style={styles.modalCard}>
+            <Text style={styles.modalTitle}>הערה חדשה</Text>
+
+            <TextInput
+              value={noteBody}
+              onChangeText={setNoteBody}
+              placeholder="תאר לנו את הבעיה / הבקשה..."
+              placeholderTextColor="#94a3b8"
+              multiline
+              style={styles.noteInput}
+            />
+
+            <View style={styles.modalActionsRow}>
+              <Pressable
+                onPress={async () => {
+                  if (pickedImages.length >= 3) {
+                    Alert.alert('מקסימום תמונות', 'אפשר לצרף עד 3 תמונות להערה.');
+                    return;
+                  }
+                  try {
+                    const ImagePicker = await import('expo-image-picker');
+                    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                    if (!perm.granted) {
+                      Alert.alert('אין הרשאה', 'יש לאשר גישה לגלריה כדי לבחור תמונה.');
+                      return;
+                    }
+
+                    const result: any = await ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                      quality: 0.85,
+                      allowsMultipleSelection: true,
+                      selectionLimit: 3,
+                    } as any);
+
+                    if (result?.canceled) return;
+                    const assets: any[] = result?.assets ?? [];
+                    if (!assets.length) return;
+
+                    setPickedImages((prev) => {
+                      const remaining = Math.max(0, 3 - prev.length);
+                      const next = assets
+                        .slice(0, remaining)
+                        .map((a) => ({
+                          uri: a.uri as string,
+                          fileName: (a.fileName as string | undefined) ?? `image_${Date.now()}.jpg`,
+                          mimeType: (a.mimeType as string | undefined) ?? 'image/jpeg',
+                          sizeBytes: (a.fileSize as number | undefined) ?? undefined,
+                        }))
+                        .filter((x) => !!x.uri);
+                      return [...prev, ...next].slice(0, 3);
+                    });
+                  } catch (e: any) {
+                    Alert.alert('שגיאה', e?.message ?? 'נכשל בבחירת תמונה');
+                  }
+                }}
+                style={({ pressed }) => [styles.secondaryBtn, { opacity: pressed ? 0.92 : 1 }]}
+              >
+                <MaterialIcons name="image" size={18} color={theme.colors.primary} />
+                <Text style={styles.secondaryBtnTxt}>הוסף תמונה</Text>
+              </Pressable>
+
+              <Pressable
+                disabled={!noteBody.trim() || isSubmittingNote}
+                onPress={async () => {
+                  if (!client?.id) return;
+                  const bodyText = noteBody.trim();
+                  if (!bodyText) return;
+                  setIsSubmittingNote(true);
+                  try {
+                    await notes.createNoteForViewer({
+                      clientId: client.id,
+                      body: bodyText,
+                      attachments: pickedImages,
+                    });
+                    setNoteBody('');
+                    setPickedImages([]);
+                    setNoteModalOpen(false);
+                  } catch (e: any) {
+                    Alert.alert('שגיאה', e?.message ?? 'נכשל בשמירת ההערה');
+                  } finally {
+                    setIsSubmittingNote(false);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  { opacity: !noteBody.trim() || isSubmittingNote ? 0.55 : pressed ? 0.92 : 1 },
+                ]}
+              >
+                {isSubmittingNote ? <ActivityIndicator color="#fff" /> : <MaterialIcons name="send" size={18} color="#fff" />}
+                <Text style={styles.primaryBtnTxt}>שלח</Text>
+              </Pressable>
+            </View>
+
+            {pickedImages.length ? (
+              <View style={styles.pickedRow}>
+                {pickedImages.map((img, idx) => (
+                  <View key={`${img.uri}-${idx}`} style={styles.pickedItem}>
+                    <Image source={{ uri: img.uri }} style={styles.pickedThumb} />
+                    <Pressable
+                      onPress={() => setPickedImages((prev) => prev.filter((_, i) => i !== idx))}
+                      style={({ pressed }) => [styles.pickedRemove, { opacity: pressed ? 0.9 : 1 }]}
+                    >
+                      <MaterialIcons name="close" size={14} color="#fff" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            <Pressable onPress={() => setNoteModalOpen(false)} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+              <Text style={styles.modalCancel}>סגור</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 
@@ -714,5 +931,98 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   retryTxt: { color: '#fff', fontWeight: '900' },
+
+  addNoteBtn: {
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 14,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  addNoteTxt: { color: '#fff', fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  attachmentsRow: { marginTop: 10, flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', gap: 10 },
+  attachmentThumb: { width: 72, height: 54, borderRadius: 12, backgroundColor: '#e5e7eb' },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 520,
+    borderRadius: 18,
+    padding: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.10)',
+    gap: 12,
+  },
+  modalTitle: { fontSize: 16, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', color: '#0f172a' },
+  noteInput: {
+    borderRadius: 14,
+    padding: 12,
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    textAlignVertical: 'top',
+  },
+  modalActionsRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', gap: 10 },
+  secondaryBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primarySoft2,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryBorder,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  secondaryBtnTxt: { color: theme.colors.primary, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  primaryBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primary,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  primaryBtnTxt: { color: '#fff', fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
+  pickedRow: { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row', gap: 10, flexWrap: 'wrap' },
+  pickedItem: { width: 92, height: 72, borderRadius: 14, overflow: 'hidden', backgroundColor: '#e5e7eb' },
+  pickedThumb: { width: '100%', height: '100%' },
+  pickedRemove: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15,23,42,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancel: { color: '#64748b', fontWeight: '900', textAlign: 'center', paddingTop: 2 },
 });
 

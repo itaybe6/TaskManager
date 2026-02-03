@@ -40,14 +40,6 @@ where id in (
   'd0c00000-0000-0000-0000-000000000002'
 );
 
--- Delete demo price list items
-delete from public.price_list_items
-where id in (
-  'b1111111-1111-1111-1111-111111111111',
-  'b2222222-2222-2222-2222-222222222222',
-  'b3333333-3333-3333-3333-333333333333'
-);
-
 -- Delete demo projects (will cascade to related rows where FKs are cascade)
 delete from public.projects
 where id in (

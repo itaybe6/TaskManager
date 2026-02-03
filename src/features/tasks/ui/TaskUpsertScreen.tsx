@@ -125,6 +125,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   }, [mode, route.params]);
 
   const isPersonalQuickCreate = mode === 'create' && defaultVisibility === 'personal';
+  const isPersonalMode = isPersonalQuickCreate || visibility === 'personal';
 
   const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
   const adirUser = useMemo(() => users.find((u) => u.displayName === 'אדיר בוקובזה' || u.displayName === 'אדיר') ?? users[1], [users]);
@@ -173,7 +174,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     const d = existing && !Number.isNaN(existing.getTime()) ? new Date(existing) : new Date();
     // Default to all-day (00:00) for personal; otherwise 18:00
     if (!existing || Number.isNaN(existing.getTime())) {
-      d.setHours(isPersonalQuickCreate ? 0 : 18, 0, 0, 0);
+      d.setHours(isPersonalMode ? 0 : 18, 0, 0, 0);
     }
     setDueDraft(d);
     setDuePickerOpen(true);
@@ -183,7 +184,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     const d = new Date(dueDraft);
     if (Number.isNaN(d.getTime())) return;
     // keep due date as "all-day" for personal quick create
-    if (isPersonalQuickCreate) d.setHours(0, 0, 0, 0);
+    if (isPersonalMode) d.setHours(0, 0, 0, 0);
     setDueAt(d.toISOString());
     setDuePickerOpen(false);
   }
@@ -274,7 +275,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
           contentContainerStyle={[styles.content, { paddingBottom: 160 + bottomOffset }, layout.contentContainerStyle]}
           showsVerticalScrollIndicator={false}
         >
-            {!isPersonalQuickCreate && !isProjectTask && (
+            {!isPersonalMode && !isProjectTask && (
               <View style={{ marginBottom: 18 }}>
                 <Text style={[styles.label, { color: '#64748b' }]}>שייכות</Text>
 
@@ -390,12 +391,12 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               </View>
             )}
 
-            {!isPersonalQuickCreate ? (
+            {!isPersonalQuickCreate && !isProjectTask ? (
               <View style={{ marginBottom: 22 }}>
                 <Text style={[styles.label, { color: '#64748b' }]}>סוג</Text>
                 <View style={[styles.segment, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }]}>
                   <SegmentOption
-                    label="משותפת"
+                    label="רגילה"
                     active={visibility === 'shared'}
                     isDark={isDark}
                     onPress={() => setVisibility('shared')}
@@ -405,14 +406,19 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                     active={visibility === 'personal'}
                     isDark={isDark}
                     onPress={() => {
+                      // Personal task is just a description, saved for the logged-in user.
                       setVisibility('personal');
-                      // personal task belongs to the logged-in user only
+                      setOpenDropdown(null);
+                      setDuePickerOpen(false);
+                      setTaskScope('general');
+                      setClientId(undefined);
+                      setCategoryId(undefined);
+                      setDueAt(undefined);
+
                       const me = session?.user?.id;
                       if (me) {
                         setAssigneeId(me);
                         setAssigneeChoice('iti'); // UI value not relevant in personal mode
-                        setTaskScope('general');
-                        setClientId(undefined);
                       }
                     }}
                   />
@@ -420,7 +426,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
               </View>
             ) : null}
 
-            {!isPersonalQuickCreate ? (
+            {!isPersonalMode ? (
               <View style={{ marginBottom: 22 }}>
                 <Text style={[styles.label, { color: '#64748b' }]}>אחראי</Text>
                 {users.length <= 2 && visibility === 'shared' ? (
@@ -582,7 +588,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             ) : null}
 
             <View style={{ gap: 12 }}>
-              {!isPersonalQuickCreate ? (
+              {!isPersonalMode ? (
                 <>
                   <Pressable
                     onPress={() => toggleDropdown('category')}
@@ -667,76 +673,76 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 </>
               ) : null}
 
-              <Pressable
-                onPress={Platform.OS === 'web' ? undefined : openDuePicker}
-                style={({ pressed }) => [
-                  styles.pickerBtn,
-                  {
-                    backgroundColor: '#ffffff',
-                    borderColor: '#e2e8f0',
-                    opacity: pressed ? 0.92 : 1,
-                    transform: [{ scale: pressed ? 0.99 : 1 }],
-                  },
-                ]}
-              >
-                {Platform.OS === 'web' ? (
-                  // On web, use a real date input so clicking opens the browser date picker (not a dropdown panel).
-                  <input
-                    type="date"
-                    value={dueAt ? formatYmdLocal(dueAt) : ''}
-                    onChange={(e) => {
-                      const v = e.currentTarget.value; // YYYY-MM-DD
-                      if (!v) {
-                        setDueAt(undefined);
-                        return;
-                      }
-                      const d = new Date(`${v}T${isPersonalQuickCreate ? '00' : '18'}:00:00`);
-                      if (!Number.isNaN(d.getTime())) setDueAt(d.toISOString());
-                    }}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      opacity: 0,
-                      cursor: 'pointer',
-                      zIndex: 2,
-                    }}
-                  />
-                ) : null}
-                <View style={styles.pickerMain} pointerEvents={Platform.OS === 'web' ? 'none' : 'auto'}>
-                  <View style={[styles.pickerIconCircle, { backgroundColor: '#eff6ff' }]}>
-                    <MaterialIcons name="calendar-today" size={18} color={theme.colors.primary} />
-                  </View>
-                  <View style={styles.pickerMainTight}>
-                    <Text style={styles.pickerLabel}>
-                      תאריך יעד
-                    </Text>
-                    <Text style={styles.pickerValue}>
-                      {dateLabel}
-                    </Text>
-                  </View>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
-              </Pressable>
+              {!isPersonalMode ? (
+                <>
+                  <Pressable
+                    onPress={Platform.OS === 'web' ? undefined : openDuePicker}
+                    style={({ pressed }) => [
+                      styles.pickerBtn,
+                      {
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e2e8f0',
+                        opacity: pressed ? 0.92 : 1,
+                        transform: [{ scale: pressed ? 0.99 : 1 }],
+                      },
+                    ]}
+                  >
+                    {Platform.OS === 'web' ? (
+                      // On web, use a real date input so clicking opens the browser date picker (not a dropdown panel).
+                      <input
+                        type="date"
+                        value={dueAt ? formatYmdLocal(dueAt) : ''}
+                        onChange={(e) => {
+                          const v = e.currentTarget.value; // YYYY-MM-DD
+                          if (!v) {
+                            setDueAt(undefined);
+                            return;
+                          }
+                          const d = new Date(`${v}T${isPersonalMode ? '00' : '18'}:00:00`);
+                          if (!Number.isNaN(d.getTime())) setDueAt(d.toISOString());
+                        }}
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          opacity: 0,
+                          cursor: 'pointer',
+                          zIndex: 2,
+                        }}
+                      />
+                    ) : null}
+                    <View style={styles.pickerMain} pointerEvents={Platform.OS === 'web' ? 'none' : 'auto'}>
+                      <View style={[styles.pickerIconCircle, { backgroundColor: '#eff6ff' }]}>
+                        <MaterialIcons name="calendar-today" size={18} color={theme.colors.primary} />
+                      </View>
+                      <View style={styles.pickerMainTight}>
+                        <Text style={styles.pickerLabel}>תאריך יעד</Text>
+                        <Text style={styles.pickerValue}>{dateLabel}</Text>
+                      </View>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
+                  </Pressable>
 
-              {duePickerOpen && Platform.OS !== 'web' ? (
-                <DateTimePicker
-                  value={dueDraft}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'default' : 'default'}
-                  onChange={(_event, selected) => {
-                    if (!selected) {
-                      setDuePickerOpen(false);
-                      return;
-                    }
-                    setDueDraft(selected);
-                    const d = new Date(selected);
-                    if (isPersonalQuickCreate) d.setHours(0, 0, 0, 0);
-                    setDueAt(d.toISOString());
-                    setDuePickerOpen(false);
-                  }}
-                />
+                  {duePickerOpen && Platform.OS !== 'web' ? (
+                    <DateTimePicker
+                      value={dueDraft}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'default' : 'default'}
+                      onChange={(_event, selected) => {
+                        if (!selected) {
+                          setDuePickerOpen(false);
+                          return;
+                        }
+                        setDueDraft(selected);
+                        const d = new Date(selected);
+                        if (isPersonalMode) d.setHours(0, 0, 0, 0);
+                        setDueAt(d.toISOString());
+                        setDuePickerOpen(false);
+                      }}
+                    />
+                  ) : null}
+                </>
               ) : null}
 
             </View>
@@ -759,14 +765,14 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
               if (mode === 'create') {
                 const me = session?.user?.id;
-                const isPersonalCreate = isPersonalQuickCreate || visibility === 'personal';
+                const isPersonalCreate = isPersonalMode;
                 const base = {
                   description: description.trim(),
                   status,
-                  clientId: !isProjectTask && taskScope === 'client' ? clientId : undefined,
-                  projectId,
-                  categoryId,
-                  dueAt,
+                  clientId: !isPersonalCreate && !isProjectTask && taskScope === 'client' ? clientId : undefined,
+                  projectId: !isPersonalCreate ? projectId : undefined,
+                  categoryId: !isPersonalCreate ? categoryId : undefined,
+                  dueAt: !isPersonalCreate ? dueAt : undefined,
                   isPersonal: isPersonalCreate,
                   ownerUserId: isPersonalCreate ? me : undefined,
                 };
@@ -815,15 +821,18 @@ export function TaskUpsertScreen({ route, navigation }: any) {
                 }
               } else if (id) {
                 const me = session?.user?.id;
+                const isPersonalUpdate = visibility === 'personal';
                 await updateTask(id, {
                   description: description.trim(),
                   status,
-                  assigneeId,
-                  ...(!isProjectTask ? { clientId: taskScope === 'client' ? clientId : undefined } : {}),
-                  projectId,
-                  categoryId,
-                  dueAt,
-                  ...(visibility === 'personal'
+                  assigneeId: isPersonalUpdate ? me : assigneeId,
+                  ...(!isProjectTask
+                    ? { clientId: isPersonalUpdate ? undefined : taskScope === 'client' ? clientId : undefined }
+                    : {}),
+                  projectId: isPersonalUpdate ? undefined : projectId,
+                  categoryId: isPersonalUpdate ? undefined : categoryId,
+                  dueAt: isPersonalUpdate ? undefined : dueAt,
+                  ...(isPersonalUpdate
                     ? { isPersonal: true, ownerUserId: me, assigneeId: me }
                     : { isPersonal: false, ownerUserId: undefined }),
                 });

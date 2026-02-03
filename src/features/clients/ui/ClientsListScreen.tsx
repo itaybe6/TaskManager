@@ -48,6 +48,12 @@ export function ClientsListScreen({ navigation, route }: any) {
           <View style={styles.headerActions}>
             <UserAvatarButton />
             <NotificationBellButton isDark={isDark} />
+            <Pressable
+              onPress={() => navigation.navigate('ClientNotesInbox')}
+              style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            >
+              <MaterialIcons name="chat-bubble-outline" size={22} color={isDark ? colors.textMutedDark : colors.textMutedLight} />
+            </Pressable>
             {!isTabRoot && typeof navigation?.canGoBack === 'function' && navigation.canGoBack() ? (
               <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
                 <Text style={{ color: isDark ? colors.textMutedDark : colors.textMutedLight, fontWeight: '900' }}>

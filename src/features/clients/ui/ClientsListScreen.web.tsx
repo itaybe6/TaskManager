@@ -45,6 +45,19 @@ export function ClientsListScreen({ navigation }: any) {
       <View style={styles.header}>
         <View style={styles.sectionRow}>
           <Text style={[styles.sectionTitle, { color: chrome.text }]}>סקירת לקוחות</Text>
+          <Pressable
+            onPress={() => navigation.navigate('ClientNotesInbox')}
+            style={({ pressed }) => [
+              styles.notesBtn,
+              {
+                backgroundColor: theme.colors.primary,
+                opacity: pressed ? 0.92 : 1,
+              },
+            ]}
+          >
+            <MaterialIcons name="chat-bubble-outline" size={18} color="#fff" />
+            <Text style={styles.notesBtnTxt}>הערות לקוחות</Text>
+          </Pressable>
         </View>
 
         {!!error ? <Text style={styles.errorTxt}>{error}</Text> : null}
@@ -256,9 +269,32 @@ const styles = StyleSheet.create({
   page: { flex: 1 },
 
   header: { gap: 10, paddingBottom: 10 },
-  sectionRow: { paddingTop: 6, paddingBottom: 2 },
+  sectionRow: {
+    paddingTop: 6,
+    paddingBottom: 2,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   sectionTitle: { fontSize: 20, fontWeight: '700', color: '#111827', textAlign: 'right', writingDirection: 'rtl' },
   errorTxt: { color: '#ef4444', fontWeight: '800', textAlign: 'right' },
+
+  notesBtn: {
+    height: 40,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: theme.colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  notesBtnTxt: { color: '#fff', fontWeight: '900', textAlign: 'right', writingDirection: 'rtl' },
 
   card: {
     backgroundColor: '#FFFFFF',

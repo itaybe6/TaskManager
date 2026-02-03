@@ -3,7 +3,6 @@ import { createBottomTabNavigator, type BottomTabBarButtonProps } from '@react-n
 import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { TasksStackNavigator } from './TasksStackNavigator';
-import { PersonalTasksStackNavigator } from './PersonalTasksStackNavigator';
 import { ClientsStackNavigator } from './ClientsStackNavigator';
 import { DocumentsStackNavigator } from './DocumentsStackNavigator';
 import { NotificationsStackNavigator } from './NotificationsStackNavigator';
@@ -56,18 +55,6 @@ export function TabsNavigator() {
           tabBarIcon: ({ color, focused, size }) => (
             <TabIcon focused={focused}>
               <MaterialIcons name="check-circle" size={size ?? 24} color={color} />
-            </TabIcon>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="PersonalTasks"
-        component={PersonalTasksStackNavigator}
-        options={{
-          title: 'אישיות',
-          tabBarIcon: ({ color, focused, size }) => (
-            <TabIcon focused={focused}>
-              <MaterialIcons name="lock" size={size ?? 24} color={color} />
             </TabIcon>
           ),
         }}

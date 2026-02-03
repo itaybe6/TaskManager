@@ -45,7 +45,6 @@
 - `documents` (מטא־דאטה לקבצים ב־Supabase Storage) עם `project_id` + `uploaded_by`
 - `invoices` + `invoice_items` (חשבוניות עם שורות)
 - `transactions` (income/expense) כולל קישור אופציונלי למסמך קבלה
-- `price_list_items` (מחירון)
 
 כולל enums, אינדקסים, טריגר `updated_at`, והפעלת RLS עם policies פתוחות לפיתוח.
 

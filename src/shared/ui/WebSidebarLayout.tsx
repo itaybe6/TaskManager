@@ -6,7 +6,7 @@ import { useNotificationsStore } from '../../features/notifications/store/notifi
 import { useAppColorScheme, useToggleAppColorScheme } from './useAppColorScheme';
 import { BrandLogo } from './BrandLogo';
 
-type ActiveKey = 'personal' | 'clients' | 'tasks' | 'documents' | 'notifications';
+type ActiveKey = 'clients' | 'tasks' | 'documents' | 'notifications';
 
 type Props = {
   navigation: any;
@@ -140,7 +140,6 @@ export function WebSidebarLayout({ navigation, active, children }: Props) {
           />
 
           <View style={styles.nav}>
-            <NavItem icon="lock" label="אישיות" active={active === 'personal'} palette={palette} onPress={() => navigation.navigate('PersonalTasks')} />
             <NavItem icon="people" label="לקוחות" active={active === 'clients'} palette={palette} onPress={() => navigation.navigate('Clients')} />
             <NavItem icon="check-circle" label="כל המשימות" active={active === 'tasks'} palette={palette} onPress={() => navigation.navigate('Tasks')} />
             <NavItem icon="folder" label="מסמכים" active={active === 'documents'} palette={palette} onPress={() => navigation.navigate('Documents')} />

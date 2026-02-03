@@ -89,17 +89,21 @@ export default function App() {
     if (Platform.OS !== 'web') return;
     if (typeof document === 'undefined') return;
 
-    const id = 'taskmanager-font-heebo';
+    const id = 'taskmanager-font-rubik';
     if (!document.getElementById(id)) {
       const link = document.createElement('link');
       link.id = id;
       link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap';
+      link.href = 'https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap';
       document.head.appendChild(link);
     }
 
     // Apply as the default font family for Text/TextInput on web.
-    const fontFamily = 'Heebo';
+    const fontFamily = 'Rubik';
+    // Also set the base document font so non-RN elements (and defaults) match.
+    const cssFontFamily = `${fontFamily}, system-ui, -apple-system, "Segoe UI", Arial, sans-serif`;
+    document.documentElement.style.fontFamily = cssFontFamily;
+    if (document.body) document.body.style.fontFamily = cssFontFamily;
     const t: any = Text;
     const ti: any = TextInput;
     t.defaultProps = t.defaultProps ?? {};

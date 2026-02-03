@@ -3,8 +3,9 @@ import { Platform, StyleSheet } from 'react-native';
 // Web-only global typography downscale.
 // This runs BEFORE app UI imports (see `index.js`) so all `StyleSheet.create(...)`
 // font sizes are scaled consistently across the entire app.
-const WEB_FONT_MULTIPLIER = 0.84;
-const WEB_LINE_HEIGHT_MULTIPLIER = 0.9;
+// Bumped slightly because web UI looked too small (keep change subtle).
+const WEB_FONT_MULTIPLIER = 0.96;
+const WEB_LINE_HEIGHT_MULTIPLIER = 1.0;
 
 function scale(value: number, multiplier: number) {
   return Math.max(10, Math.round(value * multiplier));

@@ -40,7 +40,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       const items = await repo.list({ ...query, viewerUserId });
       set({ items, isLoading: false });
     } catch (e: any) {
-      set({ error: e?.message ?? 'Unknown error', isLoading: false });
+      set({ error: formatError(e), isLoading: false });
     }
   },
 
@@ -73,4 +73,18 @@ function makeTasksRepo(): TaskRepository {
   // If Supabase env exists -> use Supabase.
   // Otherwise fallback to in-memory so dev never breaks.
   return getSupabaseConfig() ? new SupabaseTaskRepository() : new InMemoryTaskRepository();
+}
+
+function formatError(e: any) {
+  const name = (e?.name ?? '').toString();
+  const msg = (e?.message ?? e?.toString?.() ?? 'Unknown error').toString();
+  const status = typeof e?.status === 'number' ? e.status : undefined;
+  const details = (e?.details ?? '').toString();
+
+  // Prefer actionable details; keep it short for the UI.
+  if (status !== undefined) {
+    const base = `${name ? `${name} ` : ''}(${status}) ${msg}`.trim();
+    return details ? `${base}\n${details}` : base;
+  }
+  return details ? `${msg}\n${details}` : msg;
 }

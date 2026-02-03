@@ -111,11 +111,17 @@ export function NotificationsScreen({ navigation }: any) {
             onPress={async () => {
               if (!item.isRead) await markRead(item.id);
 
-              const maybeTaskId =
-                item.data && typeof item.data === 'object' ? (item.data.task_id as string | undefined) : undefined;
-              if (maybeTaskId) {
-                navigation.navigate('TaskDetails', { id: maybeTaskId });
+              const data = item.data && typeof item.data === 'object' ? (item.data as any) : undefined;
+              const kind = data?.kind as string | undefined;
+
+              if (kind === 'client_note') {
+                // Client notes live inside the Clients stack
+                navigation.navigate('Clients', { screen: 'ClientNotesInbox' });
+                return;
               }
+
+              const maybeTaskId = data?.task_id as string | undefined;
+              if (maybeTaskId) navigation.navigate('TaskDetails', { id: maybeTaskId });
             }}
           />
         )}

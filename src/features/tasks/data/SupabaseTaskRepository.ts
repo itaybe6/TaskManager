@@ -13,8 +13,9 @@ type DbTaskRow = {
   client_id: string | null;
   project_id: string | null;
   category_id: string | null;
-  is_personal: boolean | null;
-  owner_user_id: string | null;
+  // Added later in schema.tasks.personal.sql. These may be missing in some environments.
+  is_personal?: boolean | null;
+  owner_user_id?: string | null;
   created_at: string;
   updated_at: string;
   // Embedded relation (if selected)
@@ -72,7 +73,8 @@ function mapTaskToPatch(patch: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedA
 }
 
 function selectForMode(mode: FetchMode) {
-  const base = 'id,description,status,assignee_id,due_at,client_id,project_id,category_id,is_personal,owner_user_id,created_at,updated_at';
+  const base =
+    'id,description,status,assignee_id,due_at,client_id,project_id,category_id,is_personal,owner_user_id,created_at,updated_at';
   if (mode === 'full') return `${base},assignee:users(display_name),category:task_categories(name,color)`;
   if (mode === 'noCategory') return `${base},assignee:users(display_name)`;
   return base;
@@ -81,6 +83,20 @@ function selectForMode(mode: FetchMode) {
 function looksLikeMissingRelation(details?: string) {
   const d = (details ?? '').toLowerCase();
   return d.includes('could not find') || d.includes('does not exist') || d.includes('relationship') || d.includes('relation');
+}
+
+function looksLikeMissingColumn(details?: string) {
+  const d = (details ?? '').toLowerCase();
+  // Examples:
+  // - column public.tasks.owner_user_id does not exist
+  // - column "is_personal" of relation "tasks" does not exist
+  return d.includes('column') && d.includes('does not exist');
+}
+
+function selectLegacy() {
+  // Schema before task categories / personal tasks.
+  // Keep minimal fields that have existed from the beginning.
+  return 'id,description,status,assignee_id,due_at,client_id,project_id,category_id,created_at,updated_at';
 }
 
 async function fetchTasks(
@@ -106,6 +122,24 @@ async function fetchTasks(
   });
 }
 
+async function fetchTasksLegacy(query?: TaskQuery): Promise<DbTaskRow[]> {
+  const q = (query?.searchText ?? '').trim();
+  return await supabaseRest<DbTaskRow[]>({
+    method: 'GET',
+    path: '/rest/v1/tasks',
+    query: {
+      select: selectLegacy(),
+      ...(query?.status ? { status: `eq.${query.status}` } : {}),
+      ...(query?.assigneeId ? { assignee_id: `eq.${query.assigneeId}` } : {}),
+      ...(query?.clientId ? { client_id: `eq.${query.clientId}` } : {}),
+      ...(query?.projectId ? { project_id: `eq.${query.projectId}` } : {}),
+      ...(query?.categoryId ? { category_id: `eq.${query.categoryId}` } : {}),
+      ...(q ? { description: `ilike.*${escapeIlike(q)}*` } : {}),
+      order: 'updated_at.desc',
+    },
+  });
+}
+
 async function fetchTaskById(args: { id: string; mode: FetchMode }): Promise<DbTaskRow[]> {
   return await supabaseRest<DbTaskRow[]>({
     method: 'GET',
@@ -118,22 +152,53 @@ async function fetchTaskById(args: { id: string; mode: FetchMode }): Promise<DbT
   });
 }
 
+async function fetchTaskByIdLegacy(id: string): Promise<DbTaskRow[]> {
+  return await supabaseRest<DbTaskRow[]>({
+    method: 'GET',
+    path: '/rest/v1/tasks',
+    query: {
+      select: selectLegacy(),
+      id: `eq.${id}`,
+      limit: '1',
+    },
+  });
+}
+
 export class SupabaseTaskRepository implements TaskRepository {
   async list(query?: TaskQuery): Promise<Task[]> {
     try {
       const res = await fetchTasks({ mode: 'full', query });
-      return res.map(mapRowToTask);
+      const items = res.map(mapRowToTask);
+      return filterForViewer(items, query?.viewerUserId);
     } catch (e: any) {
       const details = e?.details ?? e?.message;
       // Common when schema.tasks.categories.sql wasn't applied yet (task_categories relation missing).
       if (looksLikeMissingRelation(details)) {
         try {
           const res = await fetchTasks({ mode: 'noCategory', query });
-          return res.map(mapRowToTask);
-        } catch {
-          const res = await fetchTasks({ mode: 'noEmbeds', query });
-          return res.map(mapRowToTask);
+          const items = res.map(mapRowToTask);
+          return filterForViewer(items, query?.viewerUserId);
+        } catch (e2: any) {
+          try {
+            const res = await fetchTasks({ mode: 'noEmbeds', query });
+            const items = res.map(mapRowToTask);
+            return filterForViewer(items, query?.viewerUserId);
+          } catch (e3: any) {
+            const d3 = e3?.details ?? e3?.message;
+            if (looksLikeMissingColumn(d3)) {
+              const res = await fetchTasksLegacy(query);
+              const items = res.map(mapRowToTask);
+              return filterForViewer(items, query?.viewerUserId);
+            }
+            throw e2;
+          }
         }
+      }
+      // Common when schema.tasks.personal.sql wasn't applied yet (is_personal / owner_user_id columns missing).
+      if (looksLikeMissingColumn(details)) {
+        const res = await fetchTasksLegacy(query);
+        const items = res.map(mapRowToTask);
+        return filterForViewer(items, query?.viewerUserId);
       }
       throw e;
     }
@@ -151,11 +216,26 @@ export class SupabaseTaskRepository implements TaskRepository {
           const res = await fetchTaskById({ id, mode: 'noCategory' });
           const row = res[0];
           return row ? mapRowToTask(row) : null;
-        } catch {
-          const res = await fetchTaskById({ id, mode: 'noEmbeds' });
-          const row = res[0];
-          return row ? mapRowToTask(row) : null;
+        } catch (e2: any) {
+          try {
+            const res = await fetchTaskById({ id, mode: 'noEmbeds' });
+            const row = res[0];
+            return row ? mapRowToTask(row) : null;
+          } catch (e3: any) {
+            const d3 = e3?.details ?? e3?.message;
+            if (looksLikeMissingColumn(d3)) {
+              const res = await fetchTaskByIdLegacy(id);
+              const row = res[0];
+              return row ? mapRowToTask(row) : null;
+            }
+            throw e2;
+          }
         }
+      }
+      if (looksLikeMissingColumn(details)) {
+        const res = await fetchTaskByIdLegacy(id);
+        const row = res[0];
+        return row ? mapRowToTask(row) : null;
       }
       throw e;
     }
@@ -211,3 +291,7 @@ function escapeIlike(s: string) {
     .replaceAll(')', '\\)');
 }
 
+function filterForViewer(items: Task[], viewerUserId?: string) {
+  if (!viewerUserId) return items;
+  return items.filter((t) => !t.isPersonal || t.ownerUserId === viewerUserId);
+}

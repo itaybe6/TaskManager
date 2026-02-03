@@ -37,6 +37,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
+  const [personalDescription, setPersonalDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined);
   const [assigneeChoice, setAssigneeChoice] = useState<'iti' | 'adir' | 'both'>('iti');
@@ -101,6 +102,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
   }, [mode, route.params]);
 
   const isPersonalQuickCreate = mode === 'create' && defaultVisibility === 'personal';
+  const isPersonalMode = isPersonalQuickCreate || visibility === 'personal';
 
   const itiUser = useMemo(() => users.find((u) => u.displayName === 'איתי') ?? users[0], [users]);
   const adirUser = useMemo(
@@ -116,6 +118,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
       const parsed = parseStoredTaskDescription(t.description);
       setTitle(parsed.title);
       setDetails(parsed.details);
+      setPersonalDescription(t.description ?? '');
       setStatus(t.status);
       setAssigneeId(t.assigneeId);
       if (t.assigneeId && itiUser?.id && t.assigneeId === itiUser.id) setAssigneeChoice('iti');
@@ -137,7 +140,7 @@ export function TaskUpsertScreen({ route, navigation }: any) {
     }
   }, [assigneeChoice, isProjectTask, taskScope, itiUser?.id]);
 
-  const canSave = title.trim().length >= 2;
+  const canSave = (isPersonalMode ? personalDescription.trim() : title.trim()).length >= 2;
 
   function formatYmdLocal(iso: string) {
     const d = new Date(iso);
@@ -176,17 +179,17 @@ export function TaskUpsertScreen({ route, navigation }: any) {
 
   async function handleSave() {
     if (!canSave) return;
-    const description = composeTaskDescription(title, details);
+    const description = isPersonalMode ? personalDescription.trim() : composeTaskDescription(title, details);
     if (mode === 'create') {
         const me = session?.user?.id;
-        const isPersonalCreate = isPersonalQuickCreate || visibility === 'personal';
+        const isPersonalCreate = isPersonalMode;
         const base = {
           description,
           status,
-          clientId: !isProjectTask && taskScope === 'client' ? clientId : undefined,
-          projectId,
-          categoryId,
-          dueAt,
+          clientId: !isPersonalCreate && !isProjectTask && taskScope === 'client' ? clientId : undefined,
+          projectId: !isPersonalCreate ? projectId : undefined,
+          categoryId: !isPersonalCreate ? categoryId : undefined,
+          dueAt: !isPersonalCreate ? dueAt : undefined,
           isPersonal: isPersonalCreate,
           ownerUserId: isPersonalCreate ? me : undefined,
         };
@@ -235,15 +238,18 @@ export function TaskUpsertScreen({ route, navigation }: any) {
         }
     } else if (id) {
       const me = session?.user?.id;
+      const isPersonalUpdate = visibility === 'personal';
       await updateTask(id, {
         description,
         status,
-        assigneeId,
-        ...(!isProjectTask ? { clientId: taskScope === 'client' ? clientId : undefined } : {}),
-        projectId,
-        categoryId,
-        dueAt,
-        ...(visibility === 'personal' ? { isPersonal: true, ownerUserId: me, assigneeId: me } : { isPersonal: false, ownerUserId: undefined }),
+        assigneeId: isPersonalUpdate ? me : assigneeId,
+        ...(!isProjectTask
+          ? { clientId: isPersonalUpdate ? undefined : taskScope === 'client' ? clientId : undefined }
+          : {}),
+        projectId: isPersonalUpdate ? undefined : projectId,
+        categoryId: isPersonalUpdate ? undefined : categoryId,
+        dueAt: isPersonalUpdate ? undefined : dueAt,
+        ...(isPersonalUpdate ? { isPersonal: true, ownerUserId: me, assigneeId: me } : { isPersonal: false, ownerUserId: undefined }),
       });
     }
     navigation.goBack();
@@ -320,149 +326,212 @@ export function TaskUpsertScreen({ route, navigation }: any) {
             <View style={styles.card}>
               <View style={styles.cardBody}>
                 {openSelect ? <View style={styles.dropdownOverlay} pointerEvents="none" /> : null}
-                <View style={styles.topGrid}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.label}>כותרת המשימה</Text>
-                    <TextInput
-                      value={title}
-                      onChangeText={setTitle}
-                      placeholder="לדוגמה: הכנת מצגת לפגישת דירקטוריון"
-                      placeholderTextColor="#9CA3AF"
-                      style={styles.titleInput}
-                    />
+
+                {!isPersonalQuickCreate && !isProjectTask ? (
+                  <View>
+                    <Text style={styles.label}>סוג</Text>
+                    <View style={styles.statusPills}>
+                      <Pressable
+                        onPress={() => {
+                          // Switch back to a regular/shared task form.
+                          setVisibility('shared');
+                          const raw = personalDescription.trim();
+                          if (!title.trim() && raw) {
+                            const parsed = parseStoredTaskDescription(raw);
+                            setTitle(parsed.title);
+                            setDetails(parsed.details);
+                          }
+                        }}
+                        style={({ pressed }) => [
+                          styles.statusPill,
+                          {
+                            backgroundColor: visibility === 'shared' ? theme.colors.primary : '#EEF2FF',
+                            borderColor: visibility === 'shared' ? theme.colors.primary : '#C7D2FE',
+                            opacity: pressed ? 0.92 : 1,
+                          },
+                        ]}
+                      >
+                        <Text style={{ color: visibility === 'shared' ? '#fff' : theme.colors.primary, fontWeight: '900', fontSize: 11 }}>
+                          רגילה
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          // Personal task: description only, saved for the logged-in user.
+                          setVisibility('personal');
+                          setOpenSelect(null);
+                          setTaskScope('general');
+                          setClientId(undefined);
+                          setCategoryId(undefined);
+                          setDueAt(undefined);
+                          setAssigneeChoice('iti');
+                          const me = session?.user?.id;
+                          if (me) setAssigneeId(me);
+                          setPersonalDescription((prev) => (prev.trim() ? prev : composeTaskDescription(title, details)));
+                        }}
+                        style={({ pressed }) => [
+                          styles.statusPill,
+                          {
+                            backgroundColor: visibility === 'personal' ? theme.colors.primary : '#FEF3C7',
+                            borderColor: visibility === 'personal' ? theme.colors.primary : '#FDE68A',
+                            opacity: pressed ? 0.92 : 1,
+                          },
+                        ]}
+                      >
+                        <Text style={{ color: visibility === 'personal' ? '#fff' : '#92400E', fontWeight: '900', fontSize: 11 }}>
+                          אישית
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
-                  {/* הוסר: בחירה בין משותפת/אישית (במחשב) */}
+                ) : null}
+
+                <View style={styles.topGrid}>
+                  {!isPersonalMode ? (
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.label}>כותרת המשימה</Text>
+                      <TextInput
+                        value={title}
+                        onChangeText={setTitle}
+                        placeholder="לדוגמה: הכנת מצגת לפגישת דירקטוריון"
+                        placeholderTextColor="#9CA3AF"
+                        style={styles.titleInput}
+                      />
+                    </View>
+                  ) : null}
                 </View>
 
                 <View style={styles.divider} />
 
-                <View style={styles.fieldsGrid}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.fieldLabel}>שייכות</Text>
-                    <SelectField
-                      styles={styles}
-                      label={scopeLabel}
-                      open={openSelect === 'scope'}
-                      onToggle={() => setOpenSelect((p) => (p === 'scope' ? null : 'scope'))}
-                    >
-                      <SelectItem
+                {!isPersonalMode ? (
+                  <View style={styles.fieldsGrid}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.fieldLabel}>שייכות</Text>
+                      <SelectField
                         styles={styles}
-                        label="כללי"
-                        active={taskScope !== 'client'}
-                        onPress={() => {
-                          setTaskScope('general');
-                          setClientId(undefined);
-                          setOpenSelect(null);
-                        }}
-                      />
-                      {clients.items.map((c) => (
+                        label={scopeLabel}
+                        open={openSelect === 'scope'}
+                        onToggle={() => setOpenSelect((p) => (p === 'scope' ? null : 'scope'))}
+                      >
                         <SelectItem
-                          key={c.id}
                           styles={styles}
-                          label={`לקוח: ${c.name}`}
-                          active={taskScope === 'client' && clientId === c.id}
+                          label="כללי"
+                          active={taskScope !== 'client'}
                           onPress={() => {
-                            setTaskScope('client');
-                            setClientId(c.id);
+                            setTaskScope('general');
+                            setClientId(undefined);
                             setOpenSelect(null);
                           }}
                         />
-                      ))}
-                    </SelectField>
-                  </View>
+                        {clients.items.map((c) => (
+                          <SelectItem
+                            key={c.id}
+                            styles={styles}
+                            label={`לקוח: ${c.name}`}
+                            active={taskScope === 'client' && clientId === c.id}
+                            onPress={() => {
+                              setTaskScope('client');
+                              setClientId(c.id);
+                              setOpenSelect(null);
+                            }}
+                          />
+                        ))}
+                      </SelectField>
+                    </View>
 
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.fieldLabel}>אחראי לביצוע</Text>
-                    <SelectField
-                      styles={styles}
-                      label={assigneeLabel}
-                      open={openSelect === 'assignee'}
-                      onToggle={() => setOpenSelect((p) => (p === 'assignee' ? null : 'assignee'))}
-                    >
-                      {users.map((u) => (
-                        <SelectItem
-                          key={u.id}
-                          styles={styles}
-                          label={u.displayName}
-                          active={assigneeId === u.id && assigneeChoice !== 'both'}
-                          onPress={() => {
-                            setAssigneeChoice('iti');
-                            setAssigneeId(u.id);
-                            setOpenSelect(null);
-                          }}
-                        />
-                      ))}
-                      {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
-                        <SelectItem
-                          styles={styles}
-                          label="שניהם"
-                          active={assigneeChoice === 'both'}
-                          onPress={() => {
-                            setAssigneeChoice('both');
-                            setOpenSelect(null);
-                          }}
-                        />
-                      ) : null}
-                    </SelectField>
-                  </View>
-
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.fieldLabel}>קטגוריה</Text>
-                    <SelectField
-                      styles={styles}
-                      label={categoryLabel}
-                      open={openSelect === 'category'}
-                      onToggle={() => setOpenSelect((p) => (p === 'category' ? null : 'category'))}
-                    >
-                      <SelectItem
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.fieldLabel}>אחראי לביצוע</Text>
+                      <SelectField
                         styles={styles}
-                        label="ללא קטגוריה"
-                        active={!categoryId}
-                        onPress={() => {
-                          setCategoryId(undefined);
-                          setOpenSelect(null);
-                        }}
-                      />
-                      {cats.items.map((c) => (
+                        label={assigneeLabel}
+                        open={openSelect === 'assignee'}
+                        onToggle={() => setOpenSelect((p) => (p === 'assignee' ? null : 'assignee'))}
+                      >
+                        {users.map((u) => (
+                          <SelectItem
+                            key={u.id}
+                            styles={styles}
+                            label={u.displayName}
+                            active={assigneeId === u.id && assigneeChoice !== 'both'}
+                            onPress={() => {
+                              setAssigneeChoice('iti');
+                              setAssigneeId(u.id);
+                              setOpenSelect(null);
+                            }}
+                          />
+                        ))}
+                        {!isProjectTask && taskScope === 'general' && visibility === 'shared' ? (
+                          <SelectItem
+                            styles={styles}
+                            label="שניהם"
+                            active={assigneeChoice === 'both'}
+                            onPress={() => {
+                              setAssigneeChoice('both');
+                              setOpenSelect(null);
+                            }}
+                          />
+                        ) : null}
+                      </SelectField>
+                    </View>
+
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.fieldLabel}>קטגוריה</Text>
+                      <SelectField
+                        styles={styles}
+                        label={categoryLabel}
+                        open={openSelect === 'category'}
+                        onToggle={() => setOpenSelect((p) => (p === 'category' ? null : 'category'))}
+                      >
                         <SelectItem
-                          key={c.id}
                           styles={styles}
-                          label={c.name}
-                          active={categoryId === c.id}
+                          label="ללא קטגוריה"
+                          active={!categoryId}
                           onPress={() => {
-                            setCategoryId(c.id);
+                            setCategoryId(undefined);
                             setOpenSelect(null);
                           }}
                         />
-                      ))}
-                    </SelectField>
-                  </View>
+                        {cats.items.map((c) => (
+                          <SelectItem
+                            key={c.id}
+                            styles={styles}
+                            label={c.name}
+                            active={categoryId === c.id}
+                            onPress={() => {
+                              setCategoryId(c.id);
+                              setOpenSelect(null);
+                            }}
+                          />
+                        ))}
+                      </SelectField>
+                    </View>
 
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.fieldLabel}>תאריך יעד</Text>
-                    <input
-                      type="date"
-                      value={dueAt ? formatYmdLocal(dueAt) : ''}
-                      onChange={(e) => {
-                        const v = e.currentTarget.value;
-                        if (!v) {
-                          setDueAt(undefined);
-                          return;
-                        }
-                        const d = new Date(`${v}T${isPersonalQuickCreate ? '00' : '18'}:00:00`);
-                        if (!Number.isNaN(d.getTime())) setDueAt(d.toISOString());
-                      }}
-                      style={dateInputStyle}
-                    />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.fieldLabel}>תאריך יעד</Text>
+                      <input
+                        type="date"
+                        value={dueAt ? formatYmdLocal(dueAt) : ''}
+                        onChange={(e) => {
+                          const v = e.currentTarget.value;
+                          if (!v) {
+                            setDueAt(undefined);
+                            return;
+                          }
+                          const d = new Date(`${v}T${isPersonalMode ? '00' : '18'}:00:00`);
+                          if (!Number.isNaN(d.getTime())) setDueAt(d.toISOString());
+                        }}
+                        style={dateInputStyle}
+                      />
+                    </View>
                   </View>
-                </View>
+                ) : null}
 
                 <View style={{ marginTop: 18, position: 'relative', zIndex: 0 }}>
-                  <Text style={styles.label}>תיאור המשימה</Text>
+                  <Text style={styles.label}>{isPersonalMode ? 'תיאור' : 'תיאור המשימה'}</Text>
                   <TextInput
-                    value={details}
-                    onChangeText={setDetails}
-                    placeholder="פרט כאן את מהות המשימה, שלבים לביצוע ודגשים חשובים..."
+                    value={isPersonalMode ? personalDescription : details}
+                    onChangeText={isPersonalMode ? setPersonalDescription : setDetails}
+                    placeholder={isPersonalMode ? 'מה צריך לעשות? כתוב כאן...' : 'פרט כאן את מהות המשימה, שלבים לביצוע ודגשים חשובים...'}
                     placeholderTextColor="#9CA3AF"
                     multiline
                     style={styles.textarea}

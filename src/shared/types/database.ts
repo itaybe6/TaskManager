@@ -136,17 +136,6 @@ export interface DbTransaction {
   updated_at: string;
 }
 
-export interface DbPriceListItem {
-  id: string;
-  title: string;
-  unit?: string | null;
-  unit_price: number;
-  currency: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface DbUserPushToken {
   id: string;
   user_id: string;
@@ -168,6 +157,29 @@ export interface DbNotification {
   read_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbClientNote {
+  id: string;
+  client_id: string;
+  author_user_id: string;
+  body: string;
+  is_resolved: boolean;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbClientNoteAttachment {
+  id: string;
+  note_id: string;
+  storage_path: string;
+  public_url: string;
+  file_name: string;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  created_at: string;
 }
 
 // Insert / Update helper types (client-side)
@@ -276,15 +288,6 @@ export type DbTransactionInsert = {
 };
 export type DbTransactionUpdate = Partial<DbTransactionInsert>;
 
-export type DbPriceListItemInsert = {
-  title: string;
-  unit?: string | null;
-  unit_price: number;
-  currency?: string; // default 'ILS'
-  is_active?: boolean; // default true
-};
-export type DbPriceListItemUpdate = Partial<DbPriceListItemInsert>;
-
 export type DbUserPushTokenInsert = {
   user_id: string;
   expo_push_token: string;
@@ -303,6 +306,26 @@ export type DbNotificationInsert = {
   read_at?: string | null;
 };
 export type DbNotificationUpdate = Partial<DbNotificationInsert>;
+
+export type DbClientNoteInsert = {
+  client_id: string;
+  author_user_id: string;
+  body: string;
+  is_resolved?: boolean; // default false
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+};
+export type DbClientNoteUpdate = Partial<DbClientNoteInsert>;
+
+export type DbClientNoteAttachmentInsert = {
+  note_id: string;
+  storage_path: string;
+  public_url: string;
+  file_name: string;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+};
+export type DbClientNoteAttachmentUpdate = Partial<DbClientNoteAttachmentInsert>;
 
 /**
  * Supabase-style `Database` type (useful for typed client).
@@ -362,11 +385,6 @@ export type Database = {
         Insert: DbTransactionInsert;
         Update: DbTransactionUpdate;
       };
-      price_list_items: {
-        Row: DbPriceListItem;
-        Insert: DbPriceListItemInsert;
-        Update: DbPriceListItemUpdate;
-      };
       user_push_tokens: {
         Row: DbUserPushToken;
         Insert: DbUserPushTokenInsert;
@@ -376,6 +394,16 @@ export type Database = {
         Row: DbNotification;
         Insert: DbNotificationInsert;
         Update: DbNotificationUpdate;
+      };
+      client_notes: {
+        Row: DbClientNote;
+        Insert: DbClientNoteInsert;
+        Update: DbClientNoteUpdate;
+      };
+      client_note_attachments: {
+        Row: DbClientNoteAttachment;
+        Insert: DbClientNoteAttachmentInsert;
+        Update: DbClientNoteAttachmentUpdate;
       };
     };
   };

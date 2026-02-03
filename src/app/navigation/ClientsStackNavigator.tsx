@@ -7,6 +7,7 @@ import { ProjectDetailsScreen } from '../../features/projects/ui/ProjectDetailsS
 import { ProjectUpsertScreen } from '../../features/projects/ui/ProjectUpsertScreen';
 import { TaskDetailsScreen } from '../../features/tasks/ui/TaskDetailsScreen';
 import { SettingsScreen } from '../../features/settings/ui/SettingsScreen';
+import { ClientNotesInboxScreen } from '../../features/clientNotes/ui/ClientNotesInboxScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export function ClientsStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* Keep route name identical to the tab route ("Clients") */}
       <Stack.Screen name="Clients" component={ClientsListScreen} />
+      <Stack.Screen name="ClientNotesInbox" component={ClientNotesInboxScreen} />
       <Stack.Screen name="ClientDetails" component={ClientDetailsScreen} />
       <Stack.Screen name="ClientUpsert" component={ClientUpsertScreen} />
       <Stack.Screen name="ProjectDetails" component={ProjectDetailsScreen} />

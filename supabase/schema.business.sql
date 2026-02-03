@@ -1,6 +1,6 @@
 -- Business schema extension for TaskManager
 -- Run AFTER `supabase/schema.sql`
--- Covers: clients, projects, documents, invoices, invoice_items, transactions, price_list_items
+-- Covers: clients, projects, documents, invoices, invoice_items, transactions
 -- And extends `public.tasks` with `project_id`.
 
 create extension if not exists pgcrypto;
@@ -286,26 +286,6 @@ for each row execute function public.set_updated_at();
 create index if not exists transactions_project_type_occurred_idx
 on public.transactions(project_id, type, occurred_at desc);
 
--- Price list items (מחירון)
-create table if not exists public.price_list_items (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  unit text null,
-  unit_price numeric(12,2) not null,
-  currency text not null default 'ILS',
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-drop trigger if exists price_list_items_set_updated_at on public.price_list_items;
-create trigger price_list_items_set_updated_at
-before update on public.price_list_items
-for each row execute function public.set_updated_at();
-
-create index if not exists price_list_items_active_idx
-on public.price_list_items(is_active);
-
 -- Helpful composite indexes
 create index if not exists projects_client_status_idx on public.projects(client_id, status);
 create index if not exists tasks_project_status_updated_idx on public.tasks(project_id, status, updated_at desc);
@@ -319,7 +299,6 @@ alter table public.documents enable row level security;
 alter table public.invoices enable row level security;
 alter table public.invoice_items enable row level security;
 alter table public.transactions enable row level security;
-alter table public.price_list_items enable row level security;
 
 do $$
 begin
@@ -377,14 +356,6 @@ begin
   end if;
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='transactions' and policyname='transactions_write_all') then
     create policy transactions_write_all on public.transactions for all using (true) with check (true);
-  end if;
-
-  -- PRICE LIST
-  if not exists (select 1 from pg_policies where schemaname='public' and tablename='price_list_items' and policyname='price_list_items_select_all') then
-    create policy price_list_items_select_all on public.price_list_items for select using (true);
-  end if;
-  if not exists (select 1 from pg_policies where schemaname='public' and tablename='price_list_items' and policyname='price_list_items_write_all') then
-    create policy price_list_items_write_all on public.price_list_items for all using (true) with check (true);
   end if;
 end $$;
 

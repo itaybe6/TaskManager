@@ -54,17 +54,31 @@ export async function supabaseRest<T>(args: {
 
   const url = buildUrl(cfg.url, args.path, args.query);
   const token = getSupabaseAccessToken();
-  const res = await fetch(url, {
-    method: args.method,
-    headers: {
-      apikey: cfg.anonKey,
-      Authorization: `Bearer ${token ?? cfg.anonKey}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(args.preferReturnRepresentation ? { Prefer: 'return=representation' } : {}),
-    },
-    body: args.body === undefined ? undefined : JSON.stringify(args.body),
-  });
+  const hasBody = args.body !== undefined && args.body !== null;
+  const headers: Record<string, string> = {
+    apikey: cfg.anonKey,
+    Authorization: `Bearer ${token ?? cfg.anonKey}`,
+    Accept: 'application/json',
+    ...(args.preferReturnRepresentation ? { Prefer: 'return=representation' } : {}),
+    // Avoid unnecessary CORS preflight on GET/DELETE when possible.
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+  };
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: args.method,
+      headers,
+      body: hasBody ? JSON.stringify(args.body) : undefined,
+    });
+  } catch (e: any) {
+    // Browsers often throw "TypeError: Failed to fetch" for network/CORS/mixed-content issues.
+    const msg = (e?.message ?? e?.toString?.() ?? 'Failed to fetch').toString();
+    const details = [
+      `url=${url}`,
+      'hint=If this is the browser, check DevTools Console/Network for CORS or blocked requests',
+    ].join('\n');
+    throw new SupabaseRestError(`Supabase network error: ${msg}`, 0, details);
+  }
 
   if (!res.ok) {
     let details: string | undefined;

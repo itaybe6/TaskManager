@@ -32,7 +32,7 @@ export function TasksListScreen({ navigation }: any) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
-  const { items, load, isLoading, query, setQuery } = useTasksStore();
+  const { items, load, isLoading, error, query, setQuery } = useTasksStore();
   const cats = useTaskCategoriesStore();
   const session = useAuthStore((s) => s.session);
   const scheme = useAppColorScheme();
@@ -78,9 +78,9 @@ export function TasksListScreen({ navigation }: any) {
 
   const chrome = useMemo(() => {
     return {
-      bg: theme.colors.background,
+      // Slightly tinted page background on web so cards stand out (light mode).
+      bg: isDark ? theme.colors.background : '#F6F7FB',
       surface: theme.colors.surface,
-      surface2: theme.colors.surfaceMuted,
       border: theme.colors.border,
       muted: theme.colors.textMuted,
       text: theme.colors.text,
@@ -101,25 +101,9 @@ export function TasksListScreen({ navigation }: any) {
   const gap = 12;
   const sidebarW = isDesktop ? 300 : 0;
   const contentW = Math.max(320, maxWidth - sidebarW - gap - padX * 2);
-  const cols = isDesktop ? clamp(Math.floor(contentW / 360), 2, 4) : 1;
   const pageLeft = Math.max(12, (width - maxWidth) / 2 + padX);
 
-  const kanban = useMemo(() => {
-    const todo: Task[] = [];
-    const done: Task[] = [];
-
-    for (const t of items) {
-      if (t.status === 'done') {
-        done.push(t);
-        continue;
-      }
-      todo.push(t);
-    }
-
-    return { todo, done } as const;
-  }, [items]);
-
-  const showKanban = isDesktop;
+  const cardMaxWidth = Math.min(920, Math.max(540, contentW));
 
   return (
     <WebSidebarLayout navigation={navigation} active="tasks">
@@ -138,69 +122,73 @@ export function TasksListScreen({ navigation }: any) {
             ) : null}
 
             <View style={{ flex: 1, minHeight: 0 }}>
-              {!showKanban ? (
-                <FlatList
-                  key={`cols-${cols}`}
-                  data={items}
-                  keyExtractor={(t) => t.id}
-                  numColumns={cols}
-                  columnWrapperStyle={cols > 1 ? { gap: 16, justifyContent: 'flex-end' } : undefined}
-                  contentContainerStyle={{ paddingBottom: 110, gap: 12, paddingHorizontal: padX, paddingTop: 8 }}
-                  refreshing={isLoading}
-                  onRefresh={load}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <View style={cols > 1 ? { flex: 1, maxWidth: `${100 / cols}%` } : undefined}>
-                      <KanbanTaskCard
-                        item={item}
-                        lane={item.status === 'done' ? 'done' : 'todo'}
-                        onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
-                        chrome={chrome}
-                      />
+              <FlatList
+                key="single-col"
+                data={items}
+                keyExtractor={(t) => t.id}
+                contentContainerStyle={{ paddingBottom: 110, gap: 12, paddingHorizontal: padX, paddingTop: 8 }}
+                refreshing={isLoading}
+                onRefresh={load}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <View style={{ width: '100%', maxWidth: cardMaxWidth, alignSelf: 'center' }}>
+                    <KanbanTaskCard
+                      item={item}
+                      lane={item.status === 'done' ? 'done' : 'todo'}
+                      onPress={() => navigation.navigate('TaskDetails', { id: item.id })}
+                      chrome={chrome}
+                    />
+                  </View>
+                )}
+                ListHeaderComponent={
+                  error ? (
+                    <View style={{ paddingHorizontal: padX, paddingBottom: 8 }}>
+                      <View
+                        style={[
+                          styles.errorBox,
+                          {
+                            backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+                            borderColor: isDark ? 'rgba(239, 68, 68, 0.22)' : '#FECACA',
+                          },
+                        ]}
+                      >
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={{ color: chrome.text, fontWeight: '900', textAlign: 'right' }}>שגיאה בטעינת משימות</Text>
+                          <Text style={{ color: chrome.muted, fontWeight: '700', textAlign: 'right' }} numberOfLines={3}>
+                            {String(error)}
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={load}
+                          style={({ pressed }) => [
+                            styles.retryBtn,
+                            {
+                              opacity: pressed ? 0.9 : 1,
+                              backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : '#fff',
+                              borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15, 23, 42, 0.10)',
+                            },
+                          ]}
+                        >
+                          <MaterialIcons name="refresh" size={18} color={theme.colors.primaryNeon} />
+                          <Text style={{ color: theme.colors.primaryNeon, fontWeight: '900' }}>נסה שוב</Text>
+                        </Pressable>
+                      </View>
                     </View>
-                  )}
-                  ListEmptyComponent={
-                    !isLoading ? (
+                  ) : null
+                }
+                ListEmptyComponent={
+                  !isLoading ? (
+                    <View style={{ width: '100%', maxWidth: cardMaxWidth, alignSelf: 'center' }}>
                       <View style={[styles.empty, { backgroundColor: chrome.surface, borderColor: chrome.border }]}>
                         <Text style={{ color: chrome.text, fontWeight: '900', textAlign: 'right' }}>אין משימות</Text>
                         <Text style={{ color: chrome.muted, fontWeight: '700', textAlign: 'right' }}>
                           צור משימה חדשה או שנה פילטרים.
                         </Text>
                       </View>
-                    ) : null
-                  }
-                />
-              ) : (
-                <View style={{ flex: 1, minHeight: 0, padding: 12, paddingRight: 12 }}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.kanbanRow}
-                    style={styles.kanbanScroll}
-                  >
-                    <KanbanColumn
-                      title="לביצוע"
-                      dotColor={theme.colors.danger}
-                      count={kanban.todo.length}
-                      lane="todo"
-                      items={kanban.todo}
-                      onAdd={() => navigation.navigate('TaskUpsert', { mode: 'create' })}
-                      onOpen={(id) => navigation.navigate('TaskDetails', { id })}
-                      chrome={chrome}
-                    />
-                    <KanbanColumn
-                      title="בוצע"
-                      dotColor={theme.colors.success}
-                      count={kanban.done.length}
-                      lane="done"
-                      items={kanban.done}
-                      onAdd={undefined}
-                      onOpen={(id) => navigation.navigate('TaskDetails', { id })}
-                      chrome={chrome}
-                    />
-                  </ScrollView>
-                </View>
-              )}
+                    </View>
+                  ) : null
+                }
+              />
             </View>
           </View>
         </View>
@@ -368,7 +356,7 @@ function KanbanColumn(props: {
   };
 }) {
   return (
-    <View style={kanbanStyles.col}>
+    <View style={[kanbanStyles.col, { backgroundColor: props.chrome.surface, borderColor: props.chrome.border }]}>
       <View style={kanbanStyles.colHeader}>
         <View style={kanbanStyles.colHeaderLeft}>
           <View style={[kanbanStyles.dot, { backgroundColor: props.dotColor }]} />
@@ -483,6 +471,25 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
   },
   empty: { padding: 12, borderRadius: 14, borderWidth: 1, gap: 6 },
+  errorBox: {
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  retryBtn: {
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
   fabMini: {
     position: 'absolute',
     width: 48,
@@ -497,13 +504,19 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   kanbanRow: {
+    // (deprecated) kept for backwards compatibility if referenced elsewhere
     gap: 12,
     paddingBottom: 90,
-    minWidth: 880,
     alignItems: 'stretch',
   },
-  kanbanScroll: {
+  kanbanWrap: { flex: 1, minHeight: 0, paddingTop: 12, paddingBottom: 16 },
+  kanbanGrid: {
     flex: 1,
+    minHeight: 0,
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+    gap: 14,
   },
 });
 
@@ -534,6 +547,8 @@ const cardStyles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
     borderRadius: 16,
     padding: 12,
     shadowColor: '#000',
@@ -585,11 +600,13 @@ const assigneeStyles = StyleSheet.create({
 
 const kanbanStyles = StyleSheet.create({
   col: {
-    width: 300,
-    minWidth: 280,
+    flex: 1,
+    minWidth: 360,
     minHeight: 0,
-    flexShrink: 0,
     alignSelf: 'stretch',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 12,
   },
   colHeader: {
     flexDirection: I18nManager.isRTL ? 'row' : 'row-reverse',
@@ -615,7 +632,7 @@ const kanbanStyles = StyleSheet.create({
   colScroll: {
     flex: 1,
     minHeight: 0,
-    paddingRight: 6,
+    paddingRight: 0,
   },
   colList: {
     gap: 12,
@@ -722,7 +739,6 @@ function TasksFiltersBar(props: {
   chrome: {
     bg: string;
     surface: string;
-    surface2: string;
     border: string;
     muted: string;
     text: string;
